@@ -453,6 +453,9 @@ class Regressor(object):
 
         """
 
+        from plot import plot_moll
+        from systematics import plot_systematic_from_map
+
         dir_output = os.path.join(self.dataframe.output, self.engine, 'Fig')
         if not os.path.isdir(dir_output):
             os.mkdir(dir_output)
@@ -469,16 +472,14 @@ class Regressor(object):
         w[self.dataframe.data_regressor['HPXPIXEL'].values] = 1.0/self.F
         targets_without_systematics = targets*w
 
-        plot_cart(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'))
-        plot_cart(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'))
+        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
+        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
         map_to_plot = w.copy()
         map_to_plot[map_to_plot == 0] = np.NaN
         map_to_plot = map_to_plot - 1
-        plot_cart(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'weight.pdf'))
-
-        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
-        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
         plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'weight_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
+
+        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.pixmap,  )
 
         plot_systematics(dir_to_save=base_directory, zone_to_plot=zone_name_list, suffixe=suffixe_save_name, suffixe_stars=suffixe,
                          release=release, version=version, Nside=Nside, fracarea_name=fracarea_name, ax_lim=ax_lim, remove_LMC=remove_LMC, clear_south=clear_south, nbins=15)
