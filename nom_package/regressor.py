@@ -20,9 +20,9 @@ from sklearn.neural_network import MLPRegressor
 
 import pickle
 
-from linear_regression import regression_least_square
+#from linear_regression import regression_least_square
 
-from plot import to_tex
+#from plot import to_tex
 
 from utils import deep_update
 
