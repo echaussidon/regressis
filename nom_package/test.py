@@ -40,7 +40,7 @@ dataframe.build_dataframe_photometry()
 
 regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=4)
 
-regressor.make_regression()
+regressor.make_regression(save_w_sys_map=True)
 
 
 ## il faut fixer la seeeed
@@ -50,3 +50,5 @@ regressor.make_regression()
 
 
 ## remarque pour els tiles on creera quand meme une colonne hxpxixel juste pour pouvoir faire le kfold et faire la speration pour la photometr --> prendre valuer au milieu de la petal --> ok (Le Nside n'aura plus d'importznce sauf pour al localisation)
+
+## implementer d'autre truc comme les valeurs de shapley la permutation importance ? ect ... --> créer des fonctions dans Regressor
