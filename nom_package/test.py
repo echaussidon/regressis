@@ -1,8 +1,6 @@
 from build_dataframe import DataFrame
 from regressor import Regressor
 
-import matplotlib.pyplot as plt
-
 # Set up logging
 from utils import setup_logging
 setup_logging()
@@ -15,7 +13,6 @@ output_dir = os.path.join(basedir, 'Res')
 version = 'SV3'
 tracer = 'QSO'
 suffixe_tracer = '' # Si on veut par exemple avoir QSO_newsel
-
 
 param_targets = dict()
 param_targets['Nside'] = 256

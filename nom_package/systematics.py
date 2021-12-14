@@ -7,46 +7,18 @@ logger = logging.getLogger("systematics")
 import numpy as np
 import warnings
 
+import fitsio
+from matplotlib.gridspec import GridSpec
+import matplotlib.pyplot as plt
+
+from desitarget.QA import _prepare_systematics
+from desitarget.io import load_pixweight_recarray
+
+from desi_footprint import DR9_footprint
+
 def f(x) : return 22.5 - 2.5*np.log10(5/np.sqrt(x))
 
 def g(y) : return 25*10**(2*(y - 22.5)/2.5)
-
-def _load_systematics_old():
-    """
-    Loads information for making systematics plots. Copy and adapt from desitarget
-    """
-
-    sysdict = {}
-
-    sysdict['STARDENS'] = [150., 4000., 'log10(Stellar Density) per sq. deg.']
-    sysdict['EBV'] = [0.001, 0.1, 'E(B-V)']
-
-    sysdict['PSFSIZE_G'] =[0., 3., 'PSF Size in g-band']
-    sysdict['PSFSIZE_R'] =[0., 3., 'PSF Size in r-band']
-    sysdict['PSFSIZE_Z'] =[0., 3., 'PSF Size in z-band']
-
-    sysdict['PSFDEPTH_G'] =[63., 6300., 'PSF Depth in g-band']
-    sysdict['PSFDEPTH_R'] =[25., 2500., 'PSF Depth in r-band']
-    sysdict['PSFDEPTH_Z'] =[4., 400., 'PSF Depth in z-band']
-
-    sysdict['PSFDEPTH_W1'] =[0.0, 30.0, 'PSF Depth in W1-band']
-    sysdict['PSFDEPTH_W2'] =[0.0, 7.0, 'PSF Depth in W2-band']
-    sysdict['SKYMAG_G'] = [23.0, 28.0, 'Sky Mag in g-band']
-    sysdict['SKYMAG_R'] = [23.0, 28.0, 'Sky Mag in r-band']
-    sysdict['SKYMAG_Z'] = [23.0, 28.0, 'Sky Mag in z-band']
-
-    sysdict['MJD_G'] = [56193, 58500, 'MJD in g-band']
-    sysdict['MJD_R'] = [57200, 58500, 'MJD in r-band']
-    sysdict['MJD_Z'] = [57300, 58100, 'MJD in z-band']
-
-    sysdict['EXPTIME_G'] = [30.0, 35000, 'Exposure time in g-band']
-    sysdict['EXPTIME_R'] = [30.0, 8500, 'Exposure time in r-band']
-    sysdict['EXPTIME_Z'] = [60.0, 16000, 'Exposure time in z-band']
-
-    sysdict['FRACAREA_13538'] = [0.01, 1., 'Fraction of pixel area covered for QSOs']
-
-
-    return sysdict
 
 def _load_systematics():
     sysdict = {}
@@ -123,7 +95,7 @@ def systematics_med(targets, fracarea, feature, feature_name, downclip=None, upc
         bins=feature[ksort[0::nbr_obj_bins]] #Here, get the bins from the data set (needed to be sorted)
         bins=np.append(bins,feature[ksort[-1]]) #add last point
         nbins = bins.size - 1 #OK
-    else: # create bin with fix size (depends on the up/downclip value)
+    else: # create bin with fix size (depends on the up/downclip value or minimal / maximal value of feature if up/downclip is too large)
         nbr_obj_bins, bins = np.histogram(feature, nbins)
 
     # find in which bins belong each feature value
@@ -146,23 +118,20 @@ def systematics_med(targets, fracarea, feature, feature_name, downclip=None, upc
 
     return bins, (bins[:-1] + bins[1:])/ 2, meds, nbr_obj_bins, err_meds
 
+
+
+
+
 ################################################################################
 ################################################################################
 
-import fitsio
-from matplotlib.gridspec import GridSpec
-import matplotlib.pyplot as plt
 
-from desitarget.QA import _prepare_systematics
-from desitarget.io import load_pixweight_recarray
 
-from systematics import _load_systematics, systematics_med
-from desi_footprint import DR9_footprint
-
-def plot_systematic_from_map(map_list, label_list, pixmap, savedir='', zone_to_plot=['North', 'South', 'Des'], Nside=256, remove_LMC=False, clear_south=True,
-
+def plot_systematic_from_map(map_list, label_list, savedir='', suffixe='', zone_to_plot=['North', 'South', 'Des'], Nside=256, remove_LMC=False, clear_south=True,
+                            pixweight_path='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.1/pixweight/main/resolve/dark/pixweight-1-dark.fits',
+                            sgr_stream_path='/global/homes/e/edmondc/Systematics/regressor/Sagittarius_Stream/sagittarius_stream_256.npy',
                             ax_lim=0.3, adaptative_binning=False, nobjects_by_bins=2000, show=False, save=True,
-                            n_bins=None):
+                            n_bins=None, correct_map_with_fracarea=True):
 
     #load DR9 region
     DR9 = DR9_footprint(Nside, remove_LMC=remove_LMC, clear_south=clear_south)
@@ -173,9 +142,14 @@ def plot_systematic_from_map(map_list, label_list, pixmap, savedir='', zone_to_p
     if Nside != 256:
         sgr_stream_tot = hp.ud_grade(sgr_stream_tot, Nside, order_in=True)
 
-    # correct map with the fracarea (for maskbit 1, 12, 13)
-    with np.errstate(divide='ignore'): # Ok --> on n'utilise pas les pixels qui n'ont pas été observé, ils sont en-dehors du footprint
-        map_list_tot = [mp/pixmap_tot['FRACAREA_12290'] for mp in map_list]
+    if correct_map_with_fracarea:
+        # correct map with the fracarea (for maskbit 1, 12, 13)
+        with np.errstate(divide='ignore'): # Ok --> on n'utilise pas les pixels qui n'ont pas été observé, ils sont en-dehors du footprint
+            logger.info("Correct maps with FRACAREA_12290 (Maskbit 1, 12, 13)")
+            map_list_tot = [mp/pixmap_tot['FRACAREA_12290'] for mp in map_list]
+    else:
+        logger.info("MAPS ARE NOT CORRECTED with fracarea_12290 (fracarea_12290 is only used in sysmeds to keep pixels which are reliable in term of DR9")
+        map_list_tot = map_list
 
     sysdic = _load_systematics()
     sysnames = list(sysdic.keys())
@@ -251,7 +225,7 @@ def plot_systematic_from_map(map_list, label_list, pixmap, savedir='', zone_to_p
                 ax = fig.add_subplot(gs[i//3, i%3])
                 ax.set_xlabel(plotlabel)
                 if i in [0, 3, 6]:
-                    ax.set_ylabel("Relative QSO density - 1")
+                    ax.set_ylabel("Relative density - 1")
                 ax.set_ylim([-ax_lim, ax_lim])
 
                 for mp, label in zip(map_list, label_list):
@@ -283,7 +257,7 @@ def plot_systematic_from_map(map_list, label_list, pixmap, savedir='', zone_to_p
                 ax_hist.legend(bbox_to_anchor=(-1.1, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large')
 
         if save:
-            plt.savefig(savedir+"{}_systematics_plot.pdf".format(key_word))
+            plt.savefig(savedir+"{}_systematics_plot_{}.pdf".format(key_word, suffixe))
         if show:
             plt.show()
         else:
