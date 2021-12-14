@@ -17,6 +17,7 @@ from sklearn.inspection import plot_partial_dependence
 from sklearn.feature_selection import RFE
 from sklearn.model_selection import train_test_split, GroupKFold, cross_val_predict
 from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import LinearRegression
 
 import pickle
 
@@ -82,30 +83,45 @@ def _load_feature_names(tracer, use_stream=None, use_stars=None):
     return feature_names
 
 
-def _load_rf_hyperparameters(updated_param=None):
-    param = {}
+def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
+    param = dict()
+    min_samples_leaf = {'North':20, 'South':20, 'Des':20, 'South_all':20, 'South_mid':20, 'South_pole':20, 'South_mid_no_des':20, 'Des_mid':20}
+    for key in min_samples_leaf:
+        param[key] = {'n_estimators':200, 'min_samples_leaf':min_samples_leaf[key], 'max_depth':None, 'max_leaf_nodes':None, 'n_jobs':n_jobs}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
+
 
 def _load_mlp_hyperparameters(updated_param=None):
-    param = {}
+    param = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
+             'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
 
+
 def _load_linear_hyperparameters(updated_param=None):
-    param = {}
+    param = dict()
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
+
+
+def _load_nfold(updated_param=None):
+    param = {'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_pole':5, 'Des_mid':3}
+    if not updated_param is None:
+        param = deep_update(param, updated_param)
+    return param
+
 
 class Regressor(object):
     """
     Implementation of the Systematic Correction based on template fitting regression
     """
 
-    def __init__(self, dataframe, engine, overwrite_regression=False, feature_names=None, updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None):
+    def __init__(self, dataframe, engine, overwrite_regression=False, feature_names=None,
+                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None, n_jobs=6):
         """
         Initialize :class:`Regressor`
 
@@ -132,57 +148,50 @@ class Regressor(object):
             self.feature_names = feature_names
 
         if self.engine == 'RF':
-            self.param_regressor = _load_rf_hyperparameters(updated_param_rf)
+            self.param_regressor = _load_rf_hyperparameters(updated_param_rf, n_jobs)
         elif self.engine == 'NN':
             self.param_regressor = _load_mlp_hyperparameters(updated_param_mlp)
         elif self.engine == 'Linear':
             self.param_regressor = _load_linear_hyperparameters(updated_param_linear)
 
-        #new = self.__class__.__new__(self.__class__)
-        #new.__dict__.update(self.__dict__)
+        self.nfold = _load_nfold(updated_nfold)
 
-        ## mettre tout ce qu'il faut ect ...
 
-    def make_regressor_kfold(X, Y, keep_to_train, pixels, Nside, nbr_fold=5, min_samples_leaf=20, plot_accuracy=True, dir_to_save='Res'):
-        if use_neural_network:
-            if dir_to_save[-6:-1] == 'North':
-                dict_ini_mlp = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8), 'max_iter': 6000, \
-                                'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
-            elif dir_to_save[-6:-1] == 'South':
-                dict_ini_mlp = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8), 'max_iter': 6000, \
-                                'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
-            else:
-                dict_ini_mlp = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8), 'max_iter': 6000, \
-                                'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
+    @staticmethod
+    def make_regressor_kfold(engine, nfold, param_regressor, X, Y, keep_to_train, pixels, Nside, dir_to_save, plot_accuracy=False):
+        if engine == 'NN':
             print(f"            ** USE NEURAL NETWORK")
-            print(f"                        *** Dict ini : {dict_ini_mlp}")
-            regressor = MLPRegressor(**dict_ini_mlp)
-        else:
+            print(f"                        *** Dict ini : {param_regressor}")
+            regressor = MLPRegressor(**param_regressor)
+        elif engine == 'RF':
             print(f"            ** USE RANDOM FOREST")
-            dict_ini_rf = {'n_estimators':200, 'min_samples_leaf':min_samples_leaf, 'max_depth':None, 'max_leaf_nodes':None, 'n_jobs':n_jobs}
-            print(f"                        *** Dict ini : {dict_ini_rf}")
-            regressor = RandomForestRegressor(**dict_ini_rf)
+            print(f"                        *** Dict ini : {param_regressor}")
+            regressor = RandomForestRegressor(**param_regressor)
+        elif engine == 'LINEAR':
+            print(f"            ** USE LINEAR")
+            print(f"                        *** Dict ini : {param_regressor}")
+            regressor = LinearRegression(**param_regressor)
 
-        kfold = GroupKFold(n_splits=nbr_fold)
+        kfold = GroupKFold(n_splits=nfold)
         size_group = 1000  * (Nside / 256)**2
         group = [i//size_group for i in range(pixels.size)]
 
         print("\nTrace les differents k-fold qui vont etre utilises ...")
         print("    * On utilise : {} avec un group_size = {}".format(kfold, size_group))
-        index = plot_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nbr_fold), save=True, savename=dir_to_save+'kfold_repartition.pdf')
+        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=dir_to_save+'kfold_repartition.png')
 
         Y_pred = np.zeros(pixels.size)
         X.reset_index(drop=True, inplace=True)
 
         print("\nPrediction pour le Fold :")
         start = time.time()
-        for i in range(nbr_fold):
+        for i in range(nfold):
             print("     * {}".format(i))
             fold_index = index[i]
             keep_to_train_fold = np.delete(keep_to_train, fold_index)
             print(f"[INFO] There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
-            if use_neural_network:
+            if engine == 'NN' or enfine == 'LINEAR':
                 print("                         *** On normalise et recentre le jeu d'entrainement ...")
                 print("[WARNING :] We normalize and center features on the training footprint fot his fold training !")
                 print("[WARNING :] Treat only features which are not the Sgr. stream (already normalized) !")
@@ -196,12 +205,13 @@ class Regressor(object):
 
             X_train, Y_train = X_fold.drop(fold_index)[keep_to_train_fold == 1], np.delete(Y, fold_index)[keep_to_train_fold == 1]
             regressor.fit(X_train, Y_train)
+            print("\nATTENTION METTRE LES ERREURS ICI BORDELLLL\n")
 
-            if not use_neural_network:
-                print("                         *** On sauvegarde importance feature ...")
-                df_feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names_pandas, columns=['feature importance']).sort_values('feature importance', ascending=False).to_pickle(dir_to_save+f"feature_importance_fold_{i}.pkl")
-                df_feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names_pandas)
-                df_feature_long = pd.melt(df_feature_all, var_name='feature name', value_name='values').to_pickle(dir_to_save+f"feature_importance_all_trees_fold_{i}.pkl")
+            # if engine == 'RF':
+            #     print("                         *** On sauvegarde importance feature ...")
+            #     df_feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names_pandas, columns=['feature importance']).sort_values('feature importance', ascending=False).to_pickle(dir_to_save+f"feature_importance_fold_{i}.pkl")
+            #     df_feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names_pandas)
+            #     df_feature_long = pd.melt(df_feature_all, var_name='feature name', value_name='values').to_pickle(dir_to_save+f"feature_importance_all_trees_fold_{i}.pkl")
 
             Y_pred_fold = np.zeros(fold_index.size)
             Y_pred_fold = regressor.predict(X_fold.iloc[fold_index])
@@ -209,10 +219,45 @@ class Regressor(object):
 
         print("    * Fait en : {:.3f} s".format(time.time() - start))
 
-        if plot_accuracy:
-            accuracy_plot_for_regressor(Y, Y_pred, pixels, keep_to_train, dir_to_save)
+        #if plot_accuracy:
+        #    accuracy_plot_for_regressor(Y, Y_pred, pixels, keep_to_train, dir_to_save)
 
         return Y_pred, index
+
+    @staticmethod
+    def build_kfold(Nside, kfold, group, pixels, title='', savename=None):
+        map = np.zeros(hp.nside2npix(Nside))
+        index = []
+        i = 1
+        print(kfold)
+        print("\n \n")
+        for index_train, index_test in kfold.split(pixels, groups=group):
+            index += [index_test]
+            map[pixels[index_test]] = i
+            i = i+1
+        map[map == 0] = np.NaN
+        #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
+        plt.figure(1)
+        map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(11,7))
+        map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
+        ax.set_xlim(-60, 300)
+        ax.xaxis.set_ticks(np.arange(-60, 330, 30))
+        plt.gca().invert_xaxis()
+        ax.set_xlabel('R.A. [deg]')
+        ax.set_ylim(-90, 90)
+        ax.yaxis.set_ticks(np.arange(-90, 120, 30))
+        ax.set_ylabel('Dec. [deg]')
+        ax.grid(True, alpha=0.8, linestyle=':')
+        plt.title(title)
+
+        if not savename is None:
+            plt.savefig(savename)
+        plt.close()
+
+        return index
 
 
     def make_regression(self):
@@ -238,20 +283,20 @@ class Regressor(object):
             if not os.path.isdir(os.path.join(self.dataframe.output, self.engine, zone_name)):
                 os.mkdir(os.path.join(self.dataframe.output, self.engine, zone_name))
 
-            zone = self.dataframe.data_regressor[zone_name_to_column_name[zone_name]].values
-            # nbr_fold_zone, min_samples_leaf_zone = nbr_fold[zone_name], min_samples_leaf[zone_name]
+            zone = self.dataframe.data_regressor[zone_name_to_column_name[zone_name]].values ## mask array
 
             print(f"\n######################\n    {zone_name} : \n")
             X = features[zone]
             Y = norm_targets[zone]
-            pixels_zone = pixels[zone]
             keep_to_train_zone = keep_to_train[zone]
+            pixels_zone = pixels[zone]
             print(f"Sample size {zone_name}: {keep_to_train_zone.sum()}\nTotal Sample Size: {keep_to_train.sum()}\nTraining Fraction: {keep_to_train_zone.sum()/keep_to_train.sum():.2%}\n")
-            # if not use_linear_correction:
-            #    F[zone], fold_index[zone_name] = make_regressor_kfold(X, Y, keep_to_train_zone, pixels_zone, Nside,
-            #                                                          nbr_fold_zone, min_samples_leaf_zone, dir_to_save=base_directory+f'{zone_name}/', plot_accuracy=False)
-            #else:
-            #    F[zone] = make_polynomial_regressor(X, Y, keep_to_train_zone, regulator)
+            if not False: ##demander linear without kfold
+                #F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.engine, self.nfold[zone_name], self.param_regressor[zone_name],
+                                                                                X, Y, keep_to_train_zone, pixels_zone, self.dataframe.Nside,
+                                                                                os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=False)
+            else:
+                F[zone] = make_polynomial_regressor(X, Y, keep_to_train_zone, regulator)
             print("et on appelle la regressoin --> mettre a jour les argumetns de la fonction --> puis on fait les dessins")
             print("attention il faut faire un truc pour sauvegarder les differents arbres + l'output ne doit pas etre une carte dans un premier temps --> on pourra le demander ensuite ")
 
@@ -291,37 +336,7 @@ class Regressor(object):
     #     """
     #
     #
-    # def plot_kfold(Nside, kfold, group, pixels, title='', save=True, savename='Res/kfold.pdf'):
-    #     map = np.zeros(hp.nside2npix(Nside))
-    #     index = []
-    #     i = 1
-    #     for index_train, index_test in kfold.split(pixels, groups=group):
-    #         index += [index_test]
-    #         map[pixels[index_test]] = i
-    #         i = i+1
-    #     map[map == 0] = np.NaN
-    #     #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
-    #     plt.figure(1)
-    #     map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
-    #     plt.close()
-    #
-    #     fig, ax = plt.subplots(figsize=(11,7))
-    #     map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
-    #     ax.set_xlim(-60, 300)
-    #     ax.xaxis.set_ticks(np.arange(-60, 330, 30))
-    #     plt.gca().invert_xaxis()
-    #     ax.set_xlabel('R.A. [deg]')
-    #     ax.set_ylim(-90, 90)
-    #     ax.yaxis.set_ticks(np.arange(-90, 120, 30))
-    #     ax.set_ylabel('Dec. [deg]')
-    #     ax.grid(True, alpha=0.8, linestyle=':')
-    #     plt.title(title)
-    #
-    #     if save:
-    #         plt.savefig(savename)
-    #     plt.close()
-    #
-    #     return index
+
     #
     #
     # def accuracy_plot_for_regressor(Y, Y_pred, pixels, keep_to_train, dir_to_save):

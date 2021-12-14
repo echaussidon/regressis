@@ -29,6 +29,8 @@ param_targets['clear_south'] = True
 # param_targets['region'] = ['North', 'South', 'Des'] #(default)
 # region available = ['North', 'South', 'South_pole', 'Des_mid'], ['North', 'South_mid', 'South_pole'], ['North', 'South_all']
 
+param_targets['region'] = ['Des']
+
 dataframe = DataFrame(version, tracer, data_dir, output_dir, suffixe_tracer=suffixe_tracer, **param_targets)
 
 dataframe.load_feature_from_healpix()
@@ -36,7 +38,7 @@ dataframe.load_target_from_healpix(data_dir=data_dir, load_fracarea=False)
 
 dataframe.build_dataframe_photometry()
 
-regressor = Regressor(dataframe, engine='RF', overwrite_regression=True)
+regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=4)
 
 regressor.make_regression()
 
@@ -45,3 +47,6 @@ regressor.make_regression()
 
 ## AJOUTER LES ERREURS DANS .fit(X, Y, Y_err) --< ultra ilportante
 ## mettre aussi linear dans le k-fold correctement p(avec scikit leanr et garder entrainment complet avec minuit)
+
+
+## remarque pour els tiles on creera quand meme une colonne hxpxixel juste pour pouvoir faire le kfold et faire la speration pour la photometr --> prendre valuer au milieu de la petal --> ok (Le Nside n'aura plus d'importznce sauf pour al localisation)

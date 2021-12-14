@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 #from desitarget.geomask import hp_in_box ## --> on va copier la fonction pour eviter une dependance
 
-#import matplotlib.pyplot as plt
 
 ## mettre commentaire cii
 zone_name_to_column_name = {'North':'ISNORTH', 'South':'ISSOUTHWITHOUTDES', 'Des':'ISDES',
