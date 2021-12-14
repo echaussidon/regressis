@@ -178,7 +178,7 @@ class Regressor(object):
 
         print("\nTrace les differents k-fold qui vont etre utilises ...")
         print("    * On utilise : {} avec un group_size = {}".format(kfold, size_group))
-        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=dir_to_save+'kfold_repartition.png')
+        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=os.path.join(dir_to_save,'kfold_repartition.png'))
 
         Y_pred = np.zeros(pixels.size)
         X.reset_index(drop=True, inplace=True)
@@ -191,7 +191,7 @@ class Regressor(object):
             keep_to_train_fold = np.delete(keep_to_train, fold_index)
             print(f"[INFO] There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
-            if engine == 'NN' or enfine == 'LINEAR':
+            if engine == 'NN' or engine == 'LINEAR':
                 print("                         *** On normalise et recentre le jeu d'entrainement ...")
                 print("[WARNING :] We normalize and center features on the training footprint fot his fold training !")
                 print("[WARNING :] Treat only features which are not the Sgr. stream (already normalized) !")
@@ -229,8 +229,6 @@ class Regressor(object):
         map = np.zeros(hp.nside2npix(Nside))
         index = []
         i = 1
-        print(kfold)
-        print("\n \n")
         for index_train, index_test in kfold.split(pixels, groups=group):
             index += [index_test]
             map[pixels[index_test]] = i
@@ -291,12 +289,12 @@ class Regressor(object):
             keep_to_train_zone = keep_to_train[zone]
             pixels_zone = pixels[zone]
             print(f"Sample size {zone_name}: {keep_to_train_zone.sum()}\nTotal Sample Size: {keep_to_train.sum()}\nTraining Fraction: {keep_to_train_zone.sum()/keep_to_train.sum():.2%}\n")
-            #if not False: ##demander linear without kfold
-                #F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.engine, self.nfold[zone_name], self.param_regressor[zone_name],
-                #                                                                X, Y, keep_to_train_zone, pixels_zone, self.dataframe.Nside,
-                #                                                                os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=False)
-            #else:
-            #    F[zone] = make_polynomial_regressor(X, Y, keep_to_train_zone, regulator)
+            if not False: ##demander linear without kfold
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.engine, self.nfold[zone_name], self.param_regressor[zone_name],
+                                                                                X, Y, keep_to_train_zone, pixels_zone, self.dataframe.Nside,
+                                                                                os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=False)
+            else:
+               F[zone] = make_polynomial_regressor(X, Y, keep_to_train_zone, regulator)
             print("et on appelle la regressoin --> mettre a jour les argumetns de la fonction --> puis on fait les dessins")
             print("attention il faut faire un truc pour sauvegarder les differents arbres + l'output ne doit pas etre une carte dans un premier temps --> on pourra le demander ensuite ")
 

@@ -257,10 +257,10 @@ class DataFrame(object):
 
         print("Nombre de lignes (ie) de pixels qui posent probleme apres remplissage : ", features[features.isnull().T.any().T].index.size)
         print("\n \n \n ")
+        # Attention pixels est déjà dans features
         self.data_regressor = pd.concat([features,
                                           pd.DataFrame(normalized_targets, index=pixels, columns=['NORMALIZED_TARGETS']),
-                                          pd.DataFrame(keep_to_train, index=pixels, columns=['KEEP_TO_TRAIN']),
-                                          pixels], axis=1)
+                                          pd.DataFrame(keep_to_train, index=pixels, columns=['KEEP_TO_TRAIN'])], axis=1)
 
 
     def build_dataframe_global():
