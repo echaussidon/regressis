@@ -38,10 +38,13 @@ dataframe.load_target_from_healpix(data_dir=data_dir, load_fracarea=False)
 
 dataframe.build_dataframe_photometry()
 
-regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=4)
+regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=6)
 
-regressor.make_regression(save_w_sys_map=True)
+regressor.make_regression()
 
+regressor.save_w_sys_map()
+
+regressor.plot_maps_and_systematics()
 
 ## il faut fixer la seeeed
 

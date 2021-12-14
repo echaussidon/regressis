@@ -171,7 +171,7 @@ class Regressor(object):
             os.mkdir(os.path.join(self.dataframe.output, self.engine))
 
 
-    def make_regression(self, save_w_sys_map=False):
+    def make_regression(self):
         """
         Compute systematic weight with the selected engine method and choosen hyperparameters.
         TO DO
@@ -207,10 +207,19 @@ class Regressor(object):
             else:
                 F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
 
+        #write result in class
+        self.F = F
+        self.fold_index = fold_index
+
         ## F ici c'est le nombre de data qu'il y avait en entrée (#petal_pixel ou de healpix pixel --> ne change rien)
+        ## F ici c'est Y_pred lorsque Y est normalisé --> c'est donc 1/w
 
-        self.plot_maps_and_systematics(save_w_sys_map)
+        ## fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
+        #print("    * Sauvegarde des index des kfold sous forme d'un dictionnaire...")
+        #outfile = open(base_directory+'fold_index.pkl','wb')
+        #pickle.dump(fold_index, outfile)
+        #outfile.close()
 
 
     @staticmethod
@@ -350,6 +359,21 @@ class Regressor(object):
         return model(X, *param)
 
 
+    def save_w_sys_map():
+        """
+            On sauvegarde une carte healpix des poids pour aller plus vite
+        """
+
+        print("ATTENTION chaque zone sont normalisées indéependeaent --> ecrire la fonction pour récupérer chaque densité moyenne ! --> on veut se mettre au tour de quelle valeur moyenen ?")
+
+        w = np.zeros(hp.nside2npix(self.dataframe.Nside))
+        w[self.dataframe.data_regressor['HPXPIXEL'].values] = 1.0/self.F
+
+        filename_weight_save = os.path.join(self.dataframe.output, self.engine, f'{self.dataframe.version}_{self.dataframe.tracer}_{imaging_weight}_{self.dataframe.Nside}.npy')
+        logger.info(f"Save photometric weight in a healpix map with {self.dataframe.Nside} here: {filename_weight_save}")
+        np.save(filename_weight_save, w)
+
+
     @staticmethod
     def plot_efficiency(Y, Y_pred, pixels, keep_to_train, dir_to_save, fold_index):
         """
@@ -422,53 +446,39 @@ class Regressor(object):
         plt.close()
 
 
-    def plot_maps_and_systematics(self, save_w_sys_map=False):
+    def plot_maps_and_systematics(self, max_plot_cart=400):
         """
         Make plot to check and validate the regression.
         the result are saved in the corresponding outpur directory
 
         """
 
+        dir_output = os.path.join(self.dataframe.output, self.engine, 'Fig')
+        if not os.path.isdir(dir_output):
+            os.mkdir(dir_output)
+        logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
+
 #        if not (use_MLP_correction or use_linear_correction or add_suffixe[:5] == '_zone'):
 #            print("\n    * On fait un beau dessin pour feature importances (cf notebook for more detail plots)...")
 #            plot_feature_importances(base_directory, feature_names_pandas, feature_names_pandas_to_plot, zone_name_list, nbr_fold)
 
-        print("\n######################\nCorrection des systematiques ...\n")
-        #ne pas oublier le fracarea !! --> on en sauvegarde jamais avec le fracarea
-        fracarea = self.dataframe['FRACAREA'] -->
-        targets = targets / (pixel_area*fracarea)
-        targets[~(targets >= 0)] = 0 #pour remettre a zero les pixels non obeserves.
-        targets[footprint == 0] = np.NaN
+        targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.Nside, degrees=True)*self.dataframe.fracarea)
+        targets[self.dataframe.pixmap['FOOTPRINT'] == 0] = np.NaN
 
-        w = np.zeros(Npix)
-        w[pixels] = 1.0/F
+        w = np.zeros(hp.nside2npix(self.dataframe.Nside))
+        w[self.dataframe.data_regressor['HPXPIXEL'].values] = 1.0/self.F
         targets_without_systematics = targets*w
 
-        filename_targets_save = base_directory + "targets_without_systematics_pixel_{}_{}{}.npy".format(release, Nside, suffixe_save_name)
-        filename_weight_save = base_directory + "systematics_correction{}.npy".format(suffixe_save_name)
-        print("\n######################\nSauvegarde de la densite corrigee des effets des systematiques dans : {}".format(filename_targets_save))
-        print("    * Sauvegarde des poids pour corriger les effets des systematiques dans : {}".format(filename_weight_save))
-        np.save(filename_targets_save, targets_without_systematics*(pixel_area*fracarea))
-        np.save(filename_weight_save, w)
-
-        print("    * Sauvegarde des index des kfold sous forme d'un dictionnaire...")
-        outfile = open(base_directory+'fold_index.pkl','wb')
-        pickle.dump(fold_index, outfile)
-        outfile.close()
-
-        print("\n######################\nCalcul et affichage des systematiques ...\n")
-        print("[WARNING :] MAP ARE UD_GRADE TO 64 TO SEE SOMETHING!")
-
-        plot_cart(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=base_directory + 'Systematics/targerts.pdf')
-        plot_cart(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=base_directory + 'Systematics/targets_without_systematics.pdf')
+        plot_cart(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'))
+        plot_cart(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'))
         map_to_plot = w.copy()
         map_to_plot[map_to_plot == 0] = np.NaN
         map_to_plot = map_to_plot - 1
-        plot_cart(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=base_directory+'Systematics/weight.pdf')
+        plot_cart(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'weight.pdf'))
 
-        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=base_directory + 'Systematics/targerts_projected.pdf', galactic_plane=True, ecliptic_plane=True)
-        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=base_directory + 'Systematics/targets_without_systematics_projected.pdf', galactic_plane=True, ecliptic_plane=True)
-        plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.3, max=0.3, label='weight - 1',  show=False, savename=base_directory+'Systematics/weight_projected.pdf', galactic_plane=True, ecliptic_plane=True)
+        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
+        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
+        plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'weight_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
 
         plot_systematics(dir_to_save=base_directory, zone_to_plot=zone_name_list, suffixe=suffixe_save_name, suffixe_stars=suffixe,
                          release=release, version=version, Nside=Nside, fracarea_name=fracarea_name, ax_lim=ax_lim, remove_LMC=remove_LMC, clear_south=clear_south, nbins=15)
