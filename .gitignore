@@ -1,0 +1,8 @@
+# Compiled files
+*__pycache__
+
+# iPython
+*.ipynb_checkpoints
+
+# Mac OSX
+*.DS_Store
