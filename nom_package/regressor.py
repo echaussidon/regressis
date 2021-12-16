@@ -316,11 +316,11 @@ class Regressor(object):
 
             if save_info:
                 #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
-                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(save_dir, f"kfold_efficiency_fold_{fold_index}.png"))
+                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(save_dir, f"kfold_efficiency_fold_{i}.png"))
 
                 #for more complex plot as importance feature ect ..--> save regressor and
                 if os.path.basename(os.path.dirname(save_dir)) == 'RF':
-                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance_fold_{fold_index}.png"))
+                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance_fold_{i}.png"))
 
 
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
