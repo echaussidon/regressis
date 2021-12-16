@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding: utf-8
 # Author : Edmond Chaussidon (CEA)
 
@@ -35,6 +36,11 @@ def _load_feature_names(tracer, use_stream=None, use_stars=None):
         Use Sgr. Stream as template f--> default = False for all and True for QSO
     use_stars: bool
         Use stardens as template --> default = True
+
+    Returns:
+    --------
+    feature_names: array like
+        list of feature names which will be use during the regression
     """
 
     feature_names = ['STARDENS', 'EBV', 'STREAM',
@@ -73,6 +79,21 @@ def _load_feature_names(tracer, use_stream=None, use_stars=None):
 
 
 def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
+    """
+    Load pre-defined hyperparameters for RF regressor for each specific region available. Can be updated with updated_param.
+
+    Parameters
+    ----------
+    updated_param: dict
+        updated param (e.g) {'North':{n_estimators:20}}
+    n_jobs: int
+        To parallelize the computation
+
+    Returns
+    -------
+    param: dict
+        dictionary containing for each region a dictionary of the hyper-parameters for the regressor
+    """
     param = dict()
     min_samples_leaf = {'North':20, 'South':20, 'Des':20, 'South_all':20, 'South_mid':20, 'South_pole':20, 'South_mid_no_des':20, 'Des_mid':20}
     for key in min_samples_leaf:
@@ -83,21 +104,64 @@ def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
 
 
 def _load_mlp_hyperparameters(updated_param=None):
-    param = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
-             'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
+    """
+    Load pre-defined hyperparameters for NN regressor for each specific region available. Can be updated with updated_param.
+
+    Parameters
+    ----------
+    updated_param: dict
+        updated param (e.g) {'North':{max_iter:20}}
+
+    Returns
+    -------
+    param: dict
+        dictionary containing for each region a dictionary of the hyper-parameters for the regressor
+    """
+    param = dict()
+    for key in ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']:
+        param[key] = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
+                      'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
 
 
 def _load_linear_hyperparameters(updated_param=None):
+    """
+    Load pre-defined hyperparameters for Linear regressor for each specific region available. Can be updated with updated_param.
+
+    Parameters
+    ----------
+    updated_param: dict
+        updated param (e.g) {'North':{n_jobs:2}}
+
+    Returns
+    -------
+    param: dict
+        dictionary containing for each region a dictionary of the hyper-parameters for the regressor
+    """
     param = dict()
+    for key in ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']:
+        param[key] = {}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
 
 
 def _load_nfold(updated_param=None):
+    """
+    Load pre-defined number of folds for each specific region available. Can be updated with updated_param.
+
+    Parameters
+    ----------
+    updated_param: dict
+        updated param (e.g) {'North':2}
+
+    Returns
+    -------
+    param: dict
+        dictionary containing for each region the number of folds for the Kfold training
+    """
     param = {'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_pole':5, 'Des_mid':3}
     if not updated_param is None:
         param = deep_update(param, updated_param)
@@ -111,14 +175,32 @@ class Regressor(object):
 
     def __init__(self, dataframe, engine, feature_names=None, use_Kfold=True,
                  updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
-                 overwrite_regression=False, save_regressor=False, n_jobs=6):
+                 compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6):
         """
         Initialize :class:`Regressor`
 
         Parameters
         ----------
-
+        dataframe: DataFrame class
+            dataframe containing all the information to run the regressor. the method build_for_regressor need to be run before calling a Regressor class.
+        engine: str
+            either RF (Random Forest), NN (Multi layer perceptron), LINEAR  --> all based on scikit-learn implementation
+        feature_names: str array
+            List of feature name used during the regression. By default load feature name from _load_feature_names
+        use_Kfold: bool
+            If True use Kfold computation. If False do not use Machine learning algortihm and compute Linear regression with iminuit on all the dataset.
+        updated_param_rf / updated_param_mlp / updated_param_linear : dict
+            Containing specific hyperparameters to update the default values loaded in _load_rf_hyperparameters / _load_mlp_hyperparameters / _load_linear_hyperparameters
+        compute_permutation_importance: bool
+            Compute and plot the permutation importance for inspection. It has to be compared with giny importance from Random Forest regressor.
+        overwrite_regression: bool
+            If True overwrite file in the output directory (if it is set in dataframe otherwise nothing happens). If false an error is raised and the ouput directory need to be deleted.
+        save_regressor: bool
+            If True regressor for each region and each fold is saved. WARNING: it is space consuming. Can be usefull to make some more advanced plots.
+        n_jobs: int
+            To parallelize the Random Forest computation.
         """
+
         self.dataframe = dataframe
         self.engine = engine
         if feature_names is None:
@@ -152,6 +234,7 @@ class Regressor(object):
         else:
             self.feature_names_to_normalize = None
 
+        self.compute_permutation_importance = compute_permutation_importance
         self.save_regressor = save_regressor
         self.nfold = _load_nfold(updated_nfold)
 
@@ -172,7 +255,7 @@ class Regressor(object):
     def make_regression(self):
         """
         Compute systematic weight with the selected engine method and choosen hyperparameters.
-        TO DO
+        Some plots for inspection and the kfold index are saved if an output directory is given in the dataframe.
         """
         # To store the result of the regression (ie) Y_pred
         F = np.zeros(self.dataframe.pixels.size)
@@ -203,16 +286,16 @@ class Regressor(object):
             if self.use_Kfold:
                 if self.engine == 'NN':
                     regressor = MLPRegressor(**self.param_regressor[zone_name])
-                    normalized_data = True
+                    normalized_data, use_sample_weight = True, False
                 elif self.engine == 'RF':
                     regressor = RandomForestRegressor(**self.param_regressor[zone_name])
-                    normalized_data = False
+                    normalized_data, use_sample_weight = False, True
                 elif self.engine == 'LINEAR':
                     regressor = LinearRegression(**self.param_regressor[zone_name])
-                    normalized_data = True
+                    normalized_data, use_sample_weight = True, True
 
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside, self.feature_names,
-                                                                                save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, use_sample_weight, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside, self.feature_names,
+                                                                                save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir, compute_permutation_importance=self.compute_permutation_importance)
             else:
                 # do not use k-fold training --> standard linear regression with iminuit
                 F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
@@ -223,14 +306,20 @@ class Regressor(object):
         self.fold_index = fold_index # fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
         if save_info and (not fold_index is None):
-            logger.info("        * Sauvegarde des index des kfold sous forme d'un dictionnaire...")
+            logger.info(f"        * Save Kfold index in {os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib')}")
             dump(self.fold_index, os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib'))
 
 
     @staticmethod
     def build_kfold(Nside, kfold, group, pixels, title='', savename=None):
         """
-        TODO
+        Build the index use for the Kfold
+
+
+        Return:
+        -------
+        
+
         """
         map = np.zeros(hp.nside2npix(Nside))
         index = []
@@ -265,7 +354,8 @@ class Regressor(object):
 
 
     @staticmethod
-    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, pixels, feature_names_to_normalize, Nside, feature_names, save_regressor=False, save_info=False, save_dir=''):
+    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, use_sample_weight, pixels, feature_names_to_normalize, Nside, feature_names,
+                             save_regressor=False, save_info=False, save_dir='', compute_permutation_importance=False):
         """
         TO DO
         """
@@ -293,7 +383,7 @@ class Regressor(object):
             logger.info(f"          --> There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
             if normalized_data:
-                logger.info("          --> We normalize and center all features (execpt the STREAM) on the training footprint fot his fold training ! (all )")
+                logger.info("          --> We normalize and center all features (execpt the STREAM) on the training footprint")
                 X_fold = X.copy()
                 X_fold[feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean())/X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std()
                 logger.info(f"          --> Mean of Mean and Std on all features : {X_fold[feature_names_to_normalize].mean().mean()} -- {X_fold[feature_names_to_normalize].std().mean()}")
@@ -303,8 +393,11 @@ class Regressor(object):
                 X_fold = X.copy()
 
             X_train, Y_train = X_fold.drop(fold_index)[keep_to_train_fold == 1], np.delete(Y, fold_index)[keep_to_train_fold == 1]
-            logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
-            regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
+            if use_sample_weight:
+                logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
+                regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
+            else:
+                regressor.fit(X_train, Y_train)
 
             Y_pred_fold = np.zeros(fold_index.size)
             Y_pred_fold = regressor.predict(X_fold.iloc[fold_index])
@@ -322,6 +415,8 @@ class Regressor(object):
                 if os.path.basename(os.path.dirname(save_dir)) == 'RF':
                     Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance_fold_{i}.png"))
 
+                if compute_permutation_importance:
+                    Regressor.plot_permutation_importance(regressor, X_fold.iloc[fold_index], Y[fold_index], feature_names, os.path.join(save_dir, f"permutation_importance_fold_{i}.png"))
 
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
         return Y_pred, index
@@ -423,7 +518,7 @@ class Regressor(object):
 
         fig = plt.figure(figsize=(10, 6))
         ax = plt.gca()
-        sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=2, color=".2", palette=sns.color_palette("husl", 8))
+        sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=2, color="k")
         sns.boxplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], fliersize=0.6, palette=sns.color_palette("husl", 8), linewidth=0.6, showmeans=False, meanline=True, meanprops=dict(linestyle=':', linewidth=1.5, color='dimgrey'))
         ax.set_xticklabels(feature_importance.index[:max_num_feature], rotation=15, ha='center')
         ax.set_xlabel("")
@@ -431,6 +526,27 @@ class Regressor(object):
         plt.tight_layout()
         plt.savefig(path_to_save)
 
+
+    @staticmethod
+    def plot_permutation_importance(regressor, X, Y, feature_names, path_to_save):
+        """
+            Compute and plot the permutation importance
+        """
+        from sklearn.inspection import permutation_importance
+        ## The permutation feature importance is defined to be the decrease in a model score
+        ## when a single feature value is randomly shuffled. This procedure breaks the relationship
+        ## between the feature and the target, thus the drop in the model score is indicative of
+        ## how much the model depends on the feature.
+        logger.info("          --> Compute permutation importance feature ...")
+        permut_importance = permutation_importance(regressor, X, Y, n_repeats=15, random_state=4)
+
+        fig, ax = plt.subplots()
+        ax.boxplot(permut_importance.importances.T, vert=False, labels=feature_names)
+        ax.set_title(f"Permutation Importance")
+        ax.set_ylabel("Features")
+        fig.tight_layout()
+        plt.savefig(path_to_save)
+        plt.close()
 
     def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,):
         """
@@ -463,35 +579,3 @@ class Regressor(object):
         plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobjects_by_bins=nobjects_by_bins, n_bins=n_bins,
                                   cut_fracarea=cut_fracarea, min_fracarea=min_fracarea, max_fracarea=max_fracarea)
-
-
-
-        #                     if not use_neural_network:
-        #     print("                         *** On sauvegarde importance feature (gini)...")
-        #     df_feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names_pandas, columns=['feature importance']).sort_values('feature importance', ascending=False).to_pickle(dir_to_save+f"feature_importance_fold_{i}.pkl")
-        #     df_feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names_pandas)
-        #     df_feature_long = pd.melt(df_feature_all, var_name='feature name', value_name='values').to_pickle(dir_to_save+f"feature_importance_all_trees_fold_{i}.pkl")
-        #
-        # if compute_permutation_importance:
-        #     ## The permutation feature importance is defined to be the decrease in a model score
-        #     ## when a single feature value is randomly shuffled. This procedure breaks the relationship
-        #     ## between the feature and the target, thus the drop in the model score is indicative of
-        #     ## how much the model depends on the feature.
-        #     print("                         *** On sauvegarde permutation importance feature ...")
-        #     permut_importance = permutation_importance(regressor, X_fold.iloc[fold_index], Y[fold_index], n_repeats=15, random_state=4)
-        #
-        #     a_file = open(dir_to_save+f"permutation_importance_fold_{i}.pkl", "wb")
-        #     pickle.dump(permut_importance, a_file)
-        #     a_file.close()
-        #
-        #     fig, ax = plt.subplots()
-        #     #sorted_idx = permut_importance.importances_mean.argsort()
-        #     ax.boxplot(permut_importance.importances.T,
-        #                vert=False, labels=feature_names_pandas_to_plot)
-        #     ax.set_title(f"Permutation Importance for Fold {i}")
-        #     ax.set_ylabel("Features")
-        #     fig.tight_layout()
-        #     plt.savefig(dir_to_save+f"permutation_importance_fold_{i}.png")
-        #     plt.close()
-        #
-        #     from sklearn.inspection import permutation_importance
