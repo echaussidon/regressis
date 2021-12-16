@@ -42,6 +42,8 @@ class DR9_footprint(object):
 
         self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '../Data/Legacy_Imaging_DR9_footprint_256.fits'))
 
+        #finir mmetre les autrew ect
+
 
     def update_map(self, pixmap, mask_des=False):
         """

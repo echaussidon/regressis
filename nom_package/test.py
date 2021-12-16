@@ -1,4 +1,4 @@
-from build_dataframe import DataFrame
+from build_dataframe import PhotometricDataFrame
 from regressor import Regressor
 
 # Set up logging
@@ -10,38 +10,35 @@ basedir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 data_dir = os.path.join(basedir, 'Data') #where the pixmap + sgr are
 output_dir = os.path.join(basedir, 'Res')
 
+print(" ")
+
 version = 'SV3'
 tracer = 'QSO'
 suffixe_tracer = '' # Si on veut par exemple avoir QSO_newsel
 
 param_targets = dict()
 param_targets['Nside'] = 256
-
 param_targets['use_median'] = False
-param_targets['use_new_norm'] = False
-
+param_targets['use_new_norm'] = True
 param_targets['remove_LMC'] = True
 param_targets['clear_south'] = True
-
 # param_targets['region'] = ['North', 'South', 'Des'] #(default)
 # region available = ['North', 'South', 'South_pole', 'Des_mid'], ['North', 'South_mid', 'South_pole'], ['North', 'South_all']
 
-param_targets['region'] = ['Des']
+#param_targets['region'] = ['Des']
 
-dataframe = DataFrame(version, tracer, data_dir, output_dir, suffixe_tracer=suffixe_tracer, **param_targets)
+dataframe = PhotometricDataFrame(version, tracer, data_dir, output_dir, suffixe_tracer=suffixe_tracer, **param_targets)
+dataframe.set_features()
+print(" ")
+dataframe.set_targets()
+print(" ")
+dataframe.build_for_regressor(selection_on_fracarea=True)
 
-dataframe.load_feature_from_healpix()
-dataframe.load_target_from_healpix(data_dir=data_dir, load_fracarea=False)
-
-dataframe.build_dataframe_photometry()
-
-regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=6)
-
-regressor.make_regression()
-
-regressor.save_w_sys_map()
-
-regressor.plot_maps_and_systematics()
+# regressor = Regressor(dataframe, engine='RF', overwrite_regression=True, n_jobs=6, save_regressor=False, updated_nfold={'Des':2})
+# regressor.make_regression()
+#
+# regressor.save_w_sys_map()
+# regressor.plot_maps_and_systematics(max_plot_cart=400)
 
 ## il faut fixer la seeeed
 

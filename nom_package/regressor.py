@@ -13,18 +13,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #plt.style.use('~/Software/desi_ec/ec_style.mplstyle')
 
-from utils import deep_update, regression_least_square
+from utils import deep_update, regression_least_square, zone_name_to_column_name
 
 from sklearn.model_selection import GroupKFold, cross_val_predict
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression
 from joblib import dump, load
-
-## mettre commentaire cii
-zone_name_to_column_name = {'North':'ISNORTH', 'South':'ISSOUTHWITHOUTDES', 'Des':'ISDES',
-                            'South_mid':'ISSOUTHMID', 'South_pole':'ISSOUTHPOLE',
-                            'Des_mid':'ISDESMID', 'South_all':'ISSOUTH'}
 
 
 def _load_feature_names(tracer, use_stream=None, use_stars=None):
@@ -114,7 +109,7 @@ class Regressor(object):
     """
 
     def __init__(self, dataframe, engine, overwrite_regression=False, feature_names=None, use_Kfold=True,
-                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None, n_jobs=6):
+                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None, save_regressor=False, n_jobs=6):
         """
         Initialize :class:`Regressor`
 
@@ -156,6 +151,7 @@ class Regressor(object):
         else:
             self.feature_names_to_normalize = None
 
+        self.save_regressor = save_regressor
         self.nfold = _load_nfold(updated_nfold)
 
         # create the corresponding output folder --> put here since self.engine can be update with use_Kfold = False
@@ -165,7 +161,7 @@ class Regressor(object):
                 sys.exit()
             else:
                 logger.warning(f"OVERWRITE {os.path.join(self.dataframe.output, self.engine)}")
-                logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT:\nrm -rf {os.path.join(self.dataframe.output, self.engine)}")
+                logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT: rm -rf {os.path.join(self.dataframe.output, self.engine)}")
         else:
             logger.info(f"The output folder {os.path.join(self.dataframe.output, self.engine)} is created")
             os.mkdir(os.path.join(self.dataframe.output, self.engine))
@@ -177,14 +173,12 @@ class Regressor(object):
         TO DO
         """
 
-        pixels = self.dataframe.data_regressor['HPXPIXEL'].values
-        norm_targets = self.dataframe.data_regressor['NORMALIZED_TARGETS'].values
-        keep_to_train = self.dataframe.data_regressor['KEEP_TO_TRAIN'].values
-        features = self.dataframe.data_regressor[self.feature_names]
+        pixels = self.dataframe.features['HPXPIXEL'].values
+        norm_targets = self.dataframe.density
+        keep_to_train = self.dataframe.keep_to_train
+        features = self.dataframe.features[self.feature_names]
 
-        footprint = np.zeros(hp.nside2npix(self.dataframe.Nside)) ## IL FAUDRA CHANGER CA lrosuqe l'on travaillera avec les petals ...
-        footprint[pixels] = 1
-
+        #result of the regression (ie) Y_pred
         F = np.zeros(pixels.size)
         fold_index = dict()
 
@@ -192,7 +186,7 @@ class Regressor(object):
             if not os.path.isdir(os.path.join(self.dataframe.output, self.engine, zone_name)):
                 os.mkdir(os.path.join(self.dataframe.output, self.engine, zone_name))
 
-            zone = self.dataframe.data_regressor[zone_name_to_column_name[zone_name]].values ## mask array
+            zone = self.dataframe.footprint[zone_name_to_column_name(zone_name)].values ## mask array
 
             print(f"\n######################\n    {zone_name} : \n")
             X = features[zone]
@@ -203,7 +197,7 @@ class Regressor(object):
             if self.use_Kfold: ##demander linear without kfold
                 F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.engine, self.nfold[zone_name], self.param_regressor[zone_name],
                                                                                 X, Y, keep_to_train_zone, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside,
-                                                                                os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=True)
+                                                                                self.save_regressor, os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=True)
             else:
                 F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
 
@@ -260,10 +254,13 @@ class Regressor(object):
 
 
     @staticmethod
-    def make_regressor_kfold(engine, nfold, param_regressor, X, Y, keep_to_train, pixels, feature_names_to_normalize, Nside, dir_to_save, plot_accuracy=False):
+    def make_regressor_kfold(engine, nfold, param_regressor, X, Y, keep_to_train, pixels, feature_names_to_normalize, Nside, save_regressor, dir_to_save, plot_accuracy=False):
         """
         TO DO
         """
+
+        ##mettre le minimal de truc ici --> tout doit aller dans la loop
+
         if engine == 'NN':
             print(f"            ** USE NEURAL NETWORK")
             print(f"                        *** Dict ini : {param_regressor}")
@@ -317,7 +314,8 @@ class Regressor(object):
             Y_pred[fold_index] = Y_pred_fold
 
             # Save regressor
-            dump(regressor, os.path.join(dir_to_save, f'regressor_fold_{i}.joblib'))
+            if save_regressor:
+                dump(regressor, os.path.join(dir_to_save, f'regressor_fold_{i}.joblib'))
 
             #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
             Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], dir_to_save, i)
@@ -359,7 +357,7 @@ class Regressor(object):
         return model(X, *param)
 
 
-    def save_w_sys_map():
+    def save_w_sys_map(self):
         """
             On sauvegarde une carte healpix des poids pour aller plus vite
         """
@@ -367,9 +365,9 @@ class Regressor(object):
         print("ATTENTION chaque zone sont normalisées indéependeaent --> ecrire la fonction pour récupérer chaque densité moyenne ! --> on veut se mettre au tour de quelle valeur moyenen ?")
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))
-        w[self.dataframe.data_regressor['HPXPIXEL'].values] = 1.0/self.F
+        w[self.dataframe.features['HPXPIXEL'].values] = 1.0/self.F
 
-        filename_weight_save = os.path.join(self.dataframe.output, self.engine, f'{self.dataframe.version}_{self.dataframe.tracer}_{imaging_weight}_{self.dataframe.Nside}.npy')
+        filename_weight_save = os.path.join(self.dataframe.output, self.engine, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.Nside}.npy')
         logger.info(f"Save photometric weight in a healpix map with {self.dataframe.Nside} here: {filename_weight_save}")
         np.save(filename_weight_save, w)
 
@@ -446,7 +444,7 @@ class Regressor(object):
         plt.close()
 
 
-    def plot_maps_and_systematics(self, max_plot_cart=400):
+    def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,):
         """
         Make plot to check and validate the regression.
         the result are saved in the corresponding outpur directory
@@ -466,20 +464,19 @@ class Regressor(object):
 #            plot_feature_importances(base_directory, feature_names_pandas, feature_names_pandas_to_plot, zone_name_list, nbr_fold)
 
         targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.Nside, degrees=True)*self.dataframe.fracarea)
-        targets[self.dataframe.pixmap['FOOTPRINT'] == 0] = np.NaN
+        targets[~self.dataframe.footprint['FOOTPRINT']] = np.NaN
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))
-        w[self.dataframe.data_regressor['HPXPIXEL'].values] = 1.0/self.F
+        w[self.dataframe.features['HPXPIXEL'].values] = 1.0/self.F
         targets_without_systematics = targets*w
+        #
+        # plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
+        # plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
+        # map_to_plot = w.copy()
+        # map_to_plot[map_to_plot == 0] = np.NaN
+        # map_to_plot = map_to_plot - 1
+        # plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
 
-        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
-        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
-        map_to_plot = w.copy()
-        map_to_plot[map_to_plot == 0] = np.NaN
-        map_to_plot = map_to_plot - 1
-        plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'weight_projected.pdf'), galactic_plane=True, ecliptic_plane=True)
-
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.pixmap,  )
-
-        plot_systematics(dir_to_save=base_directory, zone_to_plot=zone_name_list, suffixe=suffixe_save_name, suffixe_stars=suffixe,
-                         release=release, version=version, Nside=Nside, fracarea_name=fracarea_name, ax_lim=ax_lim, remove_LMC=remove_LMC, clear_south=clear_south, nbins=15)
+        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
+                                  ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobjects_by_bins=nobjects_by_bins, n_bins=n_bins,
+                                  cut_fracarea=cut_fracarea, min_fracarea=min_fracarea, max_fracarea=max_fracarea)
