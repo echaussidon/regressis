@@ -12,6 +12,7 @@ logger = logging.getLogger("desi_footprint")
 import os
 
 import healpy as hp
+import numpy as np
 import fitsio
 
 from desitarget.geomask import hp_in_box
@@ -61,7 +62,10 @@ class DR9_footprint(object):
             pixmap[hp_in_box(256, [120, 150, -45, -10], inclusive=True) + hp_in_box(256, [150, 180, -45, -15], inclusive=True) + hp_in_box(256, [210, 240, -20, -12], inclusive=True)] = False
 
         if self.mask_around_des:
-            pixmap[hp_in_box(256, [-120, 0, -90, -18.5], inclusive=True) + hp_in_box(256, [0, 120, -90, -17.4], inclusive=True)] = False
+            mask_around_des = np.zeros(hp.nside2npix(256), dtype=bool)
+            mask_around_des[hp_in_box(256, [-120, 0, -90, -18.5], inclusive=True) + hp_in_box(256, [0, 120, -90, -17.4], inclusive=True)] = True
+            mask_around_des[self.data['ISDES']] = False
+            pixmap[mask_around_des] = False
 
         if self.Nside != 256:
             pixmap = hp.ud_grade(pixmap, self.Nside, order_in='NESTED')

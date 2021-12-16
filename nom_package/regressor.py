@@ -108,8 +108,9 @@ class Regressor(object):
     Implementation of the Systematic Correction based on template fitting regression
     """
 
-    def __init__(self, dataframe, engine, overwrite_regression=False, feature_names=None, use_Kfold=True,
-                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None, save_regressor=False, n_jobs=6):
+    def __init__(self, dataframe, engine, feature_names=None, use_Kfold=True,
+                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
+                 overwrite_regression=False, save_regressor=False, n_jobs=6):
         """
         Initialize :class:`Regressor`
 
@@ -146,7 +147,6 @@ class Regressor(object):
                 self.feature_names_to_normalize = self.feature_names.copy()
                 self.feature_names_to_normalize.remove('STREAM')
             else:
-                print("ccccc")
                 self.feature_names_to_normalize = self.feature_names.copy()
         else:
             self.feature_names_to_normalize = None
@@ -154,66 +154,76 @@ class Regressor(object):
         self.save_regressor = save_regressor
         self.nfold = _load_nfold(updated_nfold)
 
-        # create the corresponding output folder --> put here since self.engine can be update with use_Kfold = False
-        if os.path.isdir(os.path.join(self.dataframe.output, self.engine)):
-            if not overwrite_regression:
-                logger.error(f"{os.path.join(self.dataframe.output, self.engine)} already exist and overwrite_regression is set as {overwrite_regression}")
-                sys.exit()
+        ## IF not self.dataframe.output is None --> save figure and info !!
+        if not self.dataframe.output is None:
+            # create the corresponding output folder --> put here since self.engine can be update with use_Kfold = False
+            if os.path.isdir(os.path.join(self.dataframe.output, self.engine)):
+                if not overwrite_regression:
+                    logger.error(f"{os.path.join(self.dataframe.output, self.engine)} already exist and overwrite_regression is set as {overwrite_regression}")
+                    sys.exit()
+                else:
+                    logger.warning(f"OVERWRITE {os.path.join(self.dataframe.output, self.engine)}")
+                    logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT: rm -rf {os.path.join(self.dataframe.output, self.engine)}")
             else:
-                logger.warning(f"OVERWRITE {os.path.join(self.dataframe.output, self.engine)}")
-                logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT: rm -rf {os.path.join(self.dataframe.output, self.engine)}")
-        else:
-            logger.info(f"The output folder {os.path.join(self.dataframe.output, self.engine)} is created")
-            os.mkdir(os.path.join(self.dataframe.output, self.engine))
-
+                logger.info(f"The output folder {os.path.join(self.dataframe.output, self.engine)} is created")
+                os.mkdir(os.path.join(self.dataframe.output, self.engine))
 
     def make_regression(self):
         """
         Compute systematic weight with the selected engine method and choosen hyperparameters.
         TO DO
         """
-
-        pixels = self.dataframe.features['HPXPIXEL'].values
-        norm_targets = self.dataframe.density
-        keep_to_train = self.dataframe.keep_to_train
-        features = self.dataframe.features[self.feature_names]
-
-        #result of the regression (ie) Y_pred
-        F = np.zeros(pixels.size)
+        # To store the result of the regression (ie) Y_pred
+        F = np.zeros(self.dataframe.pixels.size)
         fold_index = dict()
 
         for zone_name in self.dataframe.region:
-            if not os.path.isdir(os.path.join(self.dataframe.output, self.engine, zone_name)):
-                os.mkdir(os.path.join(self.dataframe.output, self.engine, zone_name))
+            if not self.dataframe.output is None:
+                save_info = True
+                save_dir = os.path.join(self.dataframe.output, self.engine, zone_name)
+                if not os.path.isdir(save_dir):
+                    os.mkdir(save_dir)
+            else:
+                save_info = False
+                save_dir = None
 
             zone = self.dataframe.footprint[zone_name_to_column_name(zone_name)].values ## mask array
 
-            print(f"\n######################\n    {zone_name} : \n")
-            X = features[zone]
-            Y = norm_targets[zone]
-            keep_to_train_zone = keep_to_train[zone]
-            pixels_zone = pixels[zone]
-            print(f"Sample size {zone_name}: {keep_to_train_zone.sum()}\nTotal Sample Size: {keep_to_train.sum()}\nTraining Fraction: {keep_to_train_zone.sum()/keep_to_train.sum():.2%}\n")
-            if self.use_Kfold: ##demander linear without kfold
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.engine, self.nfold[zone_name], self.param_regressor[zone_name],
-                                                                                X, Y, keep_to_train_zone, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside,
-                                                                                self.save_regressor, os.path.join(self.dataframe.output, self.engine, zone_name), plot_accuracy=True)
+            logger.info(f"  ** {zone_name} :")
+            X = self.dataframe.features[self.feature_names][zone]
+            Y = self.dataframe.density[zone]
+            keep_to_train_zone = self.dataframe.keep_to_train[zone]
+            pixels_zone = self.dataframe.pixels[zone]
+
+            logger.info(f"    --> Sample size {zone_name}: {keep_to_train_zone.sum()} -- Total Sample Size: {self.dataframe.keep_to_train.sum()} -- Training Fraction: {keep_to_train_zone.sum()/self.dataframe.keep_to_train.sum():.2%}")
+            logger.info(f"    --> use Kfold training ? {self.use_Kfold}")
+            logger.info(f"    --> Engine: {self.engine} with params: {self.param_regressor[zone_name]}")
+
+            if self.use_Kfold:
+                if self.engine == 'NN':
+                    regressor = MLPRegressor(**self.param_regressor[zone_name])
+                    normalized_data = True
+                elif self.engine == 'RF':
+                    regressor = RandomForestRegressor(**self.param_regressor[zone_name])
+                    normalized_data = False
+                elif self.engine == 'LINEAR':
+                    regressor = LinearRegression(**self.param_regressor[zone_name])
+                    normalized_data = True
+
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside,
+                                                                                save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
+                # do not use k-fold training --> standard linear regression with iminuit
                 F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
+                fold_index = None
 
-        #write result in class
-        self.F = F
-        self.fold_index = fold_index
+        # save evalutaion and fold_index
+        self.F = F # Y_pred for every entry in each zone
+        self.fold_index = fold_index # fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
-        ## F ici c'est le nombre de data qu'il y avait en entrée (#petal_pixel ou de healpix pixel --> ne change rien)
-        ## F ici c'est Y_pred lorsque Y est normalisé --> c'est donc 1/w
-
-        ## fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
-
-        #print("    * Sauvegarde des index des kfold sous forme d'un dictionnaire...")
-        #outfile = open(base_directory+'fold_index.pkl','wb')
-        #pickle.dump(fold_index, outfile)
-        #outfile.close()
+        if save_info and (not fold_index is None):
+            logger.info("        * Sauvegarde des index des kfold sous forme d'un dictionnaire...")
+            dump(self.fold_index, os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib'))
 
 
     @staticmethod
@@ -229,84 +239,70 @@ class Regressor(object):
             map[pixels[index_test]] = i
             i = i+1
         map[map == 0] = np.NaN
-        #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
-        plt.figure(1)
-        map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
-        plt.close()
-
-        fig, ax = plt.subplots(figsize=(11,7))
-        map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
-        ax.set_xlim(-60, 300)
-        ax.xaxis.set_ticks(np.arange(-60, 330, 30))
-        plt.gca().invert_xaxis()
-        ax.set_xlabel('R.A. [deg]')
-        ax.set_ylim(-90, 90)
-        ax.yaxis.set_ticks(np.arange(-90, 120, 30))
-        ax.set_ylabel('Dec. [deg]')
-        ax.grid(True, alpha=0.8, linestyle=':')
-        plt.title(title)
 
         if not savename is None:
+            #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
+            plt.figure(1)
+            map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
+            plt.close()
+
+            fig, ax = plt.subplots(figsize=(11,7))
+            map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
+            ax.set_xlim(-60, 300)
+            ax.xaxis.set_ticks(np.arange(-60, 330, 30))
+            plt.gca().invert_xaxis()
+            ax.set_xlabel('R.A. [deg]')
+            ax.set_ylim(-90, 90)
+            ax.yaxis.set_ticks(np.arange(-90, 120, 30))
+            ax.set_ylabel('Dec. [deg]')
+            ax.grid(True, alpha=0.8, linestyle=':')
+            plt.title(title)
             plt.savefig(savename)
-        plt.close()
+            plt.close()
 
         return index
 
 
     @staticmethod
-    def make_regressor_kfold(engine, nfold, param_regressor, X, Y, keep_to_train, pixels, feature_names_to_normalize, Nside, save_regressor, dir_to_save, plot_accuracy=False):
+    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, pixels, feature_names_to_normalize, Nside, save_regressor=False, save_info=False, save_dir=''):
         """
         TO DO
         """
 
-        ##mettre le minimal de truc ici --> tout doit aller dans la loop
-
-        if engine == 'NN':
-            print(f"            ** USE NEURAL NETWORK")
-            print(f"                        *** Dict ini : {param_regressor}")
-            regressor = MLPRegressor(**param_regressor)
-        elif engine == 'RF':
-            print(f"            ** USE RANDOM FOREST")
-            print(f"                        *** Dict ini : {param_regressor}")
-            regressor = RandomForestRegressor(**param_regressor)
-        elif engine == 'LINEAR':
-            print(f"            ** USE LINEAR")
-            print(f"                        *** Dict ini : {param_regressor}")
-            regressor = LinearRegression(**param_regressor)
-
         kfold = GroupKFold(n_splits=nfold)
         size_group = 1000  * (Nside / 256)**2
         group = [i//size_group for i in range(pixels.size)]
+        logger.info(f"    --> We use: {kfold} Kfold with group_size={size_group}")
 
-        print("\nTrace les differents k-fold qui vont etre utilises ...")
-        print("    * On utilise : {} avec un group_size = {}".format(kfold, size_group))
-        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=os.path.join(dir_to_save,'kfold_repartition.png'))
+        if save_info:
+            savename = os.path.join(save_dir, 'kfold_repartition.png')
+        else:
+            savename = None
+        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=savename)
 
         Y_pred = np.zeros(pixels.size)
         X.reset_index(drop=True, inplace=True)
 
-        print("\nPrediction pour le Fold :")
+        logger.info("    --> Train and eval for the fold :")
         start = time.time()
         for i in range(nfold):
-            print("     * {}".format(i))
+            logger.info(f"        * {i}")
             fold_index = index[i]
             keep_to_train_fold = np.delete(keep_to_train, fold_index)
-            print(f"[INFO] There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
+            logger.info(f"          --> There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
-            if engine == 'NN' or engine == 'LINEAR':
-                print("                         *** On normalise et recentre le jeu d'entrainement ...")
-                print("[WARNING :] We normalize and center features on the training footprint fot his fold training !")
-                print("[WARNING :] Treat only features which are not the Sgr. stream (already normalized) !")
+            if normalized_data:
+                logger.info("          --> We normalize and center all features (execpt the STREAM) on the training footprint fot his fold training ! (all )")
                 X_fold = X.copy()
                 X_fold[feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean())/X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std()
-                print(f"[TEST :] Mean of Mean and Std on all features : {X_fold[feature_names_to_normalize].mean().mean()} -- {X_fold[feature_names_to_normalize].std().mean()}")
-                print(f"[TEST :] Mean of Mean and Std on the fold-training features : {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean().mean()} -- {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std().mean()}\n")
+                logger.info(f"          --> Mean of Mean and Std on all features : {X_fold[feature_names_to_normalize].mean().mean()} -- {X_fold[feature_names_to_normalize].std().mean()}")
+                logger.info(f"          --> Mean of Mean and Std on the fold-training features : {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean().mean()} -- {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std().mean()}\n")
             else:
-                print("                         *** On NE normalise et recentre PAS le jeu d'entrainement ...")
+                logger.info("          --> We do NOT normalize feature in the training set --> not NEEDED")
                 X_fold = X.copy()
 
             X_train, Y_train = X_fold.drop(fold_index)[keep_to_train_fold == 1], np.delete(Y, fold_index)[keep_to_train_fold == 1]
-            logger.info("The training is done with sample_weight=1/np.sqrt(Y_train)")
+            logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
             regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
 
             Y_pred_fold = np.zeros(fold_index.size)
@@ -315,12 +311,14 @@ class Regressor(object):
 
             # Save regressor
             if save_regressor:
-                dump(regressor, os.path.join(dir_to_save, f'regressor_fold_{i}.joblib'))
+                dump(regressor, os.path.join(save_dir, f'regressor_fold_{i}.joblib'))
 
-            #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
-            Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], dir_to_save, i)
+            if save_info:
+                #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
+                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], save_dir, i)
 
-        logger.info("    * Fait en : {:.3f} s".format(time.time() - start))
+
+        logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
         return Y_pred, index
 
 
@@ -333,16 +331,16 @@ class Regressor(object):
             return par[0]*np.ones(x.shape[0]) + np.array(par[1:]).dot(x.T)
 
         nbr_features = X.shape[1]
-        print(f"[TEST] Number of features used : {nbr_features}")
+        logger.info(f"[TEST] Number of features used : {nbr_features}")
         nbr_params = nbr_features + 1
 
-        print(f"            ** Taille de l'échantillon (non nan value): {np.sum(Y>0)}")
-        print(f"            ** Information sur normalized targets : Mean = {np.nanmean(Y)} and Std = {np.nanstd(Y)}")
-        print("[WARNING] We normalize and center features on the training footprint (don't forget to normalized also the non training footprint)")
-        print(feature_names_to_normalize)
+        logger.info(f"            ** Taille de l'échantillon (non nan value): {np.sum(Y>0)}")
+        logger.info(f"            ** Information sur normalized targets : Mean = {np.nanmean(Y)} and Std = {np.nanstd(Y)}")
+        logger.info("[WARNING] We normalize and center features on the training footprint (don't forget to normalized also the non training footprint)")
+        logger.info(feature_names_to_normalize)
         X.loc[:, feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize][keep_to_train == 1].mean())/X[feature_names_to_normalize][keep_to_train == 1].std()
         X_train, Y_train = X[keep_to_train == 1], Y[keep_to_train == 1]
-        print(f"[TEST] Mean of Mean and Std training features (should be 0, 1): {X_train[feature_names_to_normalize].mean().mean()} -- {X_train[feature_names_to_normalize].std().mean()}\n")
+        logger.info(f"[TEST] Mean of Mean and Std training features (should be 0, 1): {X_train[feature_names_to_normalize].mean().mean()} -- {X_train[feature_names_to_normalize].std().mean()}\n")
 
         dict_ini = {f'a{i}': 0 if i==0 else 0 for i in range(0, nbr_params)}
         dict_ini.update({f'error_a{i}': 0.001 for i in range(0, nbr_params)})
@@ -352,24 +350,37 @@ class Regressor(object):
 
         param = regression_least_square(model, param_regressor['regulator'], X_train, Y_train, Y_cov_inv, nbr_params, **dict_ini)
 
-        print(f"[TEST] Mean of systematics_correction : {model(X_train, *param).mean()} \n")
+        logger.info(f"[TEST] Mean of systematics_correction : {model(X_train, *param).mean()} \n")
 
         return model(X, *param)
 
 
-    def save_w_sys_map(self):
+    def build_w_sys_map(self, return_map=True, savemap=True, savedir=None):
         """
-            On sauvegarde une carte healpix des poids pour aller plus vite
+            We save the healpix systematic maps
+
+            Parameter:
+            ----------
+            return_map: bool
+                if true return the sysematic weight map
+            savemap: bool
+                if True, save the map in savedir
+            savedir: str
+                path where to save the map, if None use default path
         """
 
-        print("ATTENTION chaque zone sont normalisées indéependeaent --> ecrire la fonction pour récupérer chaque densité moyenne ! --> on veut se mettre au tour de quelle valeur moyenen ?")
+        w = np.zeros(hp.nside2npix(self.dataframe.Nside))*np.NaN
+        w[self.dataframe.pixels] = 1.0/self.F
 
-        w = np.zeros(hp.nside2npix(self.dataframe.Nside))
-        w[self.dataframe.features['HPXPIXEL'].values] = 1.0/self.F
+        if savemap:
+            if savedir is None:
+                savedir = os.path.join(self.dataframe.output, self.engine)
+            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.Nside}.npy')
+            logger.info(f"Save photometric weight in a healpix map with {self.dataframe.Nside} here: {filename_weight_save}")
+            np.save(filename_weight_save, w)
 
-        filename_weight_save = os.path.join(self.dataframe.output, self.engine, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.Nside}.npy')
-        logger.info(f"Save photometric weight in a healpix map with {self.dataframe.Nside} here: {filename_weight_save}")
-        np.save(filename_weight_save, w)
+        if return_map:
+            return w
 
 
     @staticmethod
@@ -467,16 +478,48 @@ class Regressor(object):
         targets[~self.dataframe.footprint['FOOTPRINT']] = np.NaN
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))
-        w[self.dataframe.features['HPXPIXEL'].values] = 1.0/self.F
+        w[self.dataframe.pixels] = 1.0/self.F
         targets_without_systematics = targets*w
-        #
-        # plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
-        # plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
-        # map_to_plot = w.copy()
-        # map_to_plot[map_to_plot == 0] = np.NaN
-        # map_to_plot = map_to_plot - 1
-        # plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
+
+        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
+        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
+        map_to_plot = w.copy()
+        map_to_plot[map_to_plot == 0] = np.NaN
+        map_to_plot = map_to_plot - 1
+        plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
 
         plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobjects_by_bins=nobjects_by_bins, n_bins=n_bins,
                                   cut_fracarea=cut_fracarea, min_fracarea=min_fracarea, max_fracarea=max_fracarea)
+
+
+
+        #                     if not use_neural_network:
+        #     print("                         *** On sauvegarde importance feature (gini)...")
+        #     df_feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names_pandas, columns=['feature importance']).sort_values('feature importance', ascending=False).to_pickle(dir_to_save+f"feature_importance_fold_{i}.pkl")
+        #     df_feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names_pandas)
+        #     df_feature_long = pd.melt(df_feature_all, var_name='feature name', value_name='values').to_pickle(dir_to_save+f"feature_importance_all_trees_fold_{i}.pkl")
+        #
+        # if compute_permutation_importance:
+        #     ## The permutation feature importance is defined to be the decrease in a model score
+        #     ## when a single feature value is randomly shuffled. This procedure breaks the relationship
+        #     ## between the feature and the target, thus the drop in the model score is indicative of
+        #     ## how much the model depends on the feature.
+        #     print("                         *** On sauvegarde permutation importance feature ...")
+        #     permut_importance = permutation_importance(regressor, X_fold.iloc[fold_index], Y[fold_index], n_repeats=15, random_state=4)
+        #
+        #     a_file = open(dir_to_save+f"permutation_importance_fold_{i}.pkl", "wb")
+        #     pickle.dump(permut_importance, a_file)
+        #     a_file.close()
+        #
+        #     fig, ax = plt.subplots()
+        #     #sorted_idx = permut_importance.importances_mean.argsort()
+        #     ax.boxplot(permut_importance.importances.T,
+        #                vert=False, labels=feature_names_pandas_to_plot)
+        #     ax.set_title(f"Permutation Importance for Fold {i}")
+        #     ax.set_ylabel("Features")
+        #     fig.tight_layout()
+        #     plt.savefig(dir_to_save+f"permutation_importance_fold_{i}.png")
+        #     plt.close()
+        #
+        #     from sklearn.inspection import permutation_importance

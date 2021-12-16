@@ -212,7 +212,7 @@ class PhotometricDataFrame(object):
         # use only pixels which are observed for the training
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
-        considered_footprint = (self.fracarea > 0) & self.footprint['FOOTPRINT']
+        considered_footprint = (self.fracarea > 0) & self.footprint['FOOTPRINT'].values
         keep_to_train = considered_footprint.copy()
 
         if selection_on_fracarea:
@@ -223,10 +223,10 @@ class PhotometricDataFrame(object):
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
         logger.info(f"The considered footprint represents {(considered_footprint).sum() / (self.footprint['FOOTPRINT']).sum():2.2%} of the DR9 footprint")
-        logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels not considered for the training (ie) {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} ot the considered footprint")
+        logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training (ie) {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} ot the considered footprint")
 
         # build normalized targets
-        normalized_targets = np.zeros(self.targets.size) * np.NaN
+        normalized_targets, mean_targets_density = np.zeros(self.targets.size) * np.NaN, dict()
         for zone_name in self.region:
             pix_zone = self.footprint[zone_name_to_column_name(zone_name)].values
             pix_to_use = pix_zone & keep_to_train
@@ -253,6 +253,7 @@ class PhotometricDataFrame(object):
 
             #compute normalized_targets every where but we don't care we only use keep_to_train == 1 during the training
             normalized_targets[pix_zone] = self.targets[pix_zone] / (self.fracarea[pix_zone]*mean_targets_density_estimators)
+            mean_targets_density[zone_name] = mean_targets_density_estimators
             logger.info(f"  ** {zone_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
 
         # some plots for sanity check
@@ -278,6 +279,7 @@ class PhotometricDataFrame(object):
             plt.savefig(os.path.join(self.output, 'Build_dataFrame', f"normalized_targets_{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.png"))
 
         self.density = normalized_targets
+        self.mean_density_region = mean_targets_density
         self.keep_to_train = keep_to_train
 
 
