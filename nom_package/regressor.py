@@ -210,7 +210,7 @@ class Regressor(object):
                     regressor = LinearRegression(**self.param_regressor[zone_name])
                     normalized_data = True
 
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside,
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside, self.feature_names,
                                                                                 save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
                 # do not use k-fold training --> standard linear regression with iminuit
@@ -246,7 +246,7 @@ class Regressor(object):
             map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
             plt.close()
 
-            fig, ax = plt.subplots(figsize=(11,7))
+            fig, ax = plt.subplots(figsize=(10,6))
             map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
             ax.set_xlim(-60, 300)
             ax.xaxis.set_ticks(np.arange(-60, 330, 30))
@@ -264,7 +264,7 @@ class Regressor(object):
 
 
     @staticmethod
-    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, pixels, feature_names_to_normalize, Nside, save_regressor=False, save_info=False, save_dir=''):
+    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, pixels, feature_names_to_normalize, Nside, feature_names, save_regressor=False, save_info=False, save_dir=''):
         """
         TO DO
         """
@@ -315,7 +315,11 @@ class Regressor(object):
 
             if save_info:
                 #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
-                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], save_dir, i)
+                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(dir_to_save, f"kfold_efficiency_fold_{fold_index}.png"))
+
+                #for more complex plot as importance feature ect ..--> save regressor and
+                if os.path.basename(os.path.dirname(save_dir)) == 'RF':
+                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(dir_to_save, f"feature_importance_fold_{fold_index}.png"))
 
 
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
@@ -384,7 +388,7 @@ class Regressor(object):
 
 
     @staticmethod
-    def plot_efficiency(Y, Y_pred, pixels, keep_to_train, dir_to_save, fold_index):
+    def plot_efficiency(Y, Y_pred, pixels, keep_to_train, path_to_save):
         """
         TO DO = Trace la precision de notre regression, on l'applique sur le jeu d'entrainement ...\n
         """
@@ -402,64 +406,35 @@ class Regressor(object):
         ax[1].set_xlabel('Normalized Targets Density')
 
         plt.tight_layout()
-        plt.savefig(os.path.join(dir_to_save, f"kfold_efficiency_fold_{fold_index}.png"))
+        plt.savefig(path_to_save)
         plt.close()
 
 
     @staticmethod
-    def plot_feature_importances(path, feature_names_pandas, feature_names_pandas_to_plot, zone, nbr_fold):
+    def plot_importance_feature(regressor, feature_names, path_to_save):
         """
         TO DO
         """
 
-        df_feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names_pandas, columns=['feature importance']).sort_values('feature importance', ascending=False).to_pickle(dir_to_save+f"feature_importance_fold_{i}.pkl")
-        #df_feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names_pandas)
-        #df_feature_long = pd.melt(df_feature_all, var_name='feature name', value_name='values').to_pickle(dir_to_save+f"feature_importance_all_trees_fold_{i}.pkl")
+        feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names, columns=['feature importance']).sort_values('feature importance', ascending=False)
+        feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names)
+        feature_all = pd.melt(df_feature_all, var_name='feature name', value_name='values')
 
-
-        importance_evol = dict()
-        importance_mean = dict()
-        importance_mean_err = dict()
-
-        rank = [i for i in range(len(feature_names_pandas))]
-        for area in zone:
-            importance_evol[area] = np.zeros((len(feature_names_pandas), nbr_fold[area]))
-            for i in range(nbr_fold[area]):
-                d = pd.read_pickle(f"{path}{area}/feature_importance_fold_{i}.pkl")
-                d.reset_index(inplace=True)
-                d.insert(2, 'rank', rank)
-                d = d.sort_values('index', ascending=True)
-                importance_evol[area][:, i] = d['feature importance'].values
-                name_to_plot_order = d['index'].values
-
-            importance_mean[area] = np.mean(importance_evol[area], axis=1)
-            importance_mean_err[area] = np.std(importance_evol[area], axis=1) / np.sqrt(nbr_fold[area] - 1)
-
-        index_order = []
-        for name in feature_names_pandas:
-            i, = np.where(name_to_plot_order == name)
-            index_order += [i[0]]
-
-        Y = np.linspace(0, 5, len(feature_names_pandas))
-
-        plt.figure()
-
-        offset = -0.11
-        for area in zone:
-            plt.barh(Y + offset, importance_mean[area][index_order], xerr=importance_mean_err[area][index_order], height=0.1, label=to_tex(area), alpha=0.8, align='center', ecolor='black', capsize=5)
-            offset += 0.11
-        plt.legend()
-        plt.yticks(Y, feature_names_pandas_to_plot, size=12)
-        plt.xlabel('Feature Importances')
-        plt.savefig(path + 'Feature_importances.png')
-        plt.close()
+        fig = plt.figure(figsize=(10, 6))
+        ax = plt.gca()
+        sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=0.9, color=".2")#, palette=sns.color_palette("husl", 8))
+        sns.boxplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], fliersize=0.6, palette=sns.color_palette("husl", 8), linewidth=0.6, showmeans=False, meanline=True, meanprops=dict(linestyle=':', linewidth=1.5, color='dimgrey'))
+        ax.set_xticklabels(xticks(feature_importance.index[:max_num_feature]), rotation=15, ha='center')
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        plt.tight_layout()
+        plt.savefig(path_to_save)
 
 
     def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,):
         """
         Make plot to check and validate the regression.
         the result are saved in the corresponding outpur directory
-
         """
 
         from plot import plot_moll
@@ -469,10 +444,6 @@ class Regressor(object):
         if not os.path.isdir(dir_output):
             os.mkdir(dir_output)
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
-
-#        if not (use_MLP_correction or use_linear_correction or add_suffixe[:5] == '_zone'):
-#            print("\n    * On fait un beau dessin pour feature importances (cf notebook for more detail plots)...")
-#            plot_feature_importances(base_directory, feature_names_pandas, feature_names_pandas_to_plot, zone_name_list, nbr_fold)
 
         targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.Nside, degrees=True)*self.dataframe.fracarea)
         targets[~self.dataframe.footprint['FOOTPRINT']] = np.NaN

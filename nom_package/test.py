@@ -12,8 +12,8 @@ np.random.seed(123)
 import os
 basedir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 data_dir = os.path.join(basedir, 'Data') #where the pixmap + sgr are
-#output_dir = os.path.join(basedir, 'Res')
-output_dir = None
+output_dir = os.path.join(basedir, 'Res')
+#output_dir = None
 
 print(" ")
 
