@@ -23,7 +23,7 @@ class DR9_footprint(object):
     WARNING: ISSOUTH is everything with Dec. < 32.275
     """
 
-    def __init__(self, Nside=256, remove_LMC=False, clear_south=False):
+    def __init__(self, Nside=256, remove_LMC=False, clear_south=False, mask_around_des=False):
         """
         Initialize :class:`DR9_footprint` with Nside=256 map
         Parameters
@@ -34,18 +34,19 @@ class DR9_footprint(object):
             Mask out the LMC --> useful for QSO TS
         clear_south : bool
             Mask out disconnected area in the NGC South --> useful to compute ACF
+        mask_around_des : bool
+            Mask the border of the footprint around des which is contained in South --> usefull for systeamtic weights
         """
         self.Nside = Nside
         self.remove_LMC = remove_LMC
         self.clear_south = clear_south
+        self.mask_around_des = mask_around_des
         logger.info(f'LOAD DR9 footprint with remove_LMC={self.remove_LMC} and clear_south={self.clear_south}')
 
         self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '../Data/Legacy_Imaging_DR9_footprint_256.fits'))
 
-        #finir mmetre les autrew ect
 
-
-    def update_map(self, pixmap, mask_des=False):
+    def update_map(self, pixmap):
         """
         Apply mask / ud_grade the pixmap before to return it
         Parameters
@@ -59,7 +60,7 @@ class DR9_footprint(object):
         if self.clear_south:
             pixmap[hp_in_box(256, [120, 150, -45, -10], inclusive=True) + hp_in_box(256, [150, 180, -45, -15], inclusive=True) + hp_in_box(256, [210, 240, -20, -12], inclusive=True)] = False
 
-        if mask_des:
+        if self.mask_around_des:
             pixmap[hp_in_box(256, [-120, 0, -90, -18.5], inclusive=True) + hp_in_box(256, [0, 120, -90, -17.4], inclusive=True)] = False
 
         if self.Nside != 256:
@@ -82,15 +83,11 @@ class DR9_footprint(object):
         return self.update_map(self.data['ISNGC']), self.update_map(self.data['ISSGC'])
 
 
-    def load_photometry(self, remove_around_des=False):
+    def load_photometry(self):
         """
         Return North / South / DES
-        Parameters
-        ----------
-        remove_around_des: bool
-            If True, remove the band in the South around DES, useful for clustering for instance
         """
-        return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES'], mask_des=remove_around_des), self.update_map(self.data['ISDES'])
+        return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES']), self.update_map(self.data['ISDES'])
 
 
     def load_elg_region(self, ngc_sgc_split=False):

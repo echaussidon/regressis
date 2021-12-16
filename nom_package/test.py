@@ -19,9 +19,10 @@ suffixe_tracer = '' # Si on veut par exemple avoir QSO_newsel
 param_targets = dict()
 param_targets['Nside'] = 256
 param_targets['use_median'] = False
-param_targets['use_new_norm'] = True
+param_targets['use_new_norm'] = False
 param_targets['remove_LMC'] = True
 param_targets['clear_south'] = True
+param_targets['mask_around_des'] = True
 # param_targets['region'] = ['North', 'South', 'Des'] #(default)
 # region available = ['North', 'South', 'South_pole', 'Des_mid'], ['North', 'South_mid', 'South_pole'], ['North', 'South_all']
 
