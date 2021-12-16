@@ -11,6 +11,7 @@ import healpy as hp
 import pandas as pd
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 #plt.style.use('~/Software/desi_ec/ec_style.mplstyle')
 
 from utils import deep_update, regression_least_square, zone_name_to_column_name
@@ -315,11 +316,11 @@ class Regressor(object):
 
             if save_info:
                 #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
-                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(dir_to_save, f"kfold_efficiency_fold_{fold_index}.png"))
+                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(save_dir, f"kfold_efficiency_fold_{fold_index}.png"))
 
                 #for more complex plot as importance feature ect ..--> save regressor and
                 if os.path.basename(os.path.dirname(save_dir)) == 'RF':
-                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(dir_to_save, f"feature_importance_fold_{fold_index}.png"))
+                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance_fold_{fold_index}.png"))
 
 
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
@@ -411,20 +412,20 @@ class Regressor(object):
 
 
     @staticmethod
-    def plot_importance_feature(regressor, feature_names, path_to_save):
+    def plot_importance_feature(regressor, feature_names, path_to_save, max_num_feature=8):
         """
-        TO DO
+        Plot the giny importance feature for regressor.
         """
 
         feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names, columns=['feature importance']).sort_values('feature importance', ascending=False)
         feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names)
-        feature_all = pd.melt(df_feature_all, var_name='feature name', value_name='values')
+        feature_all = pd.melt(feature_all, var_name='feature name', value_name='values')
 
         fig = plt.figure(figsize=(10, 6))
         ax = plt.gca()
-        sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=0.9, color=".2")#, palette=sns.color_palette("husl", 8))
+        sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=2, color=".2", palette=sns.color_palette("husl", 8))
         sns.boxplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], fliersize=0.6, palette=sns.color_palette("husl", 8), linewidth=0.6, showmeans=False, meanline=True, meanprops=dict(linestyle=':', linewidth=1.5, color='dimgrey'))
-        ax.set_xticklabels(xticks(feature_importance.index[:max_num_feature]), rotation=15, ha='center')
+        ax.set_xticklabels(feature_importance.index[:max_num_feature], rotation=15, ha='center')
         ax.set_xlabel("")
         ax.set_ylabel("")
         plt.tight_layout()
