@@ -12,12 +12,10 @@ import healpy as hp
 import pandas as pd
 
 import matplotlib.pyplot as plt
-import seaborn as sns
-#plt.style.use('~/Software/desi_ec/ec_style.mplstyle')
 
 from utils import deep_update, regression_least_square, zone_name_to_column_name
 
-from sklearn.model_selection import GroupKFold, cross_val_predict
+from sklearn.model_selection import GroupKFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression
@@ -220,7 +218,7 @@ class Regressor(object):
         else:
             logging.warning("DO NOT USE K-FOLD --> ONLY REGRESSION AVAILABLE IS LINEAR WITH IMINUIT")
             self.use_Kfold = use_Kfold
-            self.engine = 'Linear'
+            self.engine = 'Linear_without_kfold'
             self.param_regressor = {'regulator':2e6*(self.dataframe.Nside/256)**3}
 
         # in NN and Linear case, we normalize and standardize the data
@@ -252,10 +250,11 @@ class Regressor(object):
                 logger.info(f"The output folder {os.path.join(self.dataframe.output, self.engine)} is created")
                 os.mkdir(os.path.join(self.dataframe.output, self.engine))
 
+
     def make_regression(self):
         """
         Compute systematic weight with the selected engine method and choosen hyperparameters.
-        Some plots for inspection and the kfold index are saved if an output directory is given in the dataframe.
+        Some plots for inspection and the kfold indices are saved if an output directory is given in the dataframe.
         """
         # To store the result of the regression (ie) Y_pred
         F = np.zeros(self.dataframe.pixels.size)
@@ -286,16 +285,19 @@ class Regressor(object):
             if self.use_Kfold:
                 if self.engine == 'NN':
                     regressor = MLPRegressor(**self.param_regressor[zone_name])
-                    normalized_data, use_sample_weight = True, False
+                    normalized_feature, use_sample_weight = True, False
                 elif self.engine == 'RF':
                     regressor = RandomForestRegressor(**self.param_regressor[zone_name])
-                    normalized_data, use_sample_weight = False, True
+                    normalized_feature, use_sample_weight = False, True
                 elif self.engine == 'LINEAR':
                     regressor = LinearRegression(**self.param_regressor[zone_name])
-                    normalized_data, use_sample_weight = True, True
+                    normalized_feature, use_sample_weight = True, True
 
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone, normalized_data, use_sample_weight, pixels_zone, self.feature_names_to_normalize, self.dataframe.Nside, self.feature_names,
-                                                                                save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir, compute_permutation_importance=self.compute_permutation_importance)
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone,
+                                                                                use_sample_weight, normalized_feature, self.feature_names_to_normalize,
+                                                                                pixels_zone, self.dataframe.Nside, feature_names=self.feature_names,
+                                                                                compute_permutation_importance=self.compute_permutation_importance,
+                                                                                save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
                 # do not use k-fold training --> standard linear regression with iminuit
                 F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
@@ -306,70 +308,145 @@ class Regressor(object):
         self.fold_index = fold_index # fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
         if save_info and (not fold_index is None):
-            logger.info(f"        * Save Kfold index in {os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib')}")
+            logger.info(f"    --> Save Kfold index in {os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib')}")
             dump(self.fold_index, os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib'))
 
 
     @staticmethod
-    def build_kfold(Nside, kfold, group, pixels, title='', savename=None):
+    def build_kfold(kfold, pixels, group):
         """
-        Build the index use for the Kfold
+        Build the folding of pixels with a GroupKfold class of Scikit-learn using a specific grouping given by group.
+        A group cannot be splitted during the Kfold generation.
 
+        Parameters:
+        ----------
+        kfold: GroupKFold class
+            Scikit-learn class with split method to build the group Kfold.
+        pixels: array like
+            List of pixels which have to be splitted in Kfold
+        group: array like
+            Same size than pixels. It contains the group number of each pixel in pixels.
+            A group cannot be splitted with kfold (ie) all pixels in the same group will be in the Fold.
 
-        Return:
-        -------
-        
+        Returns:
+        --------
+        index: list of list
+            Return a list (index == Fold number) containing the index list of pixels belonging to the fold i
 
         """
-        map = np.zeros(hp.nside2npix(Nside))
+        print(kfold)
         index = []
-        i = 1
         for index_train, index_test in kfold.split(pixels, groups=group):
             index += [index_test]
-            map[pixels[index_test]] = i
-            i = i+1
+            print(index_test)
+        return index
+
+    @staticmethod
+    def plot_kfold(Nside, pixels, index_list, savename, title=''):
+        """
+        Plot the folding of pixels following the repartition given in index_list.
+
+        Parameters:
+        -----------
+        Nside: int
+            Healpix resolution used in pixels
+        pixels: array like
+            pixels contains the pixel numbers which are split in the Kfold
+        index_list: list of list
+            list (index == Fold number) containing the index list of pixels belonging to the fold i --> output of *build_kfold*
+        savename: str
+            Path where the plot will be saved
+        title: str
+            Title for the figure
+        """
+        map = np.zeros(hp.nside2npix(Nside))
+        for i, index in enumerate(index_list) :
+            map[pixels[index]] = i + 1 # to avoid 0
         map[map == 0] = np.NaN
 
-        if not savename is None:
-            #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
-            plt.figure(1)
-            map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
-            plt.close()
+        #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
+        plt.figure(1)
+        map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
+        plt.close()
 
-            fig, ax = plt.subplots(figsize=(10,6))
-            map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
-            ax.set_xlim(-60, 300)
-            ax.xaxis.set_ticks(np.arange(-60, 330, 30))
-            plt.gca().invert_xaxis()
-            ax.set_xlabel('R.A. [deg]')
-            ax.set_ylim(-90, 90)
-            ax.yaxis.set_ticks(np.arange(-90, 120, 30))
-            ax.set_ylabel('Dec. [deg]')
-            ax.grid(True, alpha=0.8, linestyle=':')
-            plt.title(title)
-            plt.savefig(savename)
-            plt.close()
-
-        return index
+        fig, ax = plt.subplots(figsize=(10,6))
+        map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
+        ax.set_xlim(-60, 300)
+        ax.xaxis.set_ticks(np.arange(-60, 330, 30))
+        plt.gca().invert_xaxis()
+        ax.set_xlabel('R.A. [deg]')
+        ax.set_ylim(-90, 90)
+        ax.yaxis.set_ticks(np.arange(-90, 120, 30))
+        ax.set_ylabel('Dec. [deg]')
+        ax.grid(True, alpha=0.8, linestyle=':')
+        plt.title(title)
+        plt.savefig(savename)
+        plt.close()
 
 
     @staticmethod
-    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, normalized_data, use_sample_weight, pixels, feature_names_to_normalize, Nside, feature_names,
-                             save_regressor=False, save_info=False, save_dir='', compute_permutation_importance=False):
+    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, use_sample_weight,
+                             normalized_feature, feature_names_to_normalize,
+                             pixels, Nside, feature_names=None,
+                             compute_permutation_importance=False,
+                             save_regressor=False, save_info=False, save_dir=''):
         """
-        TO DO
+        Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
+        The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
+        This choice is done to have always the same splitting whatever the selection used to keep the training data.
+        The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
+        Inspect the "kfold_repartition.png" for specific design.
+        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
+
+        Parameters:
+        -----------
+        regressor: Scikit-learn Regressor Class
+            regressor used to perform the regression. No parameter will be modified here.
+        nfold: int
+            Number of fold which will be use in Kfold training.
+        X: array like
+            Feature dataset for the regression
+        Y: array like
+            The target values for the regression. Same size than X
+        keep_to_train: bool array like
+            Which row in X and Y is kept for the training. Same size than X and Y. The regression is then applied on all X.
+        use_sample_weight: bool
+            If true use 1/np.sqrt(Y_train) as weight during the regression. Only available for RF or LINEAR.
+        normalized_feature: bool
+            If True normalized and centered feature in feature_names_to_normalize -> mandatory for Linear ou MLP regression
+        feature_names_to_normalize: array like
+            List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
+        pixels: array like
+            Pixels list corresponding of the pixel number of each feature row.
+        Nside: int
+            Healpix resolution used in pixels
+        feature_names: array like
+            Feature name used during the regression. It is used for plotting information. If save_info is False do not need to pass it.
+        compute_permutation_importance: bool
+            If True compute and plot the permutation importance. The figure is saved only if save_info is True.
+        save_regressor: bool
+            If True save each regressor for each fold. Take care it is memory space consumming especially for RandomForestRegressor. Only available if save_info is True.
+        save_info: bool
+            If True save inspection plots and if it is required in save_regressor, the fitted regressor in save_dir.
+        save_dir: str
+            Directory path where the files will be saved if required with save_info.
+
+        Returns:
+        --------
+        Y_pred: array like
+            Gives the evaluation of the regression on X with K-folding. It has the same size of X.
+            The evalutation is NOT applied ONLY where keep_to_train is True.
+        index: list of list
+            list (index == Fold number) containing the index list of pixels belonging to the fold i --> output of *build_kfold*
         """
 
         kfold = GroupKFold(n_splits=nfold)
-        size_group = 1000  * (Nside / 256)**2
+        size_group = 1000  * (Nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
         group = [i//size_group for i in range(pixels.size)]
         logger.info(f"    --> We use: {kfold} Kfold with group_size={size_group}")
-
+        index = Regressor.build_kfold(kfold, pixels, group)
         if save_info:
-            savename = os.path.join(save_dir, 'kfold_repartition.png')
-        else:
-            savename = None
-        index = Regressor.build_kfold(Nside, kfold, group, pixels, title='{}-Fold repartition'.format(nfold), savename=savename)
+            Regressor.plot_kfold(Nside, pixels, index, os.path.join(save_dir, 'kfold_repartition.png'), title=f'{nfold}-Fold repartition')
 
         Y_pred = np.zeros(pixels.size)
         X.reset_index(drop=True, inplace=True)
@@ -403,11 +480,11 @@ class Regressor(object):
             Y_pred_fold = regressor.predict(X_fold.iloc[fold_index])
             Y_pred[fold_index] = Y_pred_fold
 
-            # Save regressor
-            if save_regressor:
-                dump(regressor, os.path.join(save_dir, f'regressor_fold_{i}.joblib'))
-
             if save_info:
+                # Save regressor
+                if save_regressor:
+                    dump(regressor, os.path.join(save_dir, f'regressor_fold_{i}.joblib'))
+
                 #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
                 Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(save_dir, f"kfold_efficiency_fold_{i}.png"))
 
@@ -425,7 +502,31 @@ class Regressor(object):
     @staticmethod
     def make_polynomial_regressor(X, Y, keep_to_train, feature_names_to_normalize, param_regressor):
         """
-        TO DO
+        Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
+        The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
+        This choice is done to have always the same splitting whatever the selection used to keep the training data.
+        The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
+        Inspect the "kfold_repartition.png" for specific design.
+        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
+
+        Parameters:
+        -----------
+        X: array like
+            Feature dataset for the regression
+        Y: array like
+            The target values for the regression. Same size than X
+        keep_to_train: bool array like
+            Which row in X and Y is kept for the training. Same size than X and Y. The regression is then applied on all X.
+        feature_names_to_normalize: array like
+            List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
+        param_regressor: dict
+            dictionary containing 'regulator' parameter. (It is a L1 regularisation term)
+
+        Returns:
+        --------
+        Y_pred: array like
+            Gives the evaluation of the regression on X with K-folding. It has the same size of X.
+            The evalutation is NOT applied ONLY where keep_to_train is True.
         """
         def model(x, *par):
             return par[0]*np.ones(x.shape[0]) + np.array(par[1:]).dot(x.T)
@@ -511,6 +612,8 @@ class Regressor(object):
         """
         Plot the giny importance feature for regressor.
         """
+
+        import seaborn as sns
 
         feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names, columns=['feature importance']).sort_values('feature importance', ascending=False)
         feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names)
