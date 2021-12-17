@@ -44,7 +44,7 @@ class DR9_footprint(object):
         self.mask_around_des = mask_around_des
         logger.info(f'LOAD DR9 footprint with remove_LMC={self.remove_LMC} and clear_south={self.clear_south}')
 
-        self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '../Data/Legacy_Imaging_DR9_footprint_256.fits'))
+        self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '../data/Legacy_Imaging_DR9_footprint_256.fits'))
 
 
     def update_map(self, pixmap):

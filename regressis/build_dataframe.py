@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Author : Edmond Chaussidon (CEA)
 
 import logging
 logger = logging.getLogger("build_dataframe")
