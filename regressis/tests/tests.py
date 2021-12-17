@@ -13,7 +13,7 @@ np.random.seed(123)
 
 import os
 basedir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-data_dir = os.path.join(basedir, 'data') #where the pixmap + sgr are
+data_dir = os.path.join(basedir, 'test_case_qso') #where the pixmap + sgr + QSO targets map are
 output_dir = os.path.join(basedir, 'res')
 #output_dir = None
 
