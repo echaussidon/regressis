@@ -76,7 +76,7 @@ def _load_feature_names(tracer, use_stream=None, use_stars=None):
     return feature_names
 
 
-def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
+def _load_rf_hyperparameters(updated_param=None, n_jobs=6, seed=123):
     """
     Load pre-defined hyperparameters for RF regressor for each specific region available. Can be updated with updated_param.
 
@@ -86,6 +86,8 @@ def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
         updated param (e.g) {'North':{n_estimators:20}}
     n_jobs: int
         To parallelize the computation
+    seed: int
+        Fix the random_state of the Regressor for reproductibility
 
     Returns
     -------
@@ -95,13 +97,13 @@ def _load_rf_hyperparameters(updated_param=None, n_jobs=6):
     param = dict()
     min_samples_leaf = {'North':20, 'South':20, 'Des':20, 'South_all':20, 'South_mid':20, 'South_pole':20, 'South_mid_no_des':20, 'Des_mid':20}
     for key in min_samples_leaf:
-        param[key] = {'n_estimators':200, 'min_samples_leaf':min_samples_leaf[key], 'max_depth':None, 'max_leaf_nodes':None, 'n_jobs':n_jobs}
+        param[key] = {'n_estimators':200, 'min_samples_leaf':min_samples_leaf[key], 'max_depth':None, 'max_leaf_nodes':None, 'n_jobs':n_jobs, 'random_state':seed}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
 
 
-def _load_mlp_hyperparameters(updated_param=None):
+def _load_mlp_hyperparameters(updated_param=None, seed=123):
     """
     Load pre-defined hyperparameters for NN regressor for each specific region available. Can be updated with updated_param.
 
@@ -109,6 +111,8 @@ def _load_mlp_hyperparameters(updated_param=None):
     ----------
     updated_param: dict
         updated param (e.g) {'North':{max_iter:20}}
+    seed: int
+        Fix the random_state of the Regressor for reproductibility
 
     Returns
     -------
@@ -118,7 +122,7 @@ def _load_mlp_hyperparameters(updated_param=None):
     param = dict()
     for key in ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']:
         param[key] = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
-                      'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5}
+                      'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5, 'random_state':seed}
     if not updated_param is None:
         param = deep_update(param, updated_param)
     return param
@@ -173,7 +177,7 @@ class Regressor(object):
 
     def __init__(self, dataframe, engine, feature_names=None, use_Kfold=True,
                  updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
-                 compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6):
+                 compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6, seed=123):
         """
         Initialize :class:`Regressor`
 
@@ -197,6 +201,8 @@ class Regressor(object):
             If True regressor for each region and each fold is saved. WARNING: it is space consuming. Can be usefull to make some more advanced plots.
         n_jobs: int
             To parallelize the Random Forest computation.
+        seed: int
+            Fix the random state of RandomForestRegressor and MLPRegressor for reproductibility
         """
 
         self.dataframe = dataframe
@@ -210,9 +216,9 @@ class Regressor(object):
         if use_Kfold:
             self.use_Kfold = use_Kfold
             if self.engine == 'RF':
-                self.param_regressor = _load_rf_hyperparameters(updated_param_rf, n_jobs)
+                self.param_regressor = _load_rf_hyperparameters(updated_param_rf, n_jobs, seed)
             elif self.engine == 'NN':
-                self.param_regressor = _load_mlp_hyperparameters(updated_param_mlp)
+                self.param_regressor = _load_mlp_hyperparameters(updated_param_mlp, seed)
             elif self.engine == 'LINEAR':
                 self.param_regressor = _load_linear_hyperparameters(updated_param_linear)
         else:
@@ -334,11 +340,9 @@ class Regressor(object):
             Return a list (index == Fold number) containing the index list of pixels belonging to the fold i
 
         """
-        print(kfold)
         index = []
         for index_train, index_test in kfold.split(pixels, groups=group):
             index += [index_test]
-            print(index_test)
         return index
 
     @staticmethod
@@ -459,7 +463,7 @@ class Regressor(object):
             keep_to_train_fold = np.delete(keep_to_train, fold_index)
             logger.info(f"          --> There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
-            if normalized_data:
+            if normalized_feature:
                 logger.info("          --> We normalize and center all features (execpt the STREAM) on the training footprint")
                 X_fold = X.copy()
                 X_fold[feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean())/X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std()
@@ -556,7 +560,7 @@ class Regressor(object):
         return model(X, *param)
 
 
-    def build_w_sys_map(self, return_map=True, savemap=True, savedir=None):
+    def build_w_sys_map(self, return_map=True, savemap=False, savedir=None):
         """
             We save the healpix systematic maps
 
@@ -571,7 +575,7 @@ class Regressor(object):
         """
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))*np.NaN
-        w[self.dataframe.pixels] = 1.0/self.F
+        w[self.dataframe.pixels[self.F > 0]] = 1.0/self.F[self.F > 0]
 
         if savemap:
             if savedir is None:
@@ -651,10 +655,27 @@ class Regressor(object):
         plt.savefig(path_to_save)
         plt.close()
 
+
     def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,):
         """
         Make plot to check and validate the regression.
-        the result are saved in the corresponding outpur directory
+        The result are saved in the corresponding outpur directory.
+
+        Parameters:
+        -----------
+        max_plot_cart: float
+            maximum density used to plot the object density in the sky
+        ax_lim: float
+            maximum value of density - 1 fluctuation in function of the feature
+        adaptative_binning: bool
+
+        nobjects_by_bins: int
+
+        n_bins: int
+
+        cut_fracarea: bool
+
+        min_fracarea, max_fracarea: float
         """
 
         from plot import plot_moll
@@ -669,7 +690,7 @@ class Regressor(object):
         targets[~self.dataframe.footprint['FOOTPRINT']] = np.NaN
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))
-        w[self.dataframe.pixels] = 1.0/self.F
+        w[self.dataframe.pixels[self.F>0]] = 1.0/self.F[self.F>0]
         targets_without_systematics = targets*w
 
         plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
