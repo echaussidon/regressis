@@ -562,16 +562,16 @@ class Regressor(object):
 
     def build_w_sys_map(self, return_map=True, savemap=False, savedir=None):
         """
-            We save the healpix systematic maps
+        We save the healpix systematic maps
 
-            Parameter:
-            ----------
-            return_map: bool
-                if true return the sysematic weight map
-            savemap: bool
-                if True, save the map in savedir
-            savedir: str
-                path where to save the map, if None use default path
+        Parameter:
+        ----------
+        return_map: bool
+            if true return the sysematic weight map
+        savemap: bool
+            if True, save the map in savedir
+        savedir: str
+            path where to save the map, if None use default path
         """
 
         w = np.zeros(hp.nside2npix(self.dataframe.Nside))*np.NaN
@@ -591,7 +591,18 @@ class Regressor(object):
     @staticmethod
     def plot_efficiency(Y, Y_pred, pixels, keep_to_train, path_to_save):
         """
-        TO DO = Trace la precision de notre regression, on l'applique sur le jeu d'entrainement ...\n
+        Draw the correction 'efficiency' of the training. The method excepts to reduce the variance in the histogram of the predicted density.
+
+        Parameters:
+        -----------
+        Y: array like
+            The normalized target density.
+        Y_pred: array like
+            Same size than Y. The perdicted normalized target density with K-fold (Y is not used for the prediction). 1/Y_pred will be the sys weights.
+        keep_to_train: bool array like
+            Same size than Y. Mask array given which row of Y was used in the training (ie) Y is not an outlier
+        path_to_save: str
+            Where the figure will be save
         """
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
         plt.subplots_adjust(left=0.07, right=0.96, bottom=0.1, top=0.9, wspace=0.3)
@@ -614,7 +625,17 @@ class Regressor(object):
     @staticmethod
     def plot_importance_feature(regressor, feature_names, path_to_save, max_num_feature=8):
         """
-        Plot the giny importance feature for regressor.
+        Plot the giny importance feature for RandomForestRegressor.
+
+        Parameters:
+        regressor: RandomForestRegressor
+            Regressor already trained
+        feature_names: str array like
+            List of feature used during the regression
+        path_to_save: str
+            Where the figure will be saved.
+        max_num_feature: int
+            Number of feature to plot in the figure.
         """
 
         import seaborn as sns
@@ -637,7 +658,19 @@ class Regressor(object):
     @staticmethod
     def plot_permutation_importance(regressor, X, Y, feature_names, path_to_save):
         """
-            Compute and plot the permutation importance
+        Compute and plot the permutation importance for the regressor (alternative/ complementary metric to giny importance)
+
+        Parameters:
+        regressor: Scikit-learn regressor class
+            Regressor already trained
+        X: array like
+            Feature array
+        Y: array like
+            Same size than X.
+        feature_names: str array like
+            List of feature used during the regression
+        path_to_save: str
+            Where the figure will be saved.
         """
         from sklearn.inspection import permutation_importance
         ## The permutation feature importance is defined to be the decrease in a model score
