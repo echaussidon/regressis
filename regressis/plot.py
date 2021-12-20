@@ -3,12 +3,10 @@
 
 import numpy as np
 import healpy as hp
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-
 import astropy.coordinates as coord
 from astropy.coordinates import frame_transform_graph
 from astropy.coordinates.matrix_utilities import rotation_matrix, matrix_product, matrix_transpose

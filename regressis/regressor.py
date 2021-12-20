@@ -2,10 +2,10 @@
 # coding: utf-8
 # Author : Edmond Chaussidon (CEA)
 
+import os
+import sys
+import time
 import logging
-logger = logging.getLogger("regressor")
-
-import os, sys, time
 
 import numpy as np
 import healpy as hp
@@ -13,13 +13,16 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
-from utils import deep_update, regression_least_square, zone_name_to_column_name
+from .utils import deep_update, regression_least_square, zone_name_to_column_name
 
 from sklearn.model_selection import GroupKFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression
 from joblib import dump, load
+
+
+logger = logging.getLogger("Regressor")
 
 
 def _load_feature_names(tracer, use_stream=None, use_stars=None):

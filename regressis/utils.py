@@ -1,15 +1,20 @@
 # coding: utf-8
 # Author : Edmond Chaussidon (CEA)
 
-import logging
-logger = logging.getLogger("utils")
-import time
 import sys
+import time
+import logging
+
+
+logger = logging.getLogger("utils")
 
 _logging_handler = None
+
+
 def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
     """
-    Turn on logging with specific configuration
+    Turn on logging with specific configuration?
+
     Parameters
     ----------
     log_level : 'info', 'debug', 'warning', 'error'
@@ -51,7 +56,7 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
 #------------------------------------------------------------------------------#
 def zone_name_to_column_name(zone_name):
     """
-    Convert zone_name into corresponding name in footprint dataframe
+    Convert zone_name into corresponding name in footprint dataframe.
     """
     translator = {'North':'ISNORTH', 'South':'ISSOUTHWITHOUTDES', 'Des':'ISDES',
                   'South_mid':'ISSOUTHMID', 'South_pole':'ISSOUTHPOLE',
@@ -125,7 +130,10 @@ def regression_least_square(model, regulator, data_x, data_y, data_y_cov_inv, nb
 import healpy as hp
 
 def hp_in_box(nside, radecbox, inclusive=True, fact=4):
-    """Determine which HEALPixels touch an RA, Dec box.  --> COPY FROM DESITARGET
+    """
+    Determine which HEALPixels touch an RA, Dec box.
+    Taken from https://github.com/desihub/desitarget/blob/master/py/desitarget/geomask.py.
+
     Parameters
     ----------
     nside : :class:`int`
@@ -141,6 +149,7 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     -------
     :class:`list`
         HEALPixels at the passed `nside` that touch the RA/Dec box.
+
     Notes
     -----
         - Uses `healpy.query_polygon()` to retrieve the RA geodesics

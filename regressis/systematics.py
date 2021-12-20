@@ -1,21 +1,22 @@
 ## coding: utf-8
 ## Author : Edmond Chaussidon (CEA)
 
-import logging
-logger = logging.getLogger("systematics")
-
 import os
+import warnings
+import logging
 
 import numpy as np
-import warnings
-
 import fitsio
 from matplotlib.gridspec import GridSpec
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
+
+
+logger = logging.getLogger("systematics")
+
 
 def _load_systematics():
     """
-        Theses cuts are adapted for the DESI Legacy Imaging Survey DR9. Return dictionary with feature name as label of dictionary for specific photometric regions containing [min, max, label, nbins, function_to_convert].
+    These cuts are adapted for the DESI Legacy Imaging Survey DR9. Return dictionary with feature name as label of dictionary for specific photometric regions containing [min, max, label, nbins, function_to_convert].
     """
 
     def id(x): return x

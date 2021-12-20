@@ -1,23 +1,26 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import sys
 import logging
-logger = logging.getLogger("build_dataframe")
-
-import sys, os
-# to avoid error from pandas method into the logger -> pandas use NUMEXPR Package
-os.environ['NUMEXPR_MAX_THREADS'] = '8'
-os.environ['NUMEXPR_NUM_THREADS'] = '8'
 
 import numpy as np
 import healpy as hp
 import fitsio
 import pandas as pd
 
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
-from desi_footprint import DR9_footprint
-from utils import hp_in_box, zone_name_to_column_name
+from .desi_footprint import DR9_footprint
+from .utils import hp_in_box, zone_name_to_column_name
+
+
+logger = logging.getLogger('DataFrame')
+
+# to avoid error from pandas method into the logger -> pandas use NUMEXPR Package
+os.environ.setdefault('NUMEXPR_MAX_THREADS', '8')
+os.environ.setdefault('NUMEXPR_NUM_THREADS', '8')
 
 
 class PhotometricDataFrame(object):
