@@ -20,7 +20,7 @@ def _load_systematics():
     """
 
     def id(x): return x
-    def convert_psf(x) : return 22.5 - 2.5*np.log10(5/np.sqrt(x))
+    def convert_depth(x) : return 22.5 - 2.5*np.log10(5/np.sqrt(x))
     def convert_stardens(x): return np.log10(x)
 
     sysdict = {}
@@ -50,27 +50,27 @@ def _load_systematics():
                             'Des':[0.95, 1.4, 'PSF Size in z-band', 30, id],
                             'Global':[0., 3., 'PSF Size in z-band', 30, id]}
 
-    sysdict['PSFDEPTH_G'] = {'North':[300., 1600., 'PSF Depth in g-band', 30, convert_psf],
-                             'South':[750., 4000., 'PSF Depth in g-band', 35, convert_psf],
-                             'Des':[1900., 7000., 'PSF Depth in g-band', 30, convert_psf],
-                             'Global':[63., 6300., 'PSF Depth in g-band', 30, convert_psf]}
-    sysdict['PSFDEPTH_R'] = {'North':[95., 620., 'PSF Depth in r-band', 30, convert_psf],
-                             'South':[260.0, 1600.0, 'PSF Depth in r-band', 30, convert_psf],
-                             'Des':[1200., 5523., 'PSF Depth in r-band', 30, convert_psf],
-                             'Global':[25., 2500., 'PSF Depth in r-band', 30, convert_psf]}
-    sysdict['PSFDEPTH_Z'] = {'North':[60., 275., 'PSF Depth in z-band', 40, convert_psf],
-                             'South':[40.0, 360., 'PSF Depth in z-band', 40, convert_psf],
-                             'Des':[145., 570., 'PSF Depth in z-band', 30, convert_psf],
-                             'Global':[4., 400., 'PSF Depth in z-band', 30, convert_psf]}
+    sysdict['PSFDEPTH_G'] = {'North':[300., 1600., 'PSF Depth in g-band', 30, convert_depth],
+                             'South':[750., 4000., 'PSF Depth in g-band', 35, convert_depth],
+                             'Des':[1900., 7000., 'PSF Depth in g-band', 30, convert_depth],
+                             'Global':[63., 6300., 'PSF Depth in g-band', 30, convert_depth]}
+    sysdict['PSFDEPTH_R'] = {'North':[95., 620., 'PSF Depth in r-band', 30, convert_depth],
+                             'South':[260.0, 1600.0, 'PSF Depth in r-band', 30, convert_depth],
+                             'Des':[1200., 5523., 'PSF Depth in r-band', 30, convert_depth],
+                             'Global':[25., 2500., 'PSF Depth in r-band', 30, convert_depth]}
+    sysdict['PSFDEPTH_Z'] = {'North':[60., 275., 'PSF Depth in z-band', 40, convert_depth],
+                             'South':[40.0, 360., 'PSF Depth in z-band', 40, convert_depth],
+                             'Des':[145., 570., 'PSF Depth in z-band', 30, convert_depth],
+                             'Global':[4., 400., 'PSF Depth in z-band', 30, convert_depth]}
 
-    sysdict['PSFDEPTH_W1'] = {'North':[2.7, 12., 'PSF Depth in W1-band', 40, convert_psf],
-                              'South':[2.28, 5.5, 'PSF Depth in W1-band', 30, convert_psf],
-                              'Des':[2.28, 6.8, 'PSF Depth in W1-band', 30, convert_psf],
-                              'Global':[0.0, 30.0, 'PSF Depth in W1-band', 30, convert_psf]}
-    sysdict['PSFDEPTH_W2'] = {'North':[0.8, 3.9, 'PSF Depth in W2-band', 40, convert_psf],
-                              'South':[0.629, 1.6, 'PSF Depth in W2-band', 30, convert_psf],
-                              'Des':[0.62, 2.25, 'PSF Depth in W2-band', 30, convert_psf],
-                              'Global':[0.0, 7.0, 'PSF Depth in W2-band', 30, convert_psf]}
+    sysdict['PSFDEPTH_W1'] = {'North':[2.7, 12., 'PSF Depth in W1-band', 40, convert_depth],
+                              'South':[2.28, 5.5, 'PSF Depth in W1-band', 30, convert_depth],
+                              'Des':[2.28, 6.8, 'PSF Depth in W1-band', 30, convert_depth],
+                              'Global':[0.0, 30.0, 'PSF Depth in W1-band', 30, convert_depth]}
+    sysdict['PSFDEPTH_W2'] = {'North':[0.8, 3.9, 'PSF Depth in W2-band', 40, convert_depth],
+                              'South':[0.629, 1.6, 'PSF Depth in W2-band', 30, convert_depth],
+                              'Des':[0.62, 2.25, 'PSF Depth in W2-band', 30, convert_depth],
+                              'Global':[0.0, 7.0, 'PSF Depth in W2-band', 30, convert_depth]}
     return sysdict
 
 
@@ -115,47 +115,47 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
     return bins, (bins[:-1] + bins[1:])/ 2, meds, nbr_obj_bins, err_meds
 
 
-def _select_good_pixels(key_word, fracarea, footprint, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1):
+def _select_good_pixels(keyword, fracarea, footprint, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1):
     """
-        TO DO
+    # TODO: should be an instance of DR9Footprint.
     """
-    if key_word == 'Global':
+    if keyword == 'Global':
         pix_to_keep = footprint['FOOTPRINT'].values
-        key_word_sys = key_word
-    elif key_word == 'North':
+        keyword_sys = keyword
+    elif keyword == 'North':
         pix_to_keep = footprint['ISNORTH'].values
-        key_word_sys = key_word
-    elif key_word == 'South':
+        keyword_sys = keyword
+    elif keyword == 'South':
         pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values
-        key_word_sys = key_word
-    elif key_word == 'South_ngc':
+        keyword_sys = keyword
+    elif keyword == 'South_ngc':
         pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values & footprint['ISNGC'].values
-        key_word_sys = 'South'
-    elif key_word == 'South_sgc':
+        keyword_sys = 'South'
+    elif keyword == 'South_sgc':
         pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values & footprint['ISSGC'].values
         pix_to_keep &= sgc
-        key_word_sys = 'South'
-    elif key_word == 'Des':
+        keyword_sys = 'South'
+    elif keyword == 'Des':
         pix_to_keep = footprint['ISDES'].values
-        key_word_sys = key_word
-    elif key_word == 'Des_mid':
+        keyword_sys = keyword
+    elif keyword == 'Des_mid':
         pix_to_keep = footprint['ISDESMID'].values
-        key_word_sys = 'Des'
-    elif key_word == 'South_mid':
+        keyword_sys = 'Des'
+    elif keyword == 'South_mid':
         pix_to_keep = footprint['ISSOUTHMID'].values
-        key_word_sys = 'South'
-    elif key_word == 'South_mid_ngc':
+        keyword_sys = 'South'
+    elif keyword == 'South_mid_ngc':
         pix_to_keep = footprint['ISSOUTHMID'].values & footprint['ISNGC'].values
-        key_word_sys = 'South'
-    elif key_word == 'South_mid_sgc':
+        keyword_sys = 'South'
+    elif keyword == 'South_mid_sgc':
         pix_to_keep = footprint['ISSOUTHMID'].values & footprint['ISSGC'].values
-        key_word_sys = 'South'
-    elif key_word == 'South_pole':
+        keyword_sys = 'South'
+    elif keyword == 'South_pole':
         pix_to_keep = footprint['ISSOUTHPOLE'].values
-        key_word_sys = 'Des'
+        keyword_sys = 'Des'
     else:
-        print("WRONG KEY WORD")
-        sys.exit()
+        # TODO:WHY CAPITAL LETTERS?
+        raise ValueError("WRONG KEYWORD")
 
     # keep pixel with observations
     logger.info("Keep only pixels with fracarea > 0")
@@ -167,7 +167,7 @@ def _select_good_pixels(key_word, fracarea, footprint, cut_fracarea=True, min_fr
         logger.info(f"Keep only pixels with {min_fracarea} < fracarea < {max_fracarea}")
         pix_to_keep &= (fracarea < max_fracarea) & (fracarea > min_fracarea)
 
-    return pix_to_keep, key_word_sys
+    return pix_to_keep, keyword_sys
 
     ##atntion cahgneer gracre ne aps prendre celui de la pixmpa !!!!
 
@@ -179,11 +179,11 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
     sysdic = _load_systematics()
     sysnames = list(sysdic.keys())
 
-    for num_fig, key_word in enumerate(zone_to_plot):
-        logger.info(f'Work with {key_word}')
+    for num_fig, keyword in enumerate(zone_to_plot):
+        logger.info(f'Work with {keyword}')
 
         # extract which pixels we will use to make the plot !
-        pix_to_keep, key_word_sys = _select_good_pixels(key_word, fracarea, footprint, cut_fracarea, min_fracarea, max_fracarea)
+        pix_to_keep, keyword_sys = _select_good_pixels(keyword, fracarea, footprint, cut_fracarea, min_fracarea, max_fracarea)
 
         # Plot photometric systematic plots:
         fig = plt.figure(num_fig, figsize=(16.0,10.0))
@@ -192,7 +192,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         num_to_plot = 0
         for i in range(12):
             sysname = sysnames[num_to_plot]
-            down, up, plotlabel, nbins, conversion = sysdic[sysname][key_word_sys]
+            down, up, plotlabel, nbins, conversion = sysdic[sysname][keyword_sys]
             if n_bins is not None:
                 nbins=n_bins
 
@@ -223,16 +223,16 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
             #if i==2:
              #   ax = fig.add_subplot(gs[i//3, i%3])
              #   ax.axis("off")
-             #   ax.text(0.5, 0.5, f"Zone : {key_word}", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+             #   ax.text(0.5, 0.5, f"Zone : {keyword}", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
                 #on enleve le STREAM comme feature ok
              #   num_to_plot += 1
 
             if i==10:
-                ax.legend(bbox_to_anchor=(-1.1, 0.8), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large', title=key_word, title_fontsize='large')
+                ax.legend(bbox_to_anchor=(-1.1, 0.8), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large', title=keyword, title_fontsize='large')
                 ax_hist.legend(bbox_to_anchor=(-1.1, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large')
 
         if save:
-            plt.savefig(os.path.join(savedir, f"{key_word}_systematics_plot.pdf"))
+            plt.savefig(os.path.join(savedir, f"{keyword}_systematics_plot.pdf"))
         if show:
             plt.show()
         else:

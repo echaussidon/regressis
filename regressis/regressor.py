@@ -10,16 +10,15 @@ import logging
 import numpy as np
 import healpy as hp
 import pandas as pd
-
 import matplotlib.pyplot as plt
-
-from .utils import deep_update, regression_least_square, zone_name_to_column_name
-
 from sklearn.model_selection import GroupKFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression
 from joblib import dump, load
+
+from . import utils
+from .utils import deep_update, regression_least_square, zone_name_to_column_name
 
 
 logger = logging.getLogger("Regressor")
@@ -27,21 +26,23 @@ logger = logging.getLogger("Regressor")
 
 def _load_feature_names(tracer, use_stream=None, use_stars=None):
     """
-    Load the default feature set to mitigate the systematic effects
+    Load the default feature set for regression.
 
-    Parameters:
+    Parameters
     ----------
-    tracer: str
-        the tracer name e.g. QSO / ELG / LRG / BGS
-    use_stream: bool
-        Use Sgr. Stream as template f--> default = False for all and True for QSO
-    use_stars: bool
-        Use stardens as template --> default = True
+    tracer : str
+        The tracer name e.g. QSO / ELG / LRG / BGS
 
-    Returns:
-    --------
-    feature_names: array like
-        list of feature names which will be use during the regression
+    use_stream : bool
+        Use Sgr. Stream as template; default = False for all and True for QSO.
+
+    use_stars : bool
+        Use stardens as template; default = True.
+
+    Returns
+    -------
+    feature_names: list
+        Names of features to regress against.
     """
 
     feature_names = ['STARDENS', 'EBV', 'STREAM',
@@ -87,8 +88,10 @@ def _load_rf_hyperparameters(updated_param=None, n_jobs=6, seed=123):
     ----------
     updated_param: dict
         updated param (e.g) {'North':{n_estimators:20}}
+
     n_jobs: int
         To parallelize the computation
+
     seed: int
         Fix the random_state of the Regressor for reproductibility
 
@@ -101,8 +104,8 @@ def _load_rf_hyperparameters(updated_param=None, n_jobs=6, seed=123):
     min_samples_leaf = {'North':20, 'South':20, 'Des':20, 'South_all':20, 'South_mid':20, 'South_pole':20, 'South_mid_no_des':20, 'Des_mid':20}
     for key in min_samples_leaf:
         param[key] = {'n_estimators':200, 'min_samples_leaf':min_samples_leaf[key], 'max_depth':None, 'max_leaf_nodes':None, 'n_jobs':n_jobs, 'random_state':seed}
-    if not updated_param is None:
-        param = deep_update(param, updated_param)
+    if updated_param is not None:
+        deep_update(param, updated_param)
     return param
 
 
@@ -126,8 +129,8 @@ def _load_mlp_hyperparameters(updated_param=None, seed=123):
     for key in ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']:
         param[key] = {'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
                       'max_iter': 6000, 'n_iter_no_change': 100, 'random_state': 5, 'solver': 'adam', 'tol': 1e-5, 'random_state':seed}
-    if not updated_param is None:
-        param = deep_update(param, updated_param)
+    if updated_param is not None:
+        deep_update(param, updated_param)
     return param
 
 
@@ -148,8 +151,8 @@ def _load_linear_hyperparameters(updated_param=None):
     param = dict()
     for key in ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']:
         param[key] = {}
-    if not updated_param is None:
-        param = deep_update(param, updated_param)
+    if updated_param is not None:
+        deep_update(param, updated_param)
     return param
 
 
@@ -168,8 +171,8 @@ def _load_nfold(updated_param=None):
         dictionary containing for each region the number of folds for the Kfold training
     """
     param = {'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_pole':5, 'Des_mid':3}
-    if not updated_param is None:
-        param = deep_update(param, updated_param)
+    if updated_param is not None:
+        deep_update(param, updated_param)
     return param
 
 
@@ -178,7 +181,7 @@ class Regressor(object):
     Implementation of the Systematic Correction based on template fitting regression
     """
 
-    def __init__(self, dataframe, engine, feature_names=None, use_Kfold=True,
+    def __init__(self, dataframe, engine, feature_names=None, use_kfold=True,
                  updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
                  compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6, seed=123):
         """
@@ -192,7 +195,7 @@ class Regressor(object):
             either RF (Random Forest), NN (Multi layer perceptron), LINEAR  --> all based on scikit-learn implementation
         feature_names: str array
             List of feature name used during the regression. By default load feature name from _load_feature_names
-        use_Kfold: bool
+        use_kfold: bool
             If True use Kfold computation. If False do not use Machine learning algortihm and compute Linear regression with iminuit on all the dataset.
         updated_param_rf / updated_param_mlp / updated_param_linear : dict
             Containing specific hyperparameters to update the default values loaded in _load_rf_hyperparameters / _load_mlp_hyperparameters / _load_linear_hyperparameters
@@ -206,18 +209,21 @@ class Regressor(object):
             To parallelize the Random Forest computation.
         seed: int
             Fix the random state of RandomForestRegressor and MLPRegressor for reproductibility
+
+        # TODO: why different updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None when you pass only one engine anyway???
+        # TODO: e.g. you can just provide kwargs_engine=None
         """
 
         self.dataframe = dataframe
-        self.engine = engine
+        self.engine = engine.upper()
         if feature_names is None:
             self.feature_names = _load_feature_names(dataframe.tracer)
         else:
             self.feature_names = feature_names
 
         # set up the parameter for the considered regressor
-        if use_Kfold:
-            self.use_Kfold = use_Kfold
+        self.use_kfold = use_kfold
+        if use_kfold:
             if self.engine == 'RF':
                 self.param_regressor = _load_rf_hyperparameters(updated_param_rf, n_jobs, seed)
             elif self.engine == 'NN':
@@ -225,10 +231,11 @@ class Regressor(object):
             elif self.engine == 'LINEAR':
                 self.param_regressor = _load_linear_hyperparameters(updated_param_linear)
         else:
+            # TODO: why??? RF and NN can also be used without kfold??
+            # TODO: why dependence in iminuit when there is LinearRegressor in sklearn?
             logging.warning("DO NOT USE K-FOLD --> ONLY REGRESSION AVAILABLE IS LINEAR WITH IMINUIT")
-            self.use_Kfold = use_Kfold
             self.engine = 'Linear_without_kfold'
-            self.param_regressor = {'regulator':2e6*(self.dataframe.Nside/256)**3}
+            self.param_regressor = {'regulator':2e6*(self.dataframe.nside/256)**3} # TODO: why regulator???
 
         # in NN and Linear case, we normalize and standardize the data
         # STREAM is already normalize --> remove it from the list
@@ -245,19 +252,18 @@ class Regressor(object):
         self.save_regressor = save_regressor
         self.nfold = _load_nfold(updated_nfold)
 
-        ## IF not self.dataframe.output is None --> save figure and info !!
-        if not self.dataframe.output is None:
-            # create the corresponding output folder --> put here since self.engine can be update with use_Kfold = False
-            if os.path.isdir(os.path.join(self.dataframe.output, self.engine)):
+        ## If not self.dataframe.output is None --> save figure and info !!
+        if self.dataframe.output_dir is not None:
+            # create the corresponding output folder --> put here since self.engine can be update with use_kfold = False
+            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.engine)):
                 if not overwrite_regression:
-                    logger.error(f"{os.path.join(self.dataframe.output, self.engine)} already exist and overwrite_regression is set as {overwrite_regression}")
-                    sys.exit()
+                    raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.engine)} already exist and overwrite_regression is set as {overwrite_regression}")
                 else:
-                    logger.warning(f"OVERWRITE {os.path.join(self.dataframe.output, self.engine)}")
-                    logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT: rm -rf {os.path.join(self.dataframe.output, self.engine)}")
+                    logger.warning(f"OVERWRITE {os.path.join(self.dataframe.output_dir, self.engine)}")
+                    logger.warning(f"PLEASE REMOVE THE OUPUT FOLDER TO HAVE CLEAN OUTPUT: rm -rf {os.path.join(self.dataframe.output_dir, self.engine)}")
             else:
-                logger.info(f"The output folder {os.path.join(self.dataframe.output, self.engine)} is created")
-                os.mkdir(os.path.join(self.dataframe.output, self.engine))
+                logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.engine)} is created")
+                utils.mkdir(os.path.join(self.dataframe.output_dir, self.engine))
 
 
     def make_regression(self):
@@ -270,9 +276,9 @@ class Regressor(object):
         fold_index = dict()
 
         for zone_name in self.dataframe.region:
-            if not self.dataframe.output is None:
+            if not self.dataframe.output_dir is None:
                 save_info = True
-                save_dir = os.path.join(self.dataframe.output, self.engine, zone_name)
+                save_dir = os.path.join(self.dataframe.output_dir, self.engine, zone_name)
                 if not os.path.isdir(save_dir):
                     os.mkdir(save_dir)
             else:
@@ -288,10 +294,10 @@ class Regressor(object):
             pixels_zone = self.dataframe.pixels[zone]
 
             logger.info(f"    --> Sample size {zone_name}: {keep_to_train_zone.sum()} -- Total Sample Size: {self.dataframe.keep_to_train.sum()} -- Training Fraction: {keep_to_train_zone.sum()/self.dataframe.keep_to_train.sum():.2%}")
-            logger.info(f"    --> use Kfold training ? {self.use_Kfold}")
+            logger.info(f"    --> use Kfold training ? {self.use_kfold}")
             logger.info(f"    --> Engine: {self.engine} with params: {self.param_regressor[zone_name]}")
 
-            if self.use_Kfold:
+            if self.use_kfold:
                 if self.engine == 'NN':
                     regressor = MLPRegressor(**self.param_regressor[zone_name])
                     normalized_feature, use_sample_weight = True, False
@@ -304,7 +310,7 @@ class Regressor(object):
 
                 F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone,
                                                                                 use_sample_weight, normalized_feature, self.feature_names_to_normalize,
-                                                                                pixels_zone, self.dataframe.Nside, feature_names=self.feature_names,
+                                                                                pixels_zone, self.dataframe.nside, feature_names=self.feature_names,
                                                                                 compute_permutation_importance=self.compute_permutation_importance,
                                                                                 save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
@@ -313,12 +319,13 @@ class Regressor(object):
                 fold_index = None
 
         # save evalutaion and fold_index
+        # TODO: PEP8, self.F is not a clear name
         self.F = F # Y_pred for every entry in each zone
         self.fold_index = fold_index # fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
         if save_info and (not fold_index is None):
-            logger.info(f"    --> Save Kfold index in {os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib')}")
-            dump(self.fold_index, os.path.join(self.dataframe.output, self.engine, f'kfold_index.joblib'))
+            logger.info(f"    --> Save Kfold index in {os.path.join(self.dataframe.output_dir, self.engine, f'kfold_index.joblib')}")
+            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.engine, f'kfold_index.joblib'))
 
 
     @staticmethod
@@ -349,13 +356,13 @@ class Regressor(object):
         return index
 
     @staticmethod
-    def plot_kfold(Nside, pixels, index_list, savename, title=''):
+    def plot_kfold(nside, pixels, index_list, savename, title=''):
         """
         Plot the folding of pixels following the repartition given in index_list.
 
         Parameters:
         -----------
-        Nside: int
+        nside: int
             Healpix resolution used in pixels
         pixels: array like
             pixels contains the pixel numbers which are split in the Kfold
@@ -366,7 +373,7 @@ class Regressor(object):
         title: str
             Title for the figure
         """
-        map = np.zeros(hp.nside2npix(Nside))
+        map = np.zeros(hp.nside2npix(nside))
         for i, index in enumerate(index_list) :
             map[pixels[index]] = i + 1 # to avoid 0
         map[map == 0] = np.NaN
@@ -394,7 +401,7 @@ class Regressor(object):
     @staticmethod
     def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, use_sample_weight,
                              normalized_feature, feature_names_to_normalize,
-                             pixels, Nside, feature_names=None,
+                             pixels, nside, feature_names=None,
                              compute_permutation_importance=False,
                              save_regressor=False, save_info=False, save_dir=''):
         """
@@ -425,7 +432,7 @@ class Regressor(object):
             List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
         pixels: array like
             Pixels list corresponding of the pixel number of each feature row.
-        Nside: int
+        nside: int
             Healpix resolution used in pixels
         feature_names: array like
             Feature name used during the regression. It is used for plotting information. If save_info is False do not need to pass it.
@@ -448,12 +455,13 @@ class Regressor(object):
         """
 
         kfold = GroupKFold(n_splits=nfold)
-        size_group = 1000  * (Nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
+        # TODO: size_group should be really hard-coded??
+        size_group = 1000  * (nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
         group = [i//size_group for i in range(pixels.size)]
         logger.info(f"    --> We use: {kfold} Kfold with group_size={size_group}")
         index = Regressor.build_kfold(kfold, pixels, group)
         if save_info:
-            Regressor.plot_kfold(Nside, pixels, index, os.path.join(save_dir, 'kfold_repartition.png'), title=f'{nfold}-Fold repartition')
+            Regressor.plot_kfold(nside, pixels, index, os.path.join(save_dir, 'kfold_repartition.png'), title=f'{nfold}-Fold repartition')
 
         Y_pred = np.zeros(pixels.size)
         X.reset_index(drop=True, inplace=True)
@@ -541,10 +549,10 @@ class Regressor(object):
         nbr_features = X.shape[1]
         logger.info(f"[TEST] Number of features used : {nbr_features}")
         nbr_params = nbr_features + 1
-
+        # TODO: English please!!!
         logger.info(f"            ** Taille de l'échantillon (non nan value): {np.sum(Y>0)}")
         logger.info(f"            ** Information sur normalized targets : Mean = {np.nanmean(Y)} and Std = {np.nanstd(Y)}")
-        logger.info("[WARNING] We normalize and center features on the training footprint (don't forget to normalized also the non training footprint)")
+        logger.info("[WARNING] We normalize and center features on the training footprint (don't forget to normalize also the non training footprint)")
         logger.info(feature_names_to_normalize)
         X.loc[:, feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize][keep_to_train == 1].mean())/X[feature_names_to_normalize][keep_to_train == 1].std()
         X_train, Y_train = X[keep_to_train == 1], Y[keep_to_train == 1]
@@ -576,15 +584,14 @@ class Regressor(object):
         savedir: str
             path where to save the map, if None use default path
         """
-
-        w = np.zeros(hp.nside2npix(self.dataframe.Nside))*np.NaN
+        w = np.zeros(hp.nside2npix(self.dataframe.nside))*np.NaN
         w[self.dataframe.pixels[self.F > 0]] = 1.0/self.F[self.F > 0]
 
         if savemap:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output, self.engine)
-            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.Nside}.npy')
-            logger.info(f"Save photometric weight in a healpix map with {self.dataframe.Nside} here: {filename_weight_save}")
+                savedir = os.path.join(self.dataframe.output_dir, self.engine)
+            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.nside}.npy')
+            logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
 
         if return_map:
@@ -717,15 +724,15 @@ class Regressor(object):
         from plot import plot_moll
         from systematics import plot_systematic_from_map
 
-        dir_output = os.path.join(self.dataframe.output, self.engine, 'Fig')
+        dir_output = os.path.join(self.dataframe.output_dir, self.engine, 'Fig')
         if not os.path.isdir(dir_output):
             os.mkdir(dir_output)
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
 
-        targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.Nside, degrees=True)*self.dataframe.fracarea)
-        targets[~self.dataframe.footprint['FOOTPRINT']] = np.NaN
+        targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
+        targets[~self.dataframe.footprint['FOOTPRINT']] = np.nan
 
-        w = np.zeros(hp.nside2npix(self.dataframe.Nside))
+        w = np.zeros(hp.nside2npix(self.dataframe.nside))
         w[self.dataframe.pixels[self.F>0]] = 1.0/self.F[self.F>0]
         targets_without_systematics = targets*w
 

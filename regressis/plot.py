@@ -45,17 +45,13 @@ SGR_MATRIX = matrix_product(A, B, C, D)
 
 @frame_transform_graph.transform(coord.StaticMatrixTransform, coord.Galactic, Sagittarius)
 def galactic_to_sgr():
-    """ Compute the transformation matrix from Galactic spherical to
-        heliocentric Sgr coordinates.
-    """
+    """Compute the transformation matrix from Galactic spherical to heliocentric Sgr coordinates."""
     return SGR_MATRIX
 
 
 @frame_transform_graph.transform(coord.StaticMatrixTransform, Sagittarius, coord.Galactic)
 def sgr_to_galactic():
-    """ Compute the transformation matrix from heliocentric Sgr coordinates to
-        spherical Galactic.
-    """
+    """Compute the transformation matrix from heliocentric Sgr coordinates to spherical Galactic."""
     return matrix_transpose(SGR_MATRIX)
 
 
@@ -147,7 +143,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', sav
 
     if show_legend:
         ax.legend(loc='lower right')
-    if title!='':
+    if title:
         plt.title(title)
     if savename != None:
         plt.savefig(savename)

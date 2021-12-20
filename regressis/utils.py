@@ -53,6 +53,15 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
         fh.setFormatter(fmt)
         logger.addHandler(fh)
 
+
+def mkdir(dirname):
+    """Try to create ``dirnm`` and catch :class:`OSError`."""
+    try:
+        os.makedirs(dirname) # MPI...
+    except OSError:
+        return
+
+
 #------------------------------------------------------------------------------#
 def zone_name_to_column_name(zone_name):
     """
@@ -70,20 +79,17 @@ def zone_name_to_column_name(zone_name):
 #------------------------------------------------------------------------------#
 # dictionary upadte at different level
 
-import collections.abc
-
 def deep_update(source, overrides):
     """
     Update a nested dictionary or similar mapping.
     Modify ``source`` in place.
     """
     for key, value in overrides.items():
-        if isinstance(value, collections.abc.Mapping) and value:
-            returned = deep_update(source.get(key, {}), value)
-            source[key] = returned
+        if hasattr(value, 'items'):
+            source.setdefault(key, {})
+            deep_update(source[key], value)
         else:
-            source[key] = overrides[key]
-    return source
+            source[key] = value
 
 #------------------------------------------------------------------------------#
 # Linear regression with iminuit
@@ -161,8 +167,6 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
         - Only strictly correct for Decs from -90+1e-3(o) to 90-1e3(o).
     """
     ramin, ramax, decmin, decmax = radecbox
-
-    print("IL FAUT LA REECRIRE")
 
     # ADM area enclosed isn't well-defined if RA covers more than 180o.
     if np.abs(ramax-ramin) <= 180.:

@@ -21,13 +21,13 @@ def test_case_qso():
     print(" ")
     version = 'SV3'
     tracer = 'QSO'
-    suffixe_tracer = '' # Si on veut par exemple avoir QSO_newsel
+    suffix_tracer = '' # Si on veut par exemple avoir QSO_newsel
 
     param_targets = dict()
-    param_targets['Nside'] = 256
+    param_targets['nside'] = 256
     param_targets['use_median'] = False
     param_targets['use_new_norm'] = False
-    param_targets['remove_LMC'] = True
+    param_targets['mask_lmc'] = True
     param_targets['clear_south'] = True
     param_targets['mask_around_des'] = True
     # param_targets['region'] = ['North', 'South', 'Des'] #(default)
@@ -35,12 +35,12 @@ def test_case_qso():
 
     param_targets['region'] = ['Des']
 
-    dataframe = PhotometricDataFrame(version, tracer, data_dir, output_dir, suffixe_tracer=suffixe_tracer, **param_targets)
+    dataframe = PhotometricDataFrame(version, tracer, data_dir, output_dir, suffix_tracer=suffix_tracer, **param_targets)
     dataframe.set_features()
     print(" ")
     dataframe.set_targets()
     print(" ")
-    dataframe.build_for_regressor(selection_on_fracarea=True)
+    dataframe.build(selection_on_fracarea=True)
     print(" ")
     regressor = Regressor(dataframe, engine='RF', compute_permutation_importance=True, overwrite_regression=True, n_jobs=6, seed=123, save_regressor=False, updated_nfold={'Des':2})
     print(" ")

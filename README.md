@@ -24,7 +24,7 @@ First:
 ```
 git clone https://github.com/echaussidon/regressis.git
 ```
-To install the code::
+To install the code:
 ```
 python setup.py install --user
 ```
