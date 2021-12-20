@@ -13,6 +13,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from .desi_footprint import DR9Footprint
+from . import utils
 from .utils import hp_in_box, zone_name_to_column_name
 
 

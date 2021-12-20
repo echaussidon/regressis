@@ -185,7 +185,7 @@ class Regressor(object):
                  updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
                  compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6, seed=123):
         """
-        Initialize :class:`Regressor`
+        Initialize :class:`Regressor`.
 
         Parameters
         ----------
@@ -232,7 +232,7 @@ class Regressor(object):
                 self.param_regressor = _load_linear_hyperparameters(updated_param_linear)
         else:
             # TODO: why??? RF and NN can also be used without kfold??
-            # TODO: why dependence in iminuit when there is LinearRegressor in sklearn?
+            # TODO: why dependence in iminuit when there is LinearRegression in sklearn?
             logging.warning("DO NOT USE K-FOLD --> ONLY REGRESSION AVAILABLE IS LINEAR WITH IMINUIT")
             self.engine = 'Linear_without_kfold'
             self.param_regressor = {'regulator':2e6*(self.dataframe.nside/256)**3} # TODO: why regulator???
@@ -298,6 +298,7 @@ class Regressor(object):
             logger.info(f"    --> Engine: {self.engine} with params: {self.param_regressor[zone_name]}")
 
             if self.use_kfold:
+                # TODO: regressor should be set in __init__().
                 if self.engine == 'NN':
                     regressor = MLPRegressor(**self.param_regressor[zone_name])
                     normalized_feature, use_sample_weight = True, False

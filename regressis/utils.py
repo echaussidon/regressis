@@ -1,6 +1,7 @@
 # coding: utf-8
 # Author : Edmond Chaussidon (CEA)
 
+import os
 import sys
 import time
 import logging
