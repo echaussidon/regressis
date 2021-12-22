@@ -1,5 +1,5 @@
+#!/usr/bin/env python
 # coding: utf-8
-# Author : Edmond Chaussidon (CEA)
 
 import numpy as np
 import healpy as hp

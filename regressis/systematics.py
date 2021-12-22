@@ -1,5 +1,5 @@
-## coding: utf-8
-## Author : Edmond Chaussidon (CEA)
+#!/usr/bin/env python
+# coding: utf-8
 
 import os
 import warnings
@@ -85,12 +85,12 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
     targets = targets[sel]
     feature = feature[sel]
 
-    if adaptative_binning: #set this option to have variable bin sizes so that each bin contains the same number of pixel (nobjects_by_bins)
+    if adaptative_binning: # set this option to have variable bin sizes so that each bin contains the same number of pixel (nobjects_by_bins)
         nbr_obj_bins = nobjects_by_bins
         ksort = np.argsort(feature)
-        bins=feature[ksort[0::nbr_obj_bins]] #Here, get the bins from the data set (needed to be sorted)
-        bins=np.append(bins,feature[ksort[-1]]) #add last point
-        nbins = bins.size - 1 #OK
+        bins=feature[ksort[0::nbr_obj_bins]] # Here, get the bins from the data set (needed to be sorted)
+        bins=np.append(bins,feature[ksort[-1]]) # add last point
+        nbins = bins.size - 1 # OK
     else: # create bin with fix size (depends on the up/downclip value or minimal / maximal value of feature if up/downclip is too large)
         nbr_obj_bins, bins = np.histogram(feature, nbins)
 
@@ -163,13 +163,11 @@ def _select_good_pixels(keyword, fracarea, footprint, cut_fracarea=True, min_fra
 
     # keep pixel with enough observations
     if cut_fracarea:
-        #max value just due to poisson Noise
+        # max value just due to poisson Noise
         logger.info(f"Keep only pixels with {min_fracarea} < fracarea < {max_fracarea}")
         pix_to_keep &= (fracarea < max_fracarea) & (fracarea > min_fracarea)
 
     return pix_to_keep, keyword_sys
-
-    ##atntion cahgneer gracre ne aps prendre celui de la pixmpa !!!!
 
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, savedir, zone_to_plot=['North', 'South', 'Des'],

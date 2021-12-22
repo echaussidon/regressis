@@ -1,5 +1,5 @@
+#!/usr/bin/env python
 # coding: utf-8
-# Author : Edmond Chaussidon (CEA)
 
 import os
 import sys
@@ -133,7 +133,6 @@ def regression_least_square(model, regulator, data_x, data_y, data_y_cov_inv, nb
         return [m.values[f"a{i}"] for i in range(0, nbr_params)]
 
 #------------------------------------------------------------------------------#
-
 import healpy as hp
 
 def hp_in_box(nside, radecbox, inclusive=True, fact=4):

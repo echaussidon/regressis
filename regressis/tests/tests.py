@@ -8,6 +8,7 @@ import numpy as np
 
 from regressis import PhotometricDataFrame, Regressor, setup_logging
 
+
 logger = logging.getLogger('Tests')
 
 
@@ -16,7 +17,7 @@ def test_case_qso():
     data_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'test_case_qso') # where the pixmap + sgr + QSO target maps are
 
     #output_dir = os.path.join(basedir, 'res')
-    output_dir = None #do not save figure
+    output_dir = None # do not save figure
 
     print(" ")
     version, tracer, suffix_tracer = 'SV3', 'QSO', ''
@@ -39,8 +40,8 @@ def test_case_qso():
     dataframe.set_targets()
     print(" ")
     dataframe.build(selection_on_fracarea=True)
-    print(" ")  #sedd 123
-    regressor = Regressor(dataframe, engine='RF', compute_permutation_importance=False, overwrite_regression=False, n_jobs=6, seed=124, save_regressor=False, updated_nfold={'Des':2})
+    print(" ")
+    regressor = Regressor(dataframe, engine='RF', compute_permutation_importance=False, overwrite_regression=False, n_jobs=6, seed=123, save_regressor=False, updated_nfold={'Des':2})
     print(" ")
     regressor.make_regression()
     print(" ")
@@ -51,8 +52,8 @@ def test_case_qso():
     logger.info('Load precompute systematic weights and compare the current computation')
     w_sys_test = np.load(os.path.join(data_dir, 'SV3_QSO_imaging_weight_256.npy'))
     mask = ~np.isnan(w_sys)
-    assert np.allclose(w_sys[mask], w_sys_test[mask])
-    logger.info('TEST')
+    assert np.allclose(w_sys[mask], w_sys_test[mask]), "The computation of systematic weights in test case gives bad result, please do not change any parameter in tests.py"
+    logger.info('Test is complete !')
 
 
 if __name__ == '__main__':
