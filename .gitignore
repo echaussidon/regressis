@@ -1,10 +1,19 @@
-# Compiled files
-*__pycache__
-
-# iPython
-*.ipynb_checkpoints
-
-# Mac OSX
+doc/_build/
+**/__pycache__
+**/pytest_cache
+**/*.egg
+**/*.egg-info
+**/.astropy
+**/.cache
+**/.config
+**/.wget*
+**/_tests
+**/dist
+**/eggs
+**/build
+**/_catalogs
+**/.ipynb_checkpoints
+**/bak
+**/_tests
 *.DS_Store
-
 Res/

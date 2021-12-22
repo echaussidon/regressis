@@ -1,90 +1,92 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import sys
 import logging
-logger = logging.getLogger("build_dataframe")
-
-import sys, os
-# to avoid error from pandas method into the logger -> pandas use NUMEXPR Package
-os.environ['NUMEXPR_MAX_THREADS'] = '8'
-os.environ['NUMEXPR_NUM_THREADS'] = '8'
 
 import numpy as np
 import healpy as hp
 import fitsio
 import pandas as pd
 
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
-from desi_footprint import DR9_footprint
-from utils import hp_in_box, zone_name_to_column_name
+from .desi_footprint import DR9Footprint
+from . import utils
+from .utils import hp_in_box, zone_name_to_column_name
+
+
+logger = logging.getLogger('DataFrame')
+
+# To avoid error from pandas method into the logger -> pandas use NUMEXPR Package
+# TODO: really a good idea if ncores < 8? Why not setting to e.g. OMP_NUM_THREADS?
+os.environ.setdefault('NUMEXPR_MAX_THREADS', '8')
+os.environ.setdefault('NUMEXPR_NUM_THREADS', '8')
 
 
 class PhotometricDataFrame(object):
     """
     Build the dataframe needed to compute the weights due to photometry / spectroscopy systematic effects
     """
-    def __init__(self, version, tracer, data_dir=None, output_dir=None, suffixe_tracer='',
-                 Nside=None, use_median=False, use_new_norm=False, remove_LMC=False,
-                 clear_south=True, mask_around_des=False, cut_DESI=False, region=None):
+    def __init__(self, version, tracer, data_dir=None, output_dir=None, suffix_tracer='',
+                 nside=None, use_median=False, use_new_norm=False, mask_lmc=False,
+                 clear_south=True, mask_around_des=False, cut_desi=False, region=None):
         """
         Initialize :class:`DataFrame`
 
         Parameters
         ----------
 
-        mettre les valeurs par default a la place de kwargs
+        # TODO: describe input parameters.
 
         """
         self.version = version
         self.tracer = tracer
-        self.suffixe_tracer = suffixe_tracer
+        self.suffix_tracer = suffix_tracer
 
-        self.data_dir = data_dir #where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
-
-        self.output_dir = output_dir #if None --> nothing is save and no directory is built
-
-        self.Nside = Nside
-        self.pixels = np.arange(0, hp.nside2npix(self.Nside))
+        self.nside = nside
+        self.pixels = np.arange(hp.nside2npix(self.nside))
 
         # info to normalize the target density
         self.use_median = use_median
         self.use_new_norm = use_new_norm
 
         # footprint info
-        self.DR9 = DR9_footprint(self.Nside, remove_LMC=remove_LMC, clear_south=clear_south, mask_around_des=mask_around_des)
-        self.cut_DESI = cut_DESI
+        # TODO: THIS IS HARD CODING!
+        # TODO: pass footprint instance directly!
+        self.dr9 = DR9Footprint(self.nside, mask_lmc=mask_lmc, clear_south=clear_south, mask_around_des=mask_around_des)
+        self.cut_desi = cut_desi
 
         # which region we want to use --> if None use default
         self.region = region
         if self.region is None:
-            logger.info('Use default region')
             self.region = ['North', 'South', 'Des']
+            logger.info(f'Using default regions {self.region}')
 
-        logger.info(f"Version: {self.version} -- Tracer: {self.tracer} -- REGION: {self.region}")
+        logger.info(f"version: {self.version} -- tracer: {self.tracer} -- region: {self.region}")
 
-        if not self.output_dir is None:
-            self.output = os.path.join(output_dir, f'{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}')
-            if os.path.isdir(self.output):
-                logger.info('Ouput folder already exists')
-            else:
-                logger.info(f'Create output directory: {self.output}')
-                os.mkdir(self.output)
-                os.mkdir(os.path.join(self.output, 'Build_dataFrame'))
-            logger.info(f"Plots are saved in {self.output}")
+        self.data_dir = data_dir #where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
+
+        if output_dir is not None:  #if None --> nothing is save and no directory is built
+            self.output_dir = os.path.join(output_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}')
+            self.output_dataframe_dir = os.path.join(self.output_dir, 'dataframe')
+            utils.mkdir(self.output_dir)
+            utils.mkdir(self.output_dataframe_dir)
+            logger.info(f"Plots are saved in {self.output_dataframe_dir}")
         else:
-            self.output = None
+            self.output_dir = self.output_dataframe_dir = None
 
 
     def set_features(self, pixmap=None, sgr_stream=None, sel_columns=None, use_sgr_stream=True):
         """
         Set photometric templates and footprint info either from a pixweight array (already loaded) or read it from .fits file
-        All the map should be HEALPIX MAPS with NSIDE in NESTED order
+        All the maps should be Healpix maps with :attr:`nside` in nested order.
 
         Parameters
         ----------
-        pixmap: float array dtype
-            Array containg the photometric template at the correct Nside (ie) self.Nside
+        pixmap: float array
+            Array containg the photometric template at :attr:`nside`
 
         sgr_stream: float array
             Array containing the Sgr. Stream feature at the compatible Nside
@@ -97,23 +99,23 @@ class PhotometricDataFrame(object):
 
         use_sgr_stream: bool
             Include or not the Sgr. Stream map --> the feature is really relevant for the QSO TS.
-
         """
-
         path_pixweight, path_sgr_stream = None, None
 
         # Build DR9 Legacy Imaging footprint
-        footprint = self.DR9.load_footprint()
-        if self.cut_DESI: #restricted to DESI footprint
+        footprint = self.dr9.get_full()
+        if self.cut_desi: # restricted to DESI footprint
             logger.info('Restrict footrpint to DESI footprint')
-            footprint[hp_in_box(self.Nside, [0, 360, -90, -30])] = False
+            footprint[hp_in_box(self.nside, [0, 360, -90, -30])] = False
 
-        # extract the different region from DR9_footprint
-        north, south, des = self.DR9.load_photometry()
-        _, south_mid, south_pole = self.DR9.load_elg_region()
+        # extract the different region from DR9Footprint
+        # TODO: should be a method of DR9Footprint, get_all_regions()
+        north, south, des = self.dr9.get_imaging_surveys()
+        _, south_mid, south_pole = self.dr9.get_elg_region()
         des_mid = des & ~south_pole
-        ngc, sgc = self.DR9.load_ngc_sgc()
-        self.footprint = pd.DataFrame({'FOOTPRINT': footprint, 'ISNORTH':north, 'ISSOUTH':south, 'ISDES':des, 'ISSOUTHWITHOUTDES':south&~des,
+        ngc, sgc = self.dr9.get_ngc_sgc()
+        # TODO: should be a method of DR9Footprint, as_dataframe()
+        self.footprint = pd.DataFrame({'FOOTPRINT':footprint, 'ISNORTH':north, 'ISSOUTH':south, 'ISDES':des, 'ISSOUTHWITHOUTDES':south & ~des,
                                        'ISNGC':ngc, 'ISSGC':sgc, 'ISSOUTHMID':south_mid, 'ISSOUTHPOLE':south_pole, 'ISDESMID':des_mid})
 
         if sel_columns is None:
@@ -125,10 +127,10 @@ class PhotometricDataFrame(object):
         if isinstance(pixmap, str):
             path_pixweight = pixmap
         elif pixmap is None:
-            path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.Nside}.fits')
+            path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
 
-        if not path_pixweight is None:
-            logger.info(f"Read {path_pixweight}")
+        if path_pixweight is not None:
+            logger.info(f"Read {path_pixweight}.")
             feature_pixmap = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())
         else:
             feature_pixmap = pixmap[sel_columns]
@@ -137,7 +139,7 @@ class PhotometricDataFrame(object):
             if isinstance(sgr_stream, str):
                 path_sgr_stream = sgr_stream
             elif sgr_stream is None:
-                path_sgr_stream = os.path.join(self.data_dir, f'sagittarius_stream_{self.Nside}.npy')
+                path_sgr_stream = os.path.join(self.data_dir, f'sagittarius_stream_{self.nside}.npy')
 
             if not path_sgr_stream is None:
                 # Load Sgr. Stream map
@@ -148,13 +150,13 @@ class PhotometricDataFrame(object):
             self.features = pd.concat([stream_map, feature_pixmap], axis=1)
         else:
             self.features = feature_pixmap
-        logger.info(f"Sanity check: Number of Nan in features: {self.features.isnull().sum().sum()}")
+        logger.info(f"Sanity check: number of NaNs in features: {self.features.isnull().sum().sum()}")
 
 
     def set_targets(self, targets=None, fracarea=None):
         """
-        Set targets and fracarea map at the correct Nside (ie) self.Nside
-        All the map should be HEALPIX MAPS with NSIDE in NESTED order
+        Set targets and fracarea map at the correct :attr:`nside`.
+        All the maps should be Healpix maps with :attr:`nside` in nested order.
 
         Parameters
         ----------
@@ -172,7 +174,7 @@ class PhotometricDataFrame(object):
         if isinstance(targets, str):
             path_targets = targets
         elif targets is None:
-            path_targets = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.npy')
+            path_targets = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.npy')
 
         if not path_targets is None:
             logger.info(f"Read {path_targets}")
@@ -182,7 +184,7 @@ class PhotometricDataFrame(object):
         if isinstance(fracarea, str):
             path_fracarea = fracarea
         elif fracarea is None:
-            path_fracarea = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffixe_tracer}_fracarea_{self.Nside}.npy')
+            path_fracarea = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_fracarea_{self.nside}.npy')
 
         if not path_fracarea is None:
             if os.path.isfile(path_fracarea):
@@ -190,25 +192,22 @@ class PhotometricDataFrame(object):
                 fracarea = np.load(path_fracarea)
             else:
                 # Read fracarea_12290 from pixweight file
-                logger.info("Do not find corresponding fracarea map --> USE FRACAREA_12290 AS DEFAULT FRACAREA")
-                path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.Nside}.fits')
+                logger.info("Do not find corresponding fracarea map --> use FRACAREA_12290 as default fracarea")
+                path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
                 logger.info(f"Read {path_pixweight}")
                 fracarea = fitsio.FITS(path_pixweight)[1]['FRACAREA_12290'].read()
         self.fracarea = fracarea
 
 
-    def build_for_regressor(self, selection_on_fracarea=False):
+    def build(self, selection_on_fracarea=False):
         """
-        Build the normalized target density in the considered zone and Choose the pixel to use during the training (clean and remove 'bad' pixels)
+        Build the normalized target density in the considered zone and choose the pixel to use during the training (clean and remove 'bad' pixels)
 
         Parameters
         ----------
-
         selection_on_fracarea: bool
             if True remove queue distribution of the fracarea --> not mandatory since it can be already done when building the target density map (with more specificity) especially for DA02 ect..
-
         """
-
         # use only pixels which are observed for the training
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
@@ -216,17 +215,17 @@ class PhotometricDataFrame(object):
         keep_to_train = considered_footprint.copy()
 
         if selection_on_fracarea:
-            if self.Nside == 512:
+            if self.nside == 512:
                 min_fracarea, max_fracarea = 0.5, 1.5
             else:
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
         logger.info(f"The considered footprint represents {(considered_footprint).sum() / (self.footprint['FOOTPRINT']).sum():2.2%} of the DR9 footprint")
-        logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training (ie) {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} ot the considered footprint")
+        logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training i.e. {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} ot the considered footprint")
 
         # build normalized targets
-        normalized_targets, mean_targets_density = np.zeros(self.targets.size) * np.NaN, dict()
+        normalized_targets, mean_targets_density = np.zeros(self.targets.size) * np.nan, dict()
         for zone_name in self.region:
             pix_zone = self.footprint[zone_name_to_column_name(zone_name)].values
             pix_to_use = pix_zone & keep_to_train
@@ -234,13 +233,13 @@ class PhotometricDataFrame(object):
             # only conserve pixel in the correct radec box
             if self.use_new_norm:
                 #compute normalization on subpart of the footprint which is not contaminated for the north and the south !
-                keep_to_norm = np.zeros(hp.nside2npix(self.Nside))
+                keep_to_norm = np.zeros(hp.nside2npix(self.nside))
                 if zone_name == 'North':
-                    keep_to_norm[hp_in_box(self.Nside, [120, 240, 32.2, 40], inclusive=True)] = 1
+                    keep_to_norm[hp_in_box(self.nside, [120, 240, 32.2, 40], inclusive=True)] = 1
                 elif zone_name == 'South':
-                    keep_to_norm[hp_in_box(self.Nside, [120, 240, 24, 32.2], inclusive=True)] = 1
+                    keep_to_norm[hp_in_box(self.nside, [120, 240, 24, 32.2], inclusive=True)] = 1
                 else:
-                    keep_to_norm = np.ones(hp.nside2npix(self.Nside))
+                    keep_to_norm = np.ones(hp.nside2npix(self.nside))
                 pix_to_use_norm = pix_to_use & keep_to_norm
             else:
                 pix_to_use_norm = pix_to_use
@@ -257,26 +256,26 @@ class PhotometricDataFrame(object):
             logger.info(f"  ** {zone_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
 
         # some plots for sanity check
-        if not self.output is None:
+        if self.output_dataframe_dir is not None:
             plt.figure(figsize=(8,6))
             plt.hist(self.targets[considered_footprint], range=(0.1,100), bins=100)
-            plt.savefig(os.path.join(self.output, 'Build_dataFrame', f"test_remove_targets_{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.png"))
+            plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
             plt.figure(figsize=(8,6))
             plt.hist(self.fracarea[considered_footprint], range=(0.5, 1.4), bins=100)
-            plt.savefig(os.path.join(self.output, 'Build_dataFrame', f"test_remove_fracarea_{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.png"))
+            plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_fracarea_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
-            tmp = np.zeros(hp.nside2npix(self.Nside))
+            tmp = np.zeros(hp.nside2npix(self.nside))
             tmp[self.pixels[keep_to_train == False]] = 1
             plt.figure(figsize=(8,6))
             hp.mollview(tmp, rot=120, nest=True, title='strange pixel', cmap='jet')
-            plt.savefig(os.path.join(self.output, 'Build_dataFrame', f"strange_pixel_{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.png"))
+            plt.savefig(os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
 
             plt.figure(figsize=(8,6))
             plt.hist(normalized_targets[keep_to_train], range=(0.1,5), bins=100)
-            plt.savefig(os.path.join(self.output, 'Build_dataFrame', f"normalized_targets_{self.version}_{self.tracer}{self.suffixe_tracer}_{self.Nside}.png"))
+            plt.savefig(os.path.join(self.output_dataframe_dir, f"normalized_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
 
         self.density = normalized_targets
         self.mean_density_region = mean_targets_density
@@ -287,9 +286,9 @@ class PhotometricDataFrame(object):
 #     """
 #     Build the dataframe needed to compute the combined weights for photometry and spectroscopy systematic effects
 #     """
-#     def __init__(self, version, tracer, data_dir, output_dir=None, suffixe_tracer='',
-#                  Nside=None, use_median=False, use_new_norm=False, remove_LMC=False,
-#                  clear_south=True, cut_DESI=False, region=None):
+#     def __init__(self, version, tracer, data_dir, output_dir=None, suffix_tracer='',
+#                  Nside=None, use_median=False, use_new_norm=False, mask_lmc=False,
+#                  clear_south=True, cut_desi=False, region=None):
 #         """
 #         Initialize :class:`DataFrame`
 #
