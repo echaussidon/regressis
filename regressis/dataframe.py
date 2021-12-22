@@ -20,9 +20,14 @@ from .utils import hp_in_box, zone_name_to_column_name
 logger = logging.getLogger('DataFrame')
 
 # To avoid error from pandas method into the logger -> pandas use NUMEXPR Package
-# TODO: really a good idea if ncores < 8? Why not setting to e.g. OMP_NUM_THREADS?
-os.environ.setdefault('NUMEXPR_MAX_THREADS', '8')
-os.environ.setdefault('NUMEXPR_NUM_THREADS', '8')
+if 'OMP_NUM_THREADS' in os.environ.keys():
+  os.environ.setdefault('NUMEXPR_MAX_THREADS', os.environ['OMP_NUM_THREADS'])
+  os.environ.setdefault('NUMEXPR_NUM_THREADS', os.environ['OMP_NUM_THREADS'])
+else:
+  os.environ.setdefault('NUMEXPR_MAX_THREADS', '1')
+  os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
+
+
 
 
 class PhotometricDataFrame(object):
@@ -66,9 +71,9 @@ class PhotometricDataFrame(object):
 
         logger.info(f"version: {self.version} -- tracer: {self.tracer} -- region: {self.region}")
 
-        self.data_dir = data_dir #where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
+        self.data_dir = data_dir # where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
 
-        if output_dir is not None:  #if None --> nothing is save and no directory is built
+        if output_dir is not None:  # if None --> nothing is save and no directory is built
             self.output_dir = os.path.join(output_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}')
             self.output_dataframe_dir = os.path.join(self.output_dir, 'dataframe')
             utils.mkdir(self.output_dir)
@@ -250,7 +255,7 @@ class PhotometricDataFrame(object):
             else:
                 mean_targets_density_estimators = np.median(self.targets[pix_to_use_norm] / self.fracarea[pix_to_use_norm])
 
-            #compute normalized_targets every where but we don't care we only use keep_to_train == 1 during the training
+            # compute normalized_targets every where but we don't care we only use keep_to_train == 1 during the training
             normalized_targets[pix_zone] = self.targets[pix_zone] / (self.fracarea[pix_zone]*mean_targets_density_estimators)
             mean_targets_density[zone_name] = mean_targets_density_estimators
             logger.info(f"  ** {zone_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
