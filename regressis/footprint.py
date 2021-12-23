@@ -98,7 +98,8 @@ class DR9Footprint(Footprint):
         self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '..', 'data', 'Legacy_Imaging_DR9_footprint_256.fits'))
 
         self.default_region = ['North', 'South', 'Des']
-        self.available_region = ['North', 'South', 'Des', 'South_ngc', 'South_sgc',
+        # remark: Global = Footprint, South_ngc = South_all_ngc = South_mid_ngc
+        self.available_region = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc',
                                  'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid',
                                  'Global', 'Footprint']
 
@@ -223,6 +224,12 @@ class DR9Footprint(Footprint):
             return self.get_elg_region(ngc_sgc_split=True)[2]
         elif keyword == 'South_pole':
             return self.get_elg_region()[2]
+        elif keyword == 'South_all':
+            return self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]
+        elif keyword == 'South_all_ngc':
+            return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[0]
+        elif keyword == 'South_all_sgc':
+            return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[1]
         else:
             raise ValueError(f"call of {self.__class__.__name__} is not implemented for region: {keyword}")
 
@@ -241,7 +248,7 @@ class DR9Footprint(Footprint):
         if keyword == 'North':
             logger.info("Use (R.A., Dec.) box: [120, 240, 32.2, 40] to compute mean density")
             keep_to_norm[hp_in_box(self.nside, [120, 240, 32.2, 40], inclusive=True)] = True
-        elif keyword in ['South', 'South_ngc', 'South_mid', 'South_mid_ngc']:
+        elif keyword in ['South', 'South_ngc', 'South_mid', 'South_mid_ngc', 'South_all', 'South_all_ngc']:
             logger.info("Use (R.A., Dec.) box: [120, 240, 24, 32.2] to compute mean density")
             keep_to_norm[hp_in_box(self.nside, [120, 240, 24, 32.2], inclusive=True)] = True
         else:
@@ -259,7 +266,8 @@ class DR9Footprint(Footprint):
         keyword: str
             Zone name that we want to collect the corresponding keyword for systematic plots.
         """
-        if keyword in ['South_ngc', 'South_sgc', 'South_mid', 'South_mid_ngc', 'South_mid_sgc']:
+        if keyword in ['South_ngc', 'South_sgc', 'South_mid', 'South_mid_ngc',
+                       'South_mid_sgc', 'South_all', 'South_all_ngc', 'South_all_sgc']:
             return 'South'
         elif keyword in ['Des_mid', 'South_pole']:
             return 'Des'
