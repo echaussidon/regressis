@@ -8,8 +8,8 @@ import logging
 
 import numpy as np
 import healpy as hp
-import pandas as pd
 import matplotlib.pyplot as plt
+
 from sklearn.model_selection import GroupKFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
@@ -17,7 +17,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import dump, load
 
 from . import utils
-from .utils import deep_update, regression_least_square
+from .utils import deep_update
 
 
 logger = logging.getLogger("Regressor")
@@ -137,8 +137,8 @@ def _load_linear_hyperparameters(updated_param=None):
     """
     Load pre-defined hyperparameters for Linear regressor for each specific region available. Can be updated with updated_param.
 
-    Parameters
-    ----------
+    Parameter
+    ---------
     updated_param: dict
         updated param (e.g) {'North':{n_jobs:2}}
 
@@ -159,8 +159,8 @@ def _load_nfold(updated_param=None):
     """
     Load pre-defined number of folds for each specific region available. Can be updated with updated_param.
 
-    Parameters
-    ----------
+    Parameter
+    ---------
     updated_param: dict
         updated param (e.g) {'North':2}
 
@@ -181,7 +181,7 @@ class Regressor(object):
     """
 
     def __init__(self, dataframe, engine, feature_names=None, use_kfold=True,
-                 updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None, updated_nfold=None,
+                 updated_param_engine=None, updated_nfold=None,
                  compute_permutation_importance=True, overwrite_regression=False, save_regressor=False, n_jobs=6, seed=123):
         """
         Initialize :class:`Regressor`.
@@ -195,8 +195,8 @@ class Regressor(object):
         feature_names: str array
             List of feature name used during the regression. By default load feature name from _load_feature_names
         use_kfold: bool
-            If True use Kfold computation. If False do not use Machine learning algortihm and compute Linear regression with iminuit on all the dataset.
-        updated_param_rf / updated_param_mlp / updated_param_linear : dict
+            If True use Kfold computation. It is mandatory with RF and NN to avoid overfitting
+        updated_param_engine : dict
             Containing specific hyperparameters to update the default values loaded in _load_rf_hyperparameters / _load_mlp_hyperparameters / _load_linear_hyperparameters
         compute_permutation_importance: bool
             Compute and plot the permutation importance for inspection. It has to be compared with giny importance from Random Forest regressor.
@@ -208,9 +208,6 @@ class Regressor(object):
             To parallelize the Random Forest computation.
         seed: int
             Fix the random state of RandomForestRegressor and MLPRegressor for reproductibility
-
-        # TODO: why different updated_param_rf=None, updated_param_mlp=None, updated_param_linear=None when you pass only one engine anyway???
-        # TODO: e.g. you can just provide kwargs_engine=None
         """
 
         self.dataframe = dataframe
@@ -222,19 +219,23 @@ class Regressor(object):
 
         # set up the parameter for the considered regressor
         self.use_kfold = use_kfold
-        if use_kfold:
-            if self.engine == 'RF':
-                self.param_regressor = _load_rf_hyperparameters(updated_param_rf, n_jobs, seed)
-            elif self.engine == 'NN':
-                self.param_regressor = _load_mlp_hyperparameters(updated_param_mlp, seed)
-            elif self.engine == 'LINEAR':
-                self.param_regressor = _load_linear_hyperparameters(updated_param_linear)
+        if not self.use_kfold:
+            logging.warning("do not use kfold training --> TAKE CARE")
+        if self.engine == 'RF':
+            self.regressor = RandomForestRegressor()
+            self.param_regressor = _load_rf_hyperparameters(updated_param_engine, n_jobs, seed)
+            self.normalized_feature, self.use_sample_weight = False, True
+        elif self.engine == 'NN':
+            self.regressor = MLPRegressor()
+            self.param_regressor = _load_mlp_hyperparameters(updated_param_engine, seed)
+            self.normalized_feature, self.use_sample_weight = True, False
+        elif self.engine == 'LINEAR':
+            self.regressor = LinearRegression()
+            self.param_regressor = _load_linear_hyperparameters(updated_param_engine)
+            self.normalized_feature, self.use_sample_weight = True, True
         else:
-            # TODO: why??? RF and NN can also be used without kfold??
-            # TODO: why dependence in iminuit when there is LinearRegression in sklearn?
-            logging.warning("DO NOT USE K-FOLD --> ONLY REGRESSION AVAILABLE IS LINEAR WITH IMINUIT")
-            self.engine = 'Linear_without_kfold'
-            self.param_regressor = {'regulator':2e6*(self.dataframe.nside/256)**3} # TODO: why regulator???
+            logging.error('choose available engine : RF / NN / LINEAR')
+            sys.exit()
 
         # in NN and Linear case, we normalize and standardize the data
         # STREAM is already normalize --> remove it from the list
@@ -251,7 +252,7 @@ class Regressor(object):
         self.save_regressor = save_regressor
         self.nfold = _load_nfold(updated_nfold)
 
-        ## If not self.dataframe.output is None --> save figure and info !!
+        # If not self.dataframe.output is None --> save figure and info !!
         if self.dataframe.output_dir is not None:
             # create the corresponding output folder --> put here since self.engine can be update with use_kfold = False
             if os.path.isdir(os.path.join(self.dataframe.output_dir, self.engine)):
@@ -295,27 +296,20 @@ class Regressor(object):
             logger.info(f"    --> Sample size {zone_name}: {keep_to_train_zone.sum()} -- Total Sample Size: {self.dataframe.keep_to_train.sum()} -- Training Fraction: {keep_to_train_zone.sum()/self.dataframe.keep_to_train.sum():.2%}")
             logger.info(f"    --> use Kfold training ? {self.use_kfold}")
             logger.info(f"    --> Engine: {self.engine} with params: {self.param_regressor[zone_name]}")
+            self.regressor.set_params(**self.param_regressor[zone_name])
 
             if self.use_kfold:
-                # TODO: regressor should be set in __init__().
-                if self.engine == 'NN':
-                    regressor = MLPRegressor(**self.param_regressor[zone_name])
-                    normalized_feature, use_sample_weight = True, False
-                elif self.engine == 'RF':
-                    regressor = RandomForestRegressor(**self.param_regressor[zone_name])
-                    normalized_feature, use_sample_weight = False, True
-                elif self.engine == 'LINEAR':
-                    regressor = LinearRegression(**self.param_regressor[zone_name])
-                    normalized_feature, use_sample_weight = True, True
-
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(regressor, self.nfold[zone_name], X, Y, keep_to_train_zone,
-                                                                                use_sample_weight, normalized_feature, self.feature_names_to_normalize,
+                size_group = 1000  * (selg.dataframe.nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
+                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.regressor, self.nfold[zone_name], size_group, X, Y, keep_to_train_zone,
+                                                                                self.use_sample_weight, self.normalized_feature, self.feature_names_to_normalize,
                                                                                 pixels_zone, self.dataframe.nside, feature_names=self.feature_names,
                                                                                 compute_permutation_importance=self.compute_permutation_importance,
                                                                                 save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
-                # do not use k-fold training --> standard linear regression with iminuit
-                F[zone] = Regressor.make_polynomial_regressor(X, Y, keep_to_train_zone, self.feature_names_to_normalize, self.param_regressor)
+                F[zone] = Regressor.make_evaluation(self.regressor, X[keep_to_train_zone], Y[keep_to_train_zone], X, Y,
+                                                    self.use_sample_weight, self.normalized_feature, self.feature_names_to_normalize,
+                                                    feature_names=self.feature_names, compute_permutation_importance=self.compute_permutation_importance,
+                                                    save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
                 fold_index = None
 
         # save evalutaion and fold_index
@@ -354,6 +348,7 @@ class Regressor(object):
         for index_train, index_test in kfold.split(pixels, groups=group):
             index += [index_test]
         return index
+
 
     @staticmethod
     def plot_kfold(nside, pixels, index_list, savename, title=''):
@@ -399,7 +394,49 @@ class Regressor(object):
 
 
     @staticmethod
-    def make_regressor_kfold(regressor, nfold, X, Y, keep_to_train, use_sample_weight,
+    def make_evaluation(regressor, X_train, Y_train, X_eval, Y_eval,
+                        use_sample_weight=False, normalized_feature=False, feature_names_to_normalize=None,
+                        feature_names=None, compute_permutation_importance=False,
+                        save_regressor=False, save_info=False, save_dir='', suffix=''):
+        """
+
+        """
+        if normalized_feature:
+            logger.info("          --> We normalize and center all features (except the STREAM) on the training footprint")
+            mean, std = X_train[feature_names_to_normalize].mean(), X_train[feature_names_to_normalize].std()
+            X_train[feature_names_to_normalize] = (X_train[feature_names_to_normalize] - mean)/std
+            X_eval[feature_names_to_normalize] = (X_eval[feature_names_to_normalize] - mean)/std
+            logger.info(f"          --> Mean of Mean and Std on the fold-training features : {X_train[feature_names_to_normalize].mean().mean():2.4f} -- {X_train[feature_names_to_normalize].std().mean():2.2f}\n")
+        else:
+            logger.info("          --> We do NOT normalize feature in the training set --> not needed")
+
+        if use_sample_weight:
+            logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
+            regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
+        else:
+            regressor.fit(X_train, Y_train)
+
+        Y_pred = regressor.predict(X_eval)
+
+        if save_info:
+            # Save regressor
+            if save_regressor:
+                dump(regressor, os.path.join(save_dir, f'regressor{suffix}.joblib'))
+
+            Regressor.plot_efficiency(Y_eval, Y_pred, os.path.join(save_dir, f"kfold_efficiency{suffix}.png"))
+
+            # for more complex plot as importance feature ect ..--> save regressor and
+            if os.path.basename(os.path.dirname(save_dir)) == 'RF':
+                Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance{suffix}.png"))
+
+            if compute_permutation_importance:
+                Regressor.plot_permutation_importance(regressor, X_eval, Y_eval, feature_names, os.path.join(save_dir, f"permutation_importance{suffix}.png"))
+
+        return Y_pred
+
+
+    @staticmethod
+    def make_regressor_kfold(regressor, nfold, size_group, X, Y, keep_to_train, use_sample_weight,
                              normalized_feature, feature_names_to_normalize,
                              pixels, nside, feature_names=None,
                              compute_permutation_importance=False,
@@ -418,6 +455,8 @@ class Regressor(object):
             regressor used to perform the regression. No parameter will be modified here.
         nfold: int
             Number of fold which will be use in Kfold training.
+        size_group: int
+
         X: array like
             Feature dataset for the regression
         Y: array like
@@ -455,8 +494,6 @@ class Regressor(object):
         """
 
         kfold = GroupKFold(n_splits=nfold)
-        # TODO: size_group should be really hard-coded??
-        size_group = 1000  * (nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
         group = [i//size_group for i in range(pixels.size)]
         logger.info(f"    --> We use: {kfold} Kfold with group_size={size_group}")
         index = Regressor.build_kfold(kfold, pixels, group)
@@ -471,104 +508,19 @@ class Regressor(object):
         for i in range(nfold):
             logger.info(f"        * {i}")
             fold_index = index[i]
-            keep_to_train_fold = np.delete(keep_to_train, fold_index)
+            # select row for the training i.e. remove fold index
+            X_fold, Y_fold, keep_to_train_fold = X.drop(fold_index), np.delete(Y, fold_index), np.delete(keep_to_train, fold_index)
+            # select row for the evaluation
+            X_eval, Y_eval = X.iloc[fold_index], Y[fold_index]
             logger.info(f"          --> There are {np.sum(keep_to_train_fold == 1)} pixels to train fold {i} which contains {np.sum(keep_to_train == 1) - np.sum(keep_to_train_fold == 1)} pixels (kept for the global training)")
 
-            if normalized_feature:
-                logger.info("          --> We normalize and center all features (execpt the STREAM) on the training footprint")
-                X_fold = X.copy()
-                X_fold[feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean())/X[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std()
-                logger.info(f"          --> Mean of Mean and Std on all features : {X_fold[feature_names_to_normalize].mean().mean()} -- {X_fold[feature_names_to_normalize].std().mean()}")
-                logger.info(f"          --> Mean of Mean and Std on the fold-training features : {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].mean().mean()} -- {X_fold[feature_names_to_normalize].drop(fold_index)[keep_to_train_fold == 1].std().mean()}\n")
-            else:
-                logger.info("          --> We do NOT normalize feature in the training set --> not NEEDED")
-                X_fold = X.copy()
-
-            X_train, Y_train = X_fold.drop(fold_index)[keep_to_train_fold == 1], np.delete(Y, fold_index)[keep_to_train_fold == 1]
-            if use_sample_weight:
-                logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
-                regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
-            else:
-                regressor.fit(X_train, Y_train)
-
-            Y_pred_fold = np.zeros(fold_index.size)
-            Y_pred_fold = regressor.predict(X_fold.iloc[fold_index])
-            Y_pred[fold_index] = Y_pred_fold
-
-            if save_info:
-                # Save regressor
-                if save_regressor:
-                    dump(regressor, os.path.join(save_dir, f'regressor_fold_{i}.joblib'))
-
-                #use only reliable pixel (ie) keep_to_train == 1 also in the fold !
-                Regressor.plot_efficiency(Y[fold_index], Y_pred_fold, pixels[fold_index], keep_to_train[fold_index], os.path.join(save_dir, f"kfold_efficiency_fold_{i}.png"))
-
-                #for more complex plot as importance feature ect ..--> save regressor and
-                if os.path.basename(os.path.dirname(save_dir)) == 'RF':
-                    Regressor.plot_importance_feature(regressor, feature_names, os.path.join(save_dir, f"feature_importance_fold_{i}.png"))
-
-                if compute_permutation_importance:
-                    Regressor.plot_permutation_importance(regressor, X_fold.iloc[fold_index], Y[fold_index], feature_names, os.path.join(save_dir, f"permutation_importance_fold_{i}.png"))
+            Y_pred[fold_index] = Regressor.make_evaluation(regressor, X_fold[keep_to_train_fold], Y_fold[keep_to_train_fold], X_eval, Y_eval,
+                                                           use_sample_weight, normalized_feature, feature_names_to_normalize,
+                                                           feature_names, compute_permutation_importance,
+                                                           save_regressor, save_info, save_dir, suffix=f'_fold_{i}')
 
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
         return Y_pred, index
-
-
-    @staticmethod
-    def make_polynomial_regressor(X, Y, keep_to_train, feature_names_to_normalize, param_regressor):
-        """
-        Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
-        The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
-        This choice is done to have always the same splitting whatever the selection used to keep the training data.
-        The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
-        Inspect the "kfold_repartition.png" for specific design.
-        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
-
-        Parameters:
-        -----------
-        X: array like
-            Feature dataset for the regression
-        Y: array like
-            The target values for the regression. Same size than X
-        keep_to_train: bool array like
-            Which row in X and Y is kept for the training. Same size than X and Y. The regression is then applied on all X.
-        feature_names_to_normalize: array like
-            List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
-        param_regressor: dict
-            dictionary containing 'regulator' parameter. (It is a L1 regularisation term)
-
-        Returns:
-        --------
-        Y_pred: array like
-            Gives the evaluation of the regression on X with K-folding. It has the same size of X.
-            The evalutation is NOT applied ONLY where keep_to_train is True.
-        """
-        def model(x, *par):
-            return par[0]*np.ones(x.shape[0]) + np.array(par[1:]).dot(x.T)
-
-        nbr_features = X.shape[1]
-        logger.info(f"[TEST] Number of features used : {nbr_features}")
-        nbr_params = nbr_features + 1
-        # TODO: English please!!!
-        logger.info(f"            ** Taille de l'échantillon (non nan value): {np.sum(Y>0)}")
-        logger.info(f"            ** Information sur normalized targets : Mean = {np.nanmean(Y)} and Std = {np.nanstd(Y)}")
-        logger.info("[WARNING] We normalize and center features on the training footprint (don't forget to normalize also the non training footprint)")
-        logger.info(feature_names_to_normalize)
-        X.loc[:, feature_names_to_normalize] = (X[feature_names_to_normalize] - X[feature_names_to_normalize][keep_to_train == 1].mean())/X[feature_names_to_normalize][keep_to_train == 1].std()
-        X_train, Y_train = X[keep_to_train == 1], Y[keep_to_train == 1]
-        logger.info(f"[TEST] Mean of Mean and Std training features (should be 0, 1): {X_train[feature_names_to_normalize].mean().mean()} -- {X_train[feature_names_to_normalize].std().mean()}\n")
-
-        dict_ini = {f'a{i}': 0 if i==0 else 0 for i in range(0, nbr_params)}
-        dict_ini.update({f'error_a{i}': 0.001 for i in range(0, nbr_params)})
-        dict_ini.update({f'limit_a{i}': (-1, 2) if i==0 else (-3,3) for i in range(0, nbr_params)})
-        dict_ini.update({'errordef': 1}) #for leastsquare
-        Y_cov_inv = np.diag(1/np.sqrt(Y_train))
-
-        param = regression_least_square(model, param_regressor['regulator'], X_train, Y_train, Y_cov_inv, nbr_params, **dict_ini)
-
-        logger.info(f"[TEST] Mean of systematics_correction : {model(X_train, *param).mean()} \n")
-
-        return model(X, *param)
 
 
     def build_w_sys_map(self, return_map=True, savemap=False, savedir=None):
@@ -599,7 +551,7 @@ class Regressor(object):
 
 
     @staticmethod
-    def plot_efficiency(Y, Y_pred, pixels, keep_to_train, path_to_save):
+    def plot_efficiency(Y, Y_pred, path_to_save):
         """
         Draw the correction 'efficiency' of the training. The method excepts to reduce the variance in the histogram of the predicted density.
 
@@ -609,21 +561,19 @@ class Regressor(object):
             The normalized target density.
         Y_pred: array like
             Same size than Y. The perdicted normalized target density with K-fold (Y is not used for the prediction). 1/Y_pred will be the sys weights.
-        keep_to_train: bool array like
-            Same size than Y. Mask array given which row of Y was used in the training (ie) Y is not an outlier
         path_to_save: str
             Where the figure will be save
         """
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
         plt.subplots_adjust(left=0.07, right=0.96, bottom=0.1, top=0.9, wspace=0.3)
-        ax[0].scatter(pixels[keep_to_train == 1], Y[keep_to_train == 1], color = 'red', label='Initial (before regression)')
-        ax[0].scatter(pixels[keep_to_train == 1], Y_pred[keep_to_train == 1], color = 'blue', label='Corrected (after regression)')
+        ax[0].scatter(np.arange(Y.size), Y, color = 'red', label='Initial (before regression)')
+        ax[0].scatter(np.arange(Y_pred.size), Y_pred, color = 'blue', label='Corrected (after regression)')
         ax[0].legend()
         ax[0].set_xlabel('Pixel Number')
         ax[0].set_ylabel('Normalized Targets Density')
 
-        ax[1].hist(Y[keep_to_train == 1], color='blue', bins=50, range=(0.,2.), density=1, label='Initial')
-        ax[1].hist(Y_pred[keep_to_train == 1], color='red', histtype='step', bins=50, range=(0.,2.), density=1, label='corrected')
+        ax[1].hist(Y, color='blue', bins=50, range=(0.,2.), density=1, label='Initial')
+        ax[1].hist(Y_pred, color='red', histtype='step', bins=50, range=(0.,2.), density=1, label='corrected')
         ax[1].legend()
         ax[1].set_xlabel('Normalized Targets Density')
 
@@ -647,7 +597,7 @@ class Regressor(object):
         max_num_feature: int
             Number of feature to plot in the figure.
         """
-
+        import pandas as pd
         import seaborn as sns
 
         feature_importance = pd.DataFrame(regressor.feature_importances_, index=feature_names, columns=['feature importance']).sort_values('feature importance', ascending=False)
