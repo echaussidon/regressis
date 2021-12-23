@@ -64,20 +64,6 @@ def mkdir(dirname):
 
 
 #------------------------------------------------------------------------------#
-def zone_name_to_column_name(zone_name):
-    """
-    Convert zone_name into corresponding name in footprint dataframe.
-    """
-    translator = {'North':'ISNORTH', 'South':'ISSOUTHWITHOUTDES', 'Des':'ISDES',
-                  'South_mid':'ISSOUTHMID', 'South_pole':'ISSOUTHPOLE',
-                  'Des_mid':'ISDESMID', 'South_all':'ISSOUTH'}
-    if zone_name in translator.keys():
-        return translator[zone_name]
-    else:
-        logger.error(f'{zone_name} is an UNEXPECTED REGION...')
-        sys.exit()
-
-#------------------------------------------------------------------------------#
 # dictionary upadte at different level
 
 def deep_update(source, overrides):

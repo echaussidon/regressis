@@ -17,7 +17,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import dump, load
 
 from . import utils
-from .utils import deep_update, regression_least_square, zone_name_to_column_name
+from .utils import deep_update, regression_least_square
 
 
 logger = logging.getLogger("Regressor")
@@ -284,7 +284,7 @@ class Regressor(object):
                 save_info = False
                 save_dir = None
 
-            zone = self.dataframe.footprint[zone_name_to_column_name(zone_name)].values ## mask array
+            zone = self.dataframe.footprint(zone_name) # mask array
 
             logger.info(f"  ** {zone_name} :")
             X = self.dataframe.features[self.feature_names][zone]
@@ -730,7 +730,7 @@ class Regressor(object):
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
 
         targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
-        targets[~self.dataframe.footprint['FOOTPRINT']] = np.nan
+        targets[~self.dataframe.footprint('Footprint')] = np.nan
 
         w = np.zeros(hp.nside2npix(self.dataframe.nside))
         w[self.dataframe.pixels[self.F>0]] = 1.0/self.F[self.F>0]

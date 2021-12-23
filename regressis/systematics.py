@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 logger = logging.getLogger("systematics")
 
 
-def _load_systematics():
+def _load_systematics_desi():
     """
     These cuts are adapted for the DESI Legacy Imaging Survey DR9. Return dictionary with feature name as label of dictionary for specific photometric regions containing [min, max, label, nbins, function_to_convert].
     """
@@ -119,43 +119,9 @@ def _select_good_pixels(keyword, fracarea, footprint, cut_fracarea=True, min_fra
     """
     # TODO: should be an instance of DR9Footprint.
     """
-    if keyword == 'Global':
-        pix_to_keep = footprint['FOOTPRINT'].values
-        keyword_sys = keyword
-    elif keyword == 'North':
-        pix_to_keep = footprint['ISNORTH'].values
-        keyword_sys = keyword
-    elif keyword == 'South':
-        pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values
-        keyword_sys = keyword
-    elif keyword == 'South_ngc':
-        pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values & footprint['ISNGC'].values
-        keyword_sys = 'South'
-    elif keyword == 'South_sgc':
-        pix_to_keep = footprint['ISSOUTHWITHOUTDES'].values & footprint['ISSGC'].values
-        pix_to_keep &= sgc
-        keyword_sys = 'South'
-    elif keyword == 'Des':
-        pix_to_keep = footprint['ISDES'].values
-        keyword_sys = keyword
-    elif keyword == 'Des_mid':
-        pix_to_keep = footprint['ISDESMID'].values
-        keyword_sys = 'Des'
-    elif keyword == 'South_mid':
-        pix_to_keep = footprint['ISSOUTHMID'].values
-        keyword_sys = 'South'
-    elif keyword == 'South_mid_ngc':
-        pix_to_keep = footprint['ISSOUTHMID'].values & footprint['ISNGC'].values
-        keyword_sys = 'South'
-    elif keyword == 'South_mid_sgc':
-        pix_to_keep = footprint['ISSOUTHMID'].values & footprint['ISSGC'].values
-        keyword_sys = 'South'
-    elif keyword == 'South_pole':
-        pix_to_keep = footprint['ISSOUTHPOLE'].values
-        keyword_sys = 'Des'
-    else:
-        # TODO:WHY CAPITAL LETTERS?
-        raise ValueError("WRONG KEYWORD")
+
+    pix_to_keep = footprint(keyword)
+    keyword_sys = footprint.systematic_key_for_region(keyword)
 
     # keep pixel with observations
     logger.info("Keep only pixels with fracarea > 0")
@@ -174,7 +140,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                              ax_lim=0.3, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,
                              show=False, save=True):
 
-    sysdic = _load_systematics()
+    sysdic = _load_systematics_desi()
     sysnames = list(sysdic.keys())
 
     for num_fig, keyword in enumerate(zone_to_plot):

@@ -12,9 +12,8 @@ import pandas as pd
 
 from matplotlib import pyplot as plt
 
-from .desi_footprint import DR9Footprint
 from . import utils
-from .utils import hp_in_box, zone_name_to_column_name
+from .utils import hp_in_box
 
 
 logger = logging.getLogger('DataFrame')
@@ -32,41 +31,51 @@ else:
 
 class PhotometricDataFrame(object):
     """
-    Build the dataframe needed to compute the weights due to photometry / spectroscopy systematic effects
+    Build the dataframe needed to compute the weights due to photometry systematic effects
     """
-    def __init__(self, version, tracer, data_dir=None, output_dir=None, suffix_tracer='',
-                 nside=None, use_median=False, use_new_norm=False, mask_lmc=False,
-                 clear_south=True, mask_around_des=False, cut_desi=False, region=None):
+    def __init__(self, version, tracer, footprint, suffix_tracer='',
+                 data_dir=None, output_dir=None,
+                 use_median=False, use_new_norm=False, region=None):
         """
         Initialize :class:`DataFrame`
 
         Parameters
         ----------
-
-        # TODO: describe input parameters.
-
+        version: str
+            Which version you want to use as SV3 or MAIN (for SV3 / MAIN targets) or DA02 / Y1 / ect ... Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+        tracer: str
+            Which tracer you want to use. Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+        footprint: class:`Footprint`
+            Contain all the footprint informations needed to extract the specific regions from an healpix map. 
+        suffix_tracer: str
+            Additional suffix for tracer. Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+        data_dir: str
+            Path where the default map that we want to use are saved. Not needed if you pass as argument the path of pixmap / tarets density / fracarea ect... or directly the map as an array.
+        output_dir: str
+            Path where figures / all the outputs will be saved. If none, nothing is saved
+        use_median: bool
+            Use median instead of mean to compute the normalized target density.
+        use_new_norm: bool
+            Use specific area far of the galatic plane and Sgr. Stream (to avoid stellar contaminant) to compute the mean target density. Usefull only for tracer=='QSO'.
+        region: list of str
+            List of region in which we want to apply the systematic mitigation procedure. The normalized target density is computed and the regression is applied independantly in each region. If none use the default region given in footprint.
         """
         self.version = version
         self.tracer = tracer
         self.suffix_tracer = suffix_tracer
 
-        self.nside = nside
+        self.footprint = footprint
+        self.nside = footprint.nside
         self.pixels = np.arange(hp.nside2npix(self.nside))
 
         # info to normalize the target density
         self.use_median = use_median
         self.use_new_norm = use_new_norm
 
-        # footprint info
-        # TODO: THIS IS HARD CODING!
-        # TODO: pass footprint instance directly!
-        self.dr9 = DR9Footprint(self.nside, mask_lmc=mask_lmc, clear_south=clear_south, mask_around_des=mask_around_des)
-        self.cut_desi = cut_desi
-
-        # which region we want to use --> if None use default
+        # which region we want to use --> if None use default region defined in footprint
         self.region = region
         if self.region is None:
-            self.region = ['North', 'South', 'Des']
+            self.region = self.footprint.default_region
             logger.info(f'Using default regions {self.region}')
 
         logger.info(f"version: {self.version} -- tracer: {self.tracer} -- region: {self.region}")
@@ -85,7 +94,7 @@ class PhotometricDataFrame(object):
 
     def set_features(self, pixmap=None, sgr_stream=None, sel_columns=None, use_sgr_stream=True):
         """
-        Set photometric templates and footprint info either from a pixweight array (already loaded) or read it from .fits file
+        Set photometric templates info either from a pixweight array (already loaded) or read it from .fits file
         All the maps should be Healpix maps with :attr:`nside` in nested order.
 
         Parameters
@@ -106,22 +115,6 @@ class PhotometricDataFrame(object):
             Include or not the Sgr. Stream map --> the feature is really relevant for the QSO TS.
         """
         path_pixweight, path_sgr_stream = None, None
-
-        # Build DR9 Legacy Imaging footprint
-        footprint = self.dr9.get_full()
-        if self.cut_desi: # restricted to DESI footprint
-            logger.info('Restrict footrpint to DESI footprint')
-            footprint[hp_in_box(self.nside, [0, 360, -90, -30])] = False
-
-        # extract the different region from DR9Footprint
-        # TODO: should be a method of DR9Footprint, get_all_regions()
-        north, south, des = self.dr9.get_imaging_surveys()
-        _, south_mid, south_pole = self.dr9.get_elg_region()
-        des_mid = des & ~south_pole
-        ngc, sgc = self.dr9.get_ngc_sgc()
-        # TODO: should be a method of DR9Footprint, as_dataframe()
-        self.footprint = pd.DataFrame({'FOOTPRINT':footprint, 'ISNORTH':north, 'ISSOUTH':south, 'ISDES':des, 'ISSOUTHWITHOUTDES':south & ~des,
-                                       'ISNGC':ngc, 'ISSGC':sgc, 'ISSOUTHMID':south_mid, 'ISSOUTHPOLE':south_pole, 'ISDESMID':des_mid})
 
         if sel_columns is None:
             sel_columns = ['STARDENS', 'EBV',
@@ -216,7 +209,7 @@ class PhotometricDataFrame(object):
         # use only pixels which are observed for the training
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
-        considered_footprint = (self.fracarea > 0) & self.footprint['FOOTPRINT'].values
+        considered_footprint = (self.fracarea > 0) & self.footprint('Footprint')
         keep_to_train = considered_footprint.copy()
 
         if selection_on_fracarea:
@@ -226,13 +219,13 @@ class PhotometricDataFrame(object):
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
-        logger.info(f"The considered footprint represents {(considered_footprint).sum() / (self.footprint['FOOTPRINT']).sum():2.2%} of the DR9 footprint")
+        logger.info(f"The considered footprint represents {(considered_footprint).sum() / self.footprint('Footprint').sum():2.2%} of the DR9 footprint")
         logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training i.e. {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} ot the considered footprint")
 
         # build normalized targets
         normalized_targets, mean_targets_density = np.zeros(self.targets.size) * np.nan, dict()
         for zone_name in self.region:
-            pix_zone = self.footprint[zone_name_to_column_name(zone_name)].values
+            pix_zone = self.footprint(zone_name)
             pix_to_use = pix_zone & keep_to_train
 
             # only conserve pixel in the correct radec box
@@ -291,7 +284,7 @@ class PhotometricDataFrame(object):
 #     """
 #     Build the dataframe needed to compute the combined weights for photometry and spectroscopy systematic effects
 #     """
-#     def __init__(self, version, tracer, data_dir, output_dir=None, suffix_tracer='',
+#     def __init__(self, version, tracer, footprint, suffix_tracer='', data_dir=None, output_dir=None,
 #                  Nside=None, use_median=False, use_new_norm=False, mask_lmc=False,
 #                  clear_south=True, cut_desi=False, region=None):
 #         """
