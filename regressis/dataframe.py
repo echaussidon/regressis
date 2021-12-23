@@ -27,8 +27,6 @@ else:
   os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
 
 
-
-
 class PhotometricDataFrame(object):
     """
     Build the dataframe needed to compute the weights due to photometry systematic effects
@@ -42,23 +40,29 @@ class PhotometricDataFrame(object):
         Parameters
         ----------
         version: str
-            Which version you want to use as SV3 or MAIN (for SV3 / MAIN targets) or DA02 / Y1 / ect ... Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+            Which version you want to use as SV3 or MAIN (for SV3 / MAIN targets) or DA02 / Y1 / ect ...
+            Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
         tracer: str
-            Which tracer you want to use. Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+            Which tracer you want to use. Usefull only to load default map saved in data_dir and for
+            the output name of the directory or filename.
         footprint: class:`Footprint`
-            Contain all the footprint informations needed to extract the specific regions from an healpix map. 
+            Contain all the footprint informations needed to extract the specific regions from an healpix map.
         suffix_tracer: str
-            Additional suffix for tracer. Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+            Additional suffix for tracer. Usefull only to load default map saved in data_dir and for
+            the output name of the directory or filename.
         data_dir: str
-            Path where the default map that we want to use are saved. Not needed if you pass as argument the path of pixmap / tarets density / fracarea ect... or directly the map as an array.
+            Path where the default map that we want to use are saved. Not needed if you pass as argument the path
+            of pixmap / tarets density / fracarea ect... or directly the map as an array.
         output_dir: str
             Path where figures / all the outputs will be saved. If none, nothing is saved
         use_median: bool
             Use median instead of mean to compute the normalized target density.
         use_new_norm: bool
-            Use specific area far of the galatic plane and Sgr. Stream (to avoid stellar contaminant) to compute the mean target density. Usefull only for tracer=='QSO'.
+            Use specific area far of the galatic plane and Sgr. Stream (to avoid stellar contaminant) to compute
+            the mean target density. Usefull only for :attr:`tracer`=='QSO'.
         region: list of str
-            List of region in which we want to apply the systematic mitigation procedure. The normalized target density is computed and the regression is applied independantly in each region. If none use the default region given in footprint.
+            List of region in which we want to apply the systematic mitigation procedure. The normalized target density
+            is computed and the regression is applied independantly in each region. If none use the default region given in footprint.
         """
         self.version = version
         self.tracer = tracer
@@ -99,17 +103,14 @@ class PhotometricDataFrame(object):
 
         Parameters
         ----------
-        pixmap: float array
-            Array containg the photometric template at :attr:`nside`
+        pixmap: float array or str
+            Array containg the photometric template at :attr:`nside` or the path to load the photometric template
 
-        sgr_stream: float array
-            Array containing the Sgr. Stream feature at the compatible Nside
+        sgr_stream: float array or str
+            Array containing the Sgr. Stream feature at the compatible :attr:`nside` or the path to load the Sgr. Stream feature
 
-        path_pixweight: str
-            todo
-
-        path_sgr_stream: str
-            todo
+        sel_columns: list of str
+            List containing which photometric features need to be extracted from the pixmap
 
         use_sgr_stream: bool
             Include or not the Sgr. Stream map --> the feature is really relevant for the QSO TS.
@@ -228,17 +229,9 @@ class PhotometricDataFrame(object):
             pix_zone = self.footprint(zone_name)
             pix_to_use = pix_zone & keep_to_train
 
-            # only conserve pixel in the correct radec box
             if self.use_new_norm:
-                #compute normalization on subpart of the footprint which is not contaminated for the north and the south !
-                keep_to_norm = np.zeros(hp.nside2npix(self.nside))
-                if zone_name == 'North':
-                    keep_to_norm[hp_in_box(self.nside, [120, 240, 32.2, 40], inclusive=True)] = 1
-                elif zone_name == 'South':
-                    keep_to_norm[hp_in_box(self.nside, [120, 240, 24, 32.2], inclusive=True)] = 1
-                else:
-                    keep_to_norm = np.ones(hp.nside2npix(self.nside))
-                pix_to_use_norm = pix_to_use & keep_to_norm
+                #compute normalization on subpart of the footprint (for instance which is expected to be free from stellar contamination)
+                pix_to_use_norm = pix_to_use & self.footprint.get_keep_to_norm(zone_name)
             else:
                 pix_to_use_norm = pix_to_use
 

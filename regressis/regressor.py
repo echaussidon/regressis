@@ -721,8 +721,8 @@ class Regressor(object):
         min_fracarea, max_fracarea: float
         """
 
-        from plot import plot_moll
-        from systematics import plot_systematic_from_map
+        from .plot import plot_moll
+        from .systematics import plot_systematic_from_map
 
         dir_output = os.path.join(self.dataframe.output_dir, self.engine, 'Fig')
         if not os.path.isdir(dir_output):
