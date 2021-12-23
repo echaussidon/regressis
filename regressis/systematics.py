@@ -7,9 +7,9 @@ import logging
 
 import numpy as np
 import fitsio
-from matplotlib.gridspec import GridSpec
-from matplotlib import pyplot as plt
 
+from matplotlib import pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 logger = logging.getLogger("systematics")
 
