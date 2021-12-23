@@ -117,7 +117,20 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
 
 def _select_good_pixels(keyword, fracarea, footprint, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1):
     """
-    # TODO: should be an instance of DR9Footprint.
+
+
+    Parameter:
+    ----------
+
+
+
+
+    Returns:
+    --------
+    pix_to_keep: bool array
+        Which pixels will be kept to plot the systematic plots
+    keyword_sys: str
+        With which param the systematic plots will be plotted.
     """
 
     pix_to_keep = footprint(keyword)

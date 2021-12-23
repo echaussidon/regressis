@@ -263,11 +263,13 @@ class PhotometricDataFrame(object):
             plt.figure(figsize=(8,6))
             hp.mollview(tmp, rot=120, nest=True, title='strange pixel', cmap='jet')
             plt.savefig(os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
+            plt.close()
 
             plt.figure(figsize=(8,6))
             plt.hist(normalized_targets[keep_to_train], range=(0.1,5), bins=100)
             plt.savefig(os.path.join(self.output_dataframe_dir, f"normalized_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
-
+            plt.close()
+            
         self.density = normalized_targets
         self.mean_density_region = mean_targets_density
         self.keep_to_train = keep_to_train
