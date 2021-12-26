@@ -16,7 +16,7 @@ _logging_handler = None
 
 def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
     """
-    Turn on logging with specific configuration?
+    Turn on logging with specific configuration.
 
     Parameters
     ----------

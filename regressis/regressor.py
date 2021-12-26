@@ -272,7 +272,7 @@ class Regressor(object):
         Some plots for inspection and the kfold indices are saved if an output directory is given in the dataframe.
         """
         # To store the result of the regression (ie) Y_pred
-        F = np.zeros(self.dataframe.pixels.size)
+        Y_pred = np.zeros(self.dataframe.pixels.size)
         fold_index = dict()
 
         for zone_name in self.dataframe.region:
@@ -300,7 +300,7 @@ class Regressor(object):
 
             if self.use_kfold:
                 size_group = 1000  * (self.dataframe.nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
-                F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.regressor, self.nfold[zone_name], size_group, X, Y, keep_to_train_zone,
+                Y_pred[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.regressor, self.nfold[zone_name], size_group, X, Y, keep_to_train_zone,
                                                                                 self.use_sample_weight, self.normalized_feature, self.feature_names_to_normalize,
                                                                                 pixels_zone, self.dataframe.nside, feature_names=self.feature_names,
                                                                                 compute_permutation_importance=self.compute_permutation_importance,
@@ -313,8 +313,7 @@ class Regressor(object):
                 fold_index = None
 
         # save evalutaion and fold_index
-        # TODO: PEP8, self.F is not a clear name
-        self.F = F # Y_pred for every entry in each zone
+        self.Y_pred = Y_pred # Y_pred for every entry in each zone
         self.fold_index = fold_index # fold_index --> les pixels de chaque fold dans chaque zone ! --> usefull to save if we want to reapply the regressor
 
         if save_info and (not fold_index is None):
@@ -400,39 +399,28 @@ class Regressor(object):
                         save_regressor=False, save_info=False, save_dir='', suffix=''):
         """
 
-        rosd  ff TODO
-
-
-        Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
-        The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
-        We use a group Kfold to control how the fold is performed.
-        This choice is done to have always the same splitting whatever the selection used to keep the training data.
-        The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
-        Inspect the "kfold_repartition.png" for specific design.
-        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
-
+        Perform the training of the regressor with (X_train, Y_train) and evaluate it in X_eval.
+        Y_eval is only used to plot efficiency and permutation importance if required.
+        
         Parameters:
         -----------
         regressor: Scikit-learn Regressor Class
             regressor used to perform the regression. No parameter will be modified here.
+            The regressor will be trained with (X_train, Y_train) and will evaluate the function at X_eval
         X_train: array like
-            to do Feature dataset for the regression
+            Dataframe used for the training
         Y_train: array like
-            rp dpo The target values for the regression. Same size than X
+            Evaluation of the fonction in X_train points used for the training.
         X_eval: array like
-            to do
+            Dataframe used for the evaluation.
         Y_eval: array like
-            to do
+            Evaluation of the fonction in X_eval points. Only used for plots.
         use_sample_weight: bool
             If true use 1/np.sqrt(Y_train) as weight during the regression. Only available for RF or LINEAR.
         normalized_feature: bool
             If True normalized and centered feature in feature_names_to_normalize -> mandatory for Linear ou MLP regression
         feature_names_to_normalize: array like
             List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
-        pixels: array like
-            Pixels list corresponding of the pixel number of each feature row.
-        nside: int
-            Healpix resolution used in pixels
         feature_names: array like
             Feature name used during the regression. It is used for plotting information. If save_info is False do not need to pass it.
         compute_permutation_importance: bool
@@ -445,11 +433,11 @@ class Regressor(object):
             Directory path where the files will be saved if required with save_info.
         suffix: str
             suffix used to save output.
+
         Returns:
         --------
         Y_pred: array like
-            Gives the evaluation of the regression on X with K-folding. It has the same size of X.
-            The evalutation is NOT applied ONLY where keep_to_train is True.
+            Gives the evaluation of the regression on X_eval with training done in (X_train, Y_train). It has the same size of X_eval.
         """
         if normalized_feature:
             logger.info("          --> We normalize and center all features (except the STREAM) on the training footprint")
@@ -590,7 +578,7 @@ class Regressor(object):
             path where to save the map, if None use default path
         """
         w = np.zeros(hp.nside2npix(self.dataframe.nside))*np.NaN
-        w[self.dataframe.pixels[self.F > 0]] = 1.0/self.F[self.F > 0]
+        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0/self.Y_pred[self.Y_pred > 0]
 
         if savemap:
             if savedir is None:
@@ -615,7 +603,7 @@ class Regressor(object):
         Y_pred: array like
             Same size than Y. The perdicted normalized target density with K-fold (Y is not used for the prediction). 1/Y_pred will be the sys weights.
         path_to_save: str
-            Where the figure will be save
+            Where the figure will be save.
         """
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
         plt.subplots_adjust(left=0.07, right=0.96, bottom=0.1, top=0.9, wspace=0.3)
@@ -642,9 +630,9 @@ class Regressor(object):
 
         Parameters:
         regressor: RandomForestRegressor
-            Regressor already trained
+            Regressor already trained.
         feature_names: str array like
-            List of feature used during the regression
+            List of feature used during the regression.
         path_to_save: str
             Where the figure will be saved.
         max_num_feature: int
@@ -671,11 +659,11 @@ class Regressor(object):
     @staticmethod
     def plot_permutation_importance(regressor, X, Y, feature_names, path_to_save):
         """
-        Compute and plot the permutation importance for the regressor (alternative/ complementary metric to giny importance)
+        Compute and plot the permutation importance for the regressor (alternative/ complementary metric to giny importance).
 
         Parameters:
         regressor: Scikit-learn regressor class
-            Regressor already trained
+            Regressor already trained.
         X: array like
             Feature array
         Y: array like
@@ -702,7 +690,9 @@ class Regressor(object):
         plt.close()
 
 
-    def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2, adaptative_binning=False, nobjects_by_bins=2000, n_bins=None, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1,):
+    def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2,
+                                  adaptative_binning=False, nobjects_by_bins=2000, n_bins=None,
+                                  cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1):
         """
         Make plot to check and validate the regression.
         The result are saved in the corresponding outpur directory.
@@ -710,19 +700,21 @@ class Regressor(object):
         Parameters:
         -----------
         max_plot_cart: float
-            maximum density used to plot the object density in the sky
+            maximum density used to plot the object density in the sky.
         ax_lim: float
-            maximum value of density - 1 fluctuation in function of the feature
+            maximum value of density - 1 fluctuation in the systematic plots.
         adaptative_binning: bool
-
+            If True, use a binning with same number of objetcs in each bin.
+            --> can control the errors in the histogram.
         nobjects_by_bins: int
-
+            Only relevant if adaptative_binning==True. Fix the number of objects in each bin.
         n_bins: int
-            TODO
-
+            Only relevant if adpatative_binning==False. Fix the number of bins used to plot systematic plots.
+            If None, used pre-define parameters. Set in `systematics.py`
         cut_fracarea: bool
-
+            If True, keep only pixels with correct fracarea. Use False, if fracarea is already cut !
         min_fracarea, max_fracarea: float
+            minimum and maximum values to cut the fracarea. max > 1 due to poisson Noise.
         """
 
         from .plot import plot_moll
@@ -738,7 +730,7 @@ class Regressor(object):
         targets[~self.dataframe.footprint('Footprint')] = np.NaN
 
         w = np.zeros(hp.nside2npix(self.dataframe.nside))
-        w[self.dataframe.pixels[self.F>0]] = 1.0/self.F[self.F>0]
+        w[self.dataframe.pixels[self.Y_pred>0]] = 1.0/self.Y_pred[self.Y_pred>0]
         targets_without_systematics = targets*w
 
         with np.errstate(divide='ignore',invalid='ignore'):
