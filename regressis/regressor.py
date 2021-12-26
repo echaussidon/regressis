@@ -299,7 +299,7 @@ class Regressor(object):
             self.regressor.set_params(**self.param_regressor[zone_name])
 
             if self.use_kfold:
-                size_group = 1000  * (selg.dataframe.nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
+                size_group = 1000  * (self.dataframe.nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
                 F[zone], fold_index[zone_name] = Regressor.make_regressor_kfold(self.regressor, self.nfold[zone_name], size_group, X, Y, keep_to_train_zone,
                                                                                 self.use_sample_weight, self.normalized_feature, self.feature_names_to_normalize,
                                                                                 pixels_zone, self.dataframe.nside, feature_names=self.feature_names,
@@ -400,21 +400,73 @@ class Regressor(object):
                         save_regressor=False, save_info=False, save_dir='', suffix=''):
         """
 
+        rosd  ff TODO
+
+
+        Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
+        The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
+        We use a group Kfold to control how the fold is performed.
+        This choice is done to have always the same splitting whatever the selection used to keep the training data.
+        The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
+        Inspect the "kfold_repartition.png" for specific design.
+        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
+
+        Parameters:
+        -----------
+        regressor: Scikit-learn Regressor Class
+            regressor used to perform the regression. No parameter will be modified here.
+        X_train: array like
+            to do Feature dataset for the regression
+        Y_train: array like
+            rp dpo The target values for the regression. Same size than X
+        X_eval: array like
+            to do
+        Y_eval: array like
+            to do
+        use_sample_weight: bool
+            If true use 1/np.sqrt(Y_train) as weight during the regression. Only available for RF or LINEAR.
+        normalized_feature: bool
+            If True normalized and centered feature in feature_names_to_normalize -> mandatory for Linear ou MLP regression
+        feature_names_to_normalize: array like
+            List of feature names to normalize. 'STREAM' feature is already normalized do not normalize it again !!
+        pixels: array like
+            Pixels list corresponding of the pixel number of each feature row.
+        nside: int
+            Healpix resolution used in pixels
+        feature_names: array like
+            Feature name used during the regression. It is used for plotting information. If save_info is False do not need to pass it.
+        compute_permutation_importance: bool
+            If True compute and plot the permutation importance. The figure is saved only if save_info is True.
+        save_regressor: bool
+            If True save each regressor for each fold. Take care it is memory space consumming especially for RandomForestRegressor. Only available if save_info is True.
+        save_info: bool
+            If True save inspection plots and if it is required in save_regressor, the fitted regressor in save_dir.
+        save_dir: str
+            Directory path where the files will be saved if required with save_info.
+        suffix: str
+            suffix used to save output.
+        Returns:
+        --------
+        Y_pred: array like
+            Gives the evaluation of the regression on X with K-folding. It has the same size of X.
+            The evalutation is NOT applied ONLY where keep_to_train is True.
         """
         if normalized_feature:
             logger.info("          --> We normalize and center all features (except the STREAM) on the training footprint")
             mean, std = X_train[feature_names_to_normalize].mean(), X_train[feature_names_to_normalize].std()
-            X_train[feature_names_to_normalize] = (X_train[feature_names_to_normalize] - mean)/std
+            X_for_training = X_train.copy()
+            X_for_training[feature_names_to_normalize] = (X_train[feature_names_to_normalize] - mean)/std
             X_eval[feature_names_to_normalize] = (X_eval[feature_names_to_normalize] - mean)/std
-            logger.info(f"          --> Mean of Mean and Std on the fold-training features : {X_train[feature_names_to_normalize].mean().mean():2.4f} -- {X_train[feature_names_to_normalize].std().mean():2.2f}\n")
+            logger.info(f"          --> Mean of Mean and Std on the fold-training features : {X_for_training[feature_names_to_normalize].mean().mean():2.4f} -- {X_for_training[feature_names_to_normalize].std().mean():2.2f}")
         else:
             logger.info("          --> We do NOT normalize feature in the training set --> not needed")
+            X_for_training = X_train.copy()
 
         if use_sample_weight:
             logger.info("          --> The training is done with sample_weight=1/np.sqrt(Y_train)")
-            regressor.fit(X_train, Y_train, sample_weight=1/np.sqrt(Y_train))
+            regressor.fit(X_for_training, Y_train, sample_weight=1/np.sqrt(Y_train))
         else:
-            regressor.fit(X_train, Y_train)
+            regressor.fit(X_for_training, Y_train)
 
         Y_pred = regressor.predict(X_eval)
 
@@ -444,6 +496,7 @@ class Regressor(object):
         """
         Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
         The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
+        We use a group Kfold to control how the fold is performed.
         This choice is done to have always the same splitting whatever the selection used to keep the training data.
         The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
         Inspect the "kfold_repartition.png" for specific design.
@@ -456,7 +509,7 @@ class Regressor(object):
         nfold: int
             Number of fold which will be use in Kfold training.
         size_group: int
-
+            Number of pixels in each group. In a group Kfold, each group cannot be split.
         X: array like
             Feature dataset for the regression
         Y: array like
@@ -665,6 +718,7 @@ class Regressor(object):
         nobjects_by_bins: int
 
         n_bins: int
+            TODO
 
         cut_fracarea: bool
 
@@ -679,19 +733,21 @@ class Regressor(object):
             os.mkdir(dir_output)
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
 
-        targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
-        targets[~self.dataframe.footprint('Footprint')] = np.nan
+        with np.errstate(divide='ignore',invalid='ignore'): #to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
+            targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
+        targets[~self.dataframe.footprint('Footprint')] = np.NaN
 
         w = np.zeros(hp.nside2npix(self.dataframe.nside))
         w[self.dataframe.pixels[self.F>0]] = 1.0/self.F[self.F>0]
         targets_without_systematics = targets*w
 
-        plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
-        plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
-        map_to_plot = w.copy()
-        map_to_plot[map_to_plot == 0] = np.NaN
-        map_to_plot = map_to_plot - 1
-        plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
+        with np.errstate(divide='ignore',invalid='ignore'):
+            plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, savename=os.path.join(dir_output, 'targerts.pdf'), galactic_plane=True, ecliptic_plane=True)
+            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart,  show=False, savename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
+            map_to_plot = w.copy()
+            map_to_plot[map_to_plot == 0] = np.NaN
+            map_to_plot = map_to_plot - 1
+            plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1',  show=False, savename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
 
         plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobjects_by_bins=nobjects_by_bins, n_bins=n_bins,
