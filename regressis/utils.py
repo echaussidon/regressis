@@ -96,8 +96,9 @@ def build_healpix_map(nside, ra, dec, in_deg2=False):
         Array containg Declination in degree. Same size than ra.
     in_deg2: bool, default=False
         If true, divide the output by the pixel areal.
-    return
-    ------
+
+    Returns
+    -------
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
@@ -126,6 +127,7 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
         see documentation for `healpy.query_polygon()`.
     fact : :class:`int`, optional defaults to 4
         see documentation for `healpy.query_polygon()`.
+
     Returns
     -------
     :class:`list`

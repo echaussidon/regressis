@@ -159,8 +159,8 @@ def _load_nfold(updated_param=None):
     """
     Load pre-defined number of folds for each specific region available. Can be updated with updated_param.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     updated_param: dict
         updated param (e.g) {'North':2}
 
@@ -327,7 +327,7 @@ class Regressor(object):
         Build the folding of pixels with a GroupKfold class of Scikit-learn using a specific grouping given by group.
         A group cannot be splitted during the Kfold generation.
 
-        Parameters:
+        Parameters
         ----------
         kfold: GroupKFold class
             Scikit-learn class with split method to build the group Kfold.
@@ -337,10 +337,10 @@ class Regressor(object):
             Same size than pixels. It contains the group number of each pixel in pixels.
             A group cannot be splitted with kfold (ie) all pixels in the same group will be in the Fold.
 
-        Returns:
-        --------
+        Returns
+        -------
         index: list of list
-            Return a list (index == Fold number) containing the index list of pixels belonging to the fold i
+            A list (index == Fold number) containing the index list of pixels belonging to the fold i
 
         """
         index = []
@@ -354,8 +354,8 @@ class Regressor(object):
         """
         Plot the folding of pixels following the repartition given in index_list.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         nside: int
             Healpix resolution used in pixels
         pixels: array like
@@ -401,9 +401,9 @@ class Regressor(object):
 
         Perform the training of the regressor with (X_train, Y_train) and evaluate it in X_eval.
         Y_eval is only used to plot efficiency and permutation importance if required.
-        
-        Parameters:
-        -----------
+
+        Parameters
+        ----------
         regressor: Scikit-learn Regressor Class
             regressor used to perform the regression. No parameter will be modified here.
             The regressor will be trained with (X_train, Y_train) and will evaluate the function at X_eval
@@ -434,8 +434,8 @@ class Regressor(object):
         suffix: str
             suffix used to save output.
 
-        Returns:
-        --------
+        Returns
+        -------
         Y_pred: array like
             Gives the evaluation of the regression on X_eval with training done in (X_train, Y_train). It has the same size of X_eval.
         """
@@ -490,8 +490,8 @@ class Regressor(object):
         Inspect the "kfold_repartition.png" for specific design.
         Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         regressor: Scikit-learn Regressor Class
             regressor used to perform the regression. No parameter will be modified here.
         nfold: int
@@ -525,8 +525,8 @@ class Regressor(object):
         save_dir: str
             Directory path where the files will be saved if required with save_info.
 
-        Returns:
-        --------
+        Returns
+        -------
         Y_pred: array like
             Gives the evaluation of the regression on X with K-folding. It has the same size of X.
             The evalutation is NOT applied ONLY where keep_to_train is True.
@@ -568,7 +568,7 @@ class Regressor(object):
         """
         We save the healpix systematic maps
 
-        Parameter:
+        Parameters
         ----------
         return_map: bool
             if true return the sysematic weight map
@@ -596,8 +596,8 @@ class Regressor(object):
         """
         Draw the correction 'efficiency' of the training. The method excepts to reduce the variance in the histogram of the predicted density.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         Y: array like
             The normalized target density.
         Y_pred: array like
@@ -628,7 +628,8 @@ class Regressor(object):
         """
         Plot the giny importance feature for RandomForestRegressor.
 
-        Parameters:
+        Parameters
+        ----------
         regressor: RandomForestRegressor
             Regressor already trained.
         feature_names: str array like
@@ -661,7 +662,8 @@ class Regressor(object):
         """
         Compute and plot the permutation importance for the regressor (alternative/ complementary metric to giny importance).
 
-        Parameters:
+        Parameters
+        ----------
         regressor: Scikit-learn regressor class
             Regressor already trained.
         X: array like
@@ -697,8 +699,8 @@ class Regressor(object):
         Make plot to check and validate the regression.
         The result are saved in the corresponding outpur directory.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         max_plot_cart: float
             maximum density used to plot the object density in the sky.
         ax_lim: float
