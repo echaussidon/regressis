@@ -13,45 +13,8 @@ from desitarget.io import read_targets_in_box
 from regressis import setup_logging
 from regressis.utils import build_healpix_map
 
+
 logger = logging.getLogger('Collect_desi_target')
-
-
-def _load_version_info(version):
-    """
-    Load specific information and load specific functions related to SV3 or MAIN version of desitarget
-
-    Parameter
-    ---------
-    version: str
-        Target selection version used.
-
-    Returns
-    -------
-    bright_dir: str
-        Path in NERSC where the bright target files created by desitarget are saved.
-    dark_dir: str
-        Path in NERSC where the dark target files created by desitarget are saved.
-    DESI_TARGET: str
-        Colunm name for TARGET related to version
-    BGS_TARGET: str
-        Column name for BGS maskbit related to version
-    """
-    from collections import namedtuple
-    version_info = namedtuple('version_info', ['bright_dir', 'dark_dir', 'DESI_TARGET', 'BGS_TARGET'])
-
-    if version == 'SV3':
-        from desitarget.sv3.sv3_targetmask import desi_mask, bgs_mask
-        return version_info(bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/bright/',
-                            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/dark/',
-                            DESI_TARGET='SV3_DESI_TARGET',
-                            BGS_TARGET='SV3_BGS_TARGET')
-    if version == 'MAIN':
-        from desitarget.targetmask import desi_mask, bgs_mask
-        return version_info(bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/',
-                            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/',
-                            DESI_TARGET='SV3_DESI_TARGET',
-                            BGS_TARGET='SV3_BGS_TARGET')
-    raise ValueError('Please choose either SV3 or MAIN for version')
 
 
 def _load_default_desi_tracer(version):
@@ -81,9 +44,22 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
         Path where the maps will be saved
     """
     for version in version_list:
-        bright_dir, dark_dir, DESI_TARGET, BGS_TARGET = _load_version_info(version)
+        if version == 'SV3':
+            from desitarget.sv3.sv3_targetmask import desi_mask, bgs_mask
+            bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/bright/'
+            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/dark/'
+            DESI_TARGET='SV3_DESI_TARGET'
+            BGS_TARGET='SV3_BGS_TARGET'
+        elif version == 'MAIN':
+            from desitarget.targetmask import desi_mask, bgs_mask
+            bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/'
+            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/'
+            DESI_TARGET='SV3_DESI_TARGET'
+            BGS_TARGET='SV3_BGS_TARGET'
+        else:
+            raise ValueError('Please choose either SV3 or MAIN for version')
 
-        if tracer_list in None:
+        if tracer_list is None:
             tracer_list = _load_default_desi_tracer(version)
         tracer_list = np.array(tracer_list)
 
@@ -123,11 +99,13 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
 if __name__ == '__main__':
 
     setup_logging()
-    os.environ["DESI_LOGLEVEL"] = "WARNING" #remove useless warning from desitarget
+
+    # Turn off: WARNING  passed shape lies partially beyond the footprint of targets
+    logging.getLogger('desiutil.log.dlm58.info').setLevel(logging.ERROR)
 
     version = ['SV3', 'MAIN']
     tracer = None
     nside = [256, 512]
-    dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data/')
+    dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/')
 
     save_desi_targets(version, tracer, nside, dir_out)
