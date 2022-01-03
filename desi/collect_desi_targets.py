@@ -48,10 +48,6 @@ def _load_version_info(version):
                             'BGS_TARGET'='SV3_BGS_TARGET')
     elif version == 'MAIN':
         from desitarget.targetmask import desi_mask, bgs_mask
-        version_info['bright_dir'] =
-        version_info['dark_dir'] =
-        version_info['DESI_TARGET'] = 'SV3_DESI_TARGET'
-        version_info['BGS_TARGET'] = 'SV3_BGS_TARGET'
         return version_info('bright_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/',
                             'dark_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/',
                             'DESI_TARGET'='SV3_DESI_TARGET',
