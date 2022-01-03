@@ -100,7 +100,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
         sel_bright = np.isin(tracer_list, ['BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT'])
         bright_tracer, dark_tracer = tracer_list[sel_bright], tracer_list[~sel_bright]
 
-        if bright_tracer.size != 0:
+        if bright_tracer.size:
             logger.info(f"Collect {version} targets in Bright time to build pixmap...")
             objects = read_targets_in_box(bright_dir, [0, 360, -90, 90], quick=True, columns=['RA', 'DEC', DESI_TARGET, BGS_TARGET])
             desi_target, bgs_target = objects[DESI_TARGET][:], objects[BGS_TARGET][:]
@@ -116,7 +116,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
                         sel = (desi_target & desi_mask.mask(tracer)) != 0
                     np.save(map_path, build_healpix_map(nside, ra[sel], dec[sel], in_deg2=False))
 
-        if dark_tracer.size != 0:
+        if dark_tracer.size:
             logger.info(f"Collect {version} targets in Dark time to build pixmap with Nside={nside}...")
             objects = read_targets_in_box(dark_dir, [0, 360, -90, 90], quick=True, columns=['RA', 'DEC', DESI_TARGET])
             desi_target = objects[DESI_TARGET][:]
