@@ -100,7 +100,7 @@ def _elg_weight(seed, add_stream=False):
         param['use_new_norm'] = True
     else:
         feature_names = None
-    max_plot_cart = 3000
+    max_plot_cart = 3500
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
