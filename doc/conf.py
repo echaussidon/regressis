@@ -63,7 +63,7 @@ exclude_patterns = ['build', '**.ipynb_checkpoints']
 html_static_path = []
 
 git_repo = 'https://github.com/echaussidon/regressis.git'
-git_root = 'https://github.com/echaussidon/pyrecon/blob/main/'
+git_root = 'https://github.com/echaussidon/regressis/blob/main/'
 
 extlinks = {'root': (git_root + '%s','')}
 
