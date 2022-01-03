@@ -90,7 +90,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
 
             for nside in nside_list:
                 for tracer in dark_tracer:
-                    map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{Nside}.npy')
+                    map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{nside}.npy')
                     logger.info(f"    * build healpix map for {tracer} and save it in: {map_path}")
                     sel = (desi_target & desi_mask.mask(tracer)) != 0
                     np.save(map_path, build_healpix_map(nside, ra[sel], dec[sel], in_deg2=False))
