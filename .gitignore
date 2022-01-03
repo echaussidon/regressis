@@ -18,3 +18,4 @@ doc/_build/
 **/_tests
 *.DS_Store
 Res/
+*.log
