@@ -10,8 +10,8 @@ import healpy as hp
 
 from desitarget.io import read_targets_in_box
 
-from regressis import setup_logging, build_healpix_map
-
+from regressis import setup_logging
+from regressis.utils import build_healpix_map
 
 logger = logging.getLogger('Collect_desi_target')
 
