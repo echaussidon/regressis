@@ -54,8 +54,8 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
             from desitarget.targetmask import desi_mask, bgs_mask
             bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/'
             dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/'
-            DESI_TARGET='SV3_DESI_TARGET'
-            BGS_TARGET='SV3_BGS_TARGET'
+            DESI_TARGET='DESI_TARGET'
+            BGS_TARGET='BGS_TARGET'
         else:
             raise ValueError('Please choose either SV3 or MAIN for version')
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     # Turn off: WARNING  passed shape lies partially beyond the footprint of targets
     logging.getLogger('desiutil.log.dlm58.info').setLevel(logging.ERROR)
 
-    version = ['SV3', 'MAIN']
+    version = ['MAIN'] #['SV3', 'MAIN']
     tracer = None
     nside = [256, 512]
     dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/')
