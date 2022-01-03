@@ -35,7 +35,7 @@ class PhotometricDataFrame(object):
                  data_dir=None, output_dir=None,
                  use_median=False, use_new_norm=False, region=None):
         """
-        Initialize :class:`DataFrame`.
+        Initialize :class:`PhotometricDataFrame`.
 
         Parameters
         ----------
