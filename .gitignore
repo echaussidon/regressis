@@ -11,6 +11,7 @@ doc/_build/
 **/dist
 **/eggs
 **/build
+**/_build
 **/_catalogs
 **/.ipynb_checkpoints
 **/bak

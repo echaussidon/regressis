@@ -8,6 +8,9 @@ regress variations of target/galaxy density against a set of templates accountin
 Strict requirements are:
 
   - scikit-learn (and dependencies)
+  - fitsio
+  - healpy
+  - astropy
 
 ## Installation
 

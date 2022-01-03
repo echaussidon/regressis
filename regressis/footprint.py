@@ -151,13 +151,13 @@ class DR9Footprint(Footprint):
         """
         Extract the three photometric footprint
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ngc_sgc_split: bool
             Split into NGC / SGC region.
 
-        Return
-        ------
+        Returns
+        -------
         (North, South, Des) or (North, South_ngc, South_sgc, Des) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
         if ngc_sgc_split:
@@ -170,13 +170,13 @@ class DR9Footprint(Footprint):
         """
         Return North / South & DES ( -30 < Dec < 32.275) / DES (Dec. < -30) and split the South part in NGC / SGC part if required.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ngc_sgc_split: bool
             Split into NGC / SGC region.
 
-        Return
-        ------
+        Returns
+        -------
         (North, South_mid, South_pole) or (North, South_mid_ngc, South_mid_sgc, South_pole) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
         dec, all_south = self.data['DEC'], self.data['ISSOUTH']
@@ -197,9 +197,9 @@ class DR9Footprint(Footprint):
         """
         Healpix map with :attr:`nside` in nested ordering used to extract the keyword zone.
 
-        Parameter
-        ---------
-        keyword: str
+        Parameters
+        ----------
+        keyword : str
             Zone name to build the mask.
         """
         if keyword == 'Global' or keyword == 'Footprint':
@@ -239,9 +239,9 @@ class DR9Footprint(Footprint):
         Build mask with :attr:`nside` in nested ordering used to extract the keyword zone used to evaluate the mean density of the sample.
         These regions are choosen in the middle of the NGC. Far from the galatic plane, eclipic pole and Sgr. Stream.
 
-        Parameter
-        ---------
-        keyword: str
+        Parameters
+        ----------
+        keyword : str
             Zone name to build the mask.
         """
         keep_to_norm = np.zeros(hp.nside2npix(self.nside), dtype=bool)
@@ -261,9 +261,9 @@ class DR9Footprint(Footprint):
         """
         Extract corresponding systematic keyword for systematic plots.
 
-        Parameter:
+        Parameters
         ----------
-        keyword: str
+        keyword : str
             Zone name that we want to collect the corresponding keyword for systematic plots.
         """
         if keyword in ['South_ngc', 'South_sgc', 'South_mid', 'South_mid_ngc',

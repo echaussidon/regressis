@@ -1,25 +1,40 @@
-========================================
-Welcome to desitemplate's documentation!
-========================================
+.. title:: regressis docs
 
-Introduction
-============
-
-This is the documentation for desitemplate.
-
-Contents
-========
-
-The ``toctree`` directive can be used to link to other files in this
-directory and even display their sections.  See `the toctree documentation`_.
-
-.. _`the toctree documentation`: http://sphinx-doc.org/markup/toctree.html
+************************************
+Welcome to regressis' documentation!
+************************************
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
+  :caption: User documentation
 
-   api.rst
-   changes.rst
+  user/building
+  api/api
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Developer documentation
+
+  developer/documentation
+  developer/tests
+  developer/contributing
+  developer/changes
+
+.. toctree::
+  :hidden:
+
+************
+Introduction
+************
+
+**regressis** (regression of spectroscopic and imaging systematics) is a package to
+regress variations of target/galaxy density against a set of templates accounting for observational conditions.
+
+
+Changelog
+=========
+
+* :doc:`developer/changes`
 
 Indices and tables
 ==================

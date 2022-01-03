@@ -20,11 +20,11 @@ logger = logging.getLogger('DataFrame')
 
 # To avoid error from pandas method into the logger -> pandas use NUMEXPR Package
 if 'OMP_NUM_THREADS' in os.environ.keys():
-  os.environ.setdefault('NUMEXPR_MAX_THREADS', os.environ['OMP_NUM_THREADS'])
-  os.environ.setdefault('NUMEXPR_NUM_THREADS', os.environ['OMP_NUM_THREADS'])
+    os.environ.setdefault('NUMEXPR_MAX_THREADS', os.environ['OMP_NUM_THREADS'])
+    os.environ.setdefault('NUMEXPR_NUM_THREADS', os.environ['OMP_NUM_THREADS'])
 else:
-  os.environ.setdefault('NUMEXPR_MAX_THREADS', '1')
-  os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
+    os.environ.setdefault('NUMEXPR_MAX_THREADS', '1')
+    os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
 
 
 class PhotometricDataFrame(object):
@@ -35,17 +35,17 @@ class PhotometricDataFrame(object):
                  data_dir=None, output_dir=None,
                  use_median=False, use_new_norm=False, region=None):
         """
-        Initialize :class:`DataFrame`
+        Initialize :class:`DataFrame`.
 
         Parameters
         ----------
         version: str
-            Which version you want to use as SV3 or MAIN (for SV3 / MAIN targets) or DA02 / Y1 / ect ...
-            Usefull only to load default map saved in data_dir and for the output name of the directory or filename.
+            Which version you want to use as SV3 or MAIN (for SV3 / MAIN targets) or DA02 / Y1 / etc. ...
+            Useful only to load default map saved in data_dir and for the output name of the directory or filename.
         tracer: str
             Which tracer you want to use. Usefull only to load default map saved in data_dir and for
-            the output name of the directory or filename.
-        footprint: class:`Footprint`
+            the output name of the directory or file name.
+        footprint: Footprint
             Contain all the footprint informations needed to extract the specific regions from an healpix map.
         suffix_tracer: str
             Additional suffix for tracer. Usefull only to load default map saved in data_dir and for
@@ -59,7 +59,7 @@ class PhotometricDataFrame(object):
             Use median instead of mean to compute the normalized target density.
         use_new_norm: bool
             Use specific area far of the galatic plane and Sgr. Stream (to avoid stellar contaminant) to compute
-            the mean target density. Usefull only for :attr:`tracer`=='QSO'.
+            the mean target density. Useful only for :attr:`tracer` == 'QSO'.
         region: list of str
             List of region in which we want to apply the systematic mitigation procedure. The normalized target density
             is computed and the regression is applied independantly in each region. If none use the default region given in footprint.
@@ -269,7 +269,7 @@ class PhotometricDataFrame(object):
             plt.hist(normalized_targets[keep_to_train], range=(0.1,5), bins=100)
             plt.savefig(os.path.join(self.output_dataframe_dir, f"normalized_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
-            
+
         self.density = normalized_targets
         self.mean_density_region = mean_targets_density
         self.keep_to_train = keep_to_train

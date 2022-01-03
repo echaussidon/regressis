@@ -6,7 +6,6 @@ import warnings
 import logging
 
 import numpy as np
-import fitsio
 
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -78,7 +77,6 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
     """
     Return binmid, meds pour pouvoir faire : plt.errorbar(binmid, meds - 1*np.ones(binmid.size), yerr=meds_err, marker='.', linestyle='-', lw=0.9)
     """
-
     sel = (feature >= downclip) & (feature < upclip)
     if not np.any(sel):
         logger.info("Proceeding without clipping systematics for {}".format(feature_name))
@@ -117,16 +115,8 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
 
 def _select_good_pixels(keyword, fracarea, footprint, cut_fracarea=True, min_fracarea=0.9, max_fracarea=1.1):
     """
-
-
-    Parameter:
-    ----------
-
-
-
-
-    Returns:
-    --------
+    Returns
+    -------
     pix_to_keep: bool array
         Which pixels will be kept to plot the systematic plots
     keyword_sys: str
