@@ -14,7 +14,7 @@ export GAIA_DIR='/global/cfs/projectdirs/desi/target/gaia_dr2'
 # Path & variable
 RANDOMS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/randoms/resolve/randoms-1-7.fits
 TARGETS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/targets/main/resolve/dark/targets-dark-hp-11.fits
-OUTDIR=/global/homes/e/edmondc/Collect_data/pixweight/
+OUTDIR=$PWD/../data
 
 NSIDE=256
 echo "Build pixweight map for DR9 with Nside:256"
