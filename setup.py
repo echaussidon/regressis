@@ -8,6 +8,6 @@ setup(name='regressis',
       description='Regression of target density against observational condition templates',
       license='GPLv3',
       url='http://github.com/echaussidon/regressis',
-      install_requires=['scikit-learn'],
+      install_requires=['scikit-learn', 'fitsio', 'healpy', 'astropy'],
       packages=['regressis']
 )
