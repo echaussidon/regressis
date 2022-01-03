@@ -42,7 +42,7 @@ release = __version__
 
 html_theme = 'sphinx_rtd_theme'
 
-autodoc_mock_imports = ['sklearn', 'pandas', 'joblib', 'matplotlib', 'fitsio', 'healpy', 'astropy']
+autodoc_mock_imports = ['desitarget', 'sklearn', 'pandas', 'joblib', 'matplotlib', 'fitsio', 'healpy', 'astropy']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

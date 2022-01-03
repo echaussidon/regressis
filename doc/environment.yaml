@@ -7,3 +7,10 @@ channels:
 dependencies:
 - python=3.8
 - numpy
+- matplotlib
+- scikit-learn
+- fitsio
+- healpy
+- astropy
+- pip:
+    - git+https://github.com/echaussidon/regressis
