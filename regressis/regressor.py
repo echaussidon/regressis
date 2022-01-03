@@ -306,7 +306,7 @@ class Regressor(object):
                                                                                 compute_permutation_importance=self.compute_permutation_importance,
                                                                                 save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
             else:
-                F[zone] = Regressor.make_evaluation(self.regressor, X[keep_to_train_zone], Y[keep_to_train_zone], X, Y,
+                Y_pred[zone] = Regressor.make_evaluation(self.regressor, X[keep_to_train_zone], Y[keep_to_train_zone], X, Y,
                                                     self.use_sample_weight, self.normalized_feature, self.feature_names_to_normalize,
                                                     feature_names=self.feature_names, compute_permutation_importance=self.compute_permutation_importance,
                                                     save_regressor=self.save_regressor, save_info=save_info, save_dir=save_dir)
@@ -401,7 +401,7 @@ class Regressor(object):
 
         Perform the training of the regressor with (X_train, Y_train) and evaluate it in X_eval.
         Y_eval is only used to plot efficiency and permutation importance if required.
-        
+
         Parameters:
         -----------
         regressor: Scikit-learn Regressor Class
