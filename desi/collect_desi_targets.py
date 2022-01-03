@@ -83,7 +83,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
                     np.save(map_path, build_healpix_map(nside, ra[sel], dec[sel], in_deg2=False))
 
         if dark_tracer.size:
-            logger.info(f"Collect {version} targets in Dark time to build pixmap with Nside={nside}...")
+            logger.info(f"Collect {version} targets in Dark time to build pixmap...")
             objects = read_targets_in_box(dark_dir, [0, 360, -90, 90], quick=True, columns=['RA', 'DEC', DESI_TARGET])
             desi_target = objects[DESI_TARGET][:]
             ra, dec = objects['RA'][:], objects['DEC'][:]
