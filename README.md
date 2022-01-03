@@ -14,7 +14,7 @@ Strict requirements are:
 
 ## Documentations
 
-Documentation is hosted on Read the Docs, [regressis docs](https://regressis.readthedocs.io/). 
+Documentation is hosted on Read the Docs, [regressis docs](https://regressis.readthedocs.io/).
 
 ## Installation
 
@@ -27,9 +27,13 @@ python -m pip install git+https://github.com/echaussidon/regressis
 
 ### git
 
-First:
+First (if you do not use a ssh-key):
 ```
 git clone https://github.com/echaussidon/regressis.git
+```
+Or (if you use a ssh-key):
+```
+git clone git@github.com:echaussidon/regressis.git
 ```
 To install the code:
 ```
