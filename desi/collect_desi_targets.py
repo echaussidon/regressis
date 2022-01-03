@@ -123,6 +123,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
 if __name__ == '__main__':
 
     setup_logging()
+    os.environ["DESI_LOGLEVEL"] = "WARNING" #remove useless warning from desitarget
 
     version = ['SV3', 'MAIN']
     tracer = None
