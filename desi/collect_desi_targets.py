@@ -41,16 +41,16 @@ def _load_version_info(version):
 
     if version == 'SV3':
         from desitarget.sv3.sv3_targetmask import desi_mask, bgs_mask
-        return version_info('bright_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/bright/',
-                            'dark_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/dark/',
-                            'DESI_TARGET'='SV3_DESI_TARGET',
-                            'BGS_TARGET'='SV3_BGS_TARGET')
+        return version_info(bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/bright/',
+                            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/dark/',
+                            DESI_TARGET='SV3_DESI_TARGET',
+                            BGS_TARGET='SV3_BGS_TARGET')
     if version == 'MAIN':
         from desitarget.targetmask import desi_mask, bgs_mask
-        return version_info('bright_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/',
-                            'dark_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/',
-                            'DESI_TARGET'='SV3_DESI_TARGET',
-                            'BGS_TARGET'='SV3_BGS_TARGET')
+        return version_info(bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/',
+                            dark_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/',
+                            DESI_TARGET='SV3_DESI_TARGET',
+                            BGS_TARGET='SV3_BGS_TARGET')
     raise ValueError('Please choose either SV3 or MAIN for version')
 
 
