@@ -3,7 +3,7 @@
 **regressis** (regression of spectroscopic and imaging systematics) is a package to
 regress variations of target/galaxy density against a set of templates accounting for observational conditions.
 
-# Requirements
+## Requirements
 
 Strict requirements are:
 
@@ -11,6 +11,10 @@ Strict requirements are:
   - fitsio
   - healpy
   - astropy
+
+## Documentations
+
+Documentation is hosted on Read the Docs, [regressis docs](https://regressis.readthedocs.io/). 
 
 ## Installation
 
