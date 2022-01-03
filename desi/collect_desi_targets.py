@@ -10,7 +10,6 @@ import healpy as hp
 
 from desitarget.io import read_targets_in_box
 
-
 from regressis import setup_logging, build_healpix_map
 
 
@@ -46,15 +45,13 @@ def _load_version_info(version):
                             'dark_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/dark/',
                             'DESI_TARGET'='SV3_DESI_TARGET',
                             'BGS_TARGET'='SV3_BGS_TARGET')
-    elif version == 'MAIN':
+    if version == 'MAIN':
         from desitarget.targetmask import desi_mask, bgs_mask
         return version_info('bright_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/bright/',
                             'dark_dir'='/global/cfs/cdirs/desi/target/catalogs/dr9/1.1.0/targets/main/resolve/dark/',
                             'DESI_TARGET'='SV3_DESI_TARGET',
                             'BGS_TARGET'='SV3_BGS_TARGET')
-    else:
-        logger.error('Please choose either SV3 or MAIN for version')
-        sys.exit()
+    raise ValueError('Please choose either SV3 or MAIN for version')
 
 
 def _load_default_desi_tracer(version):
@@ -63,12 +60,9 @@ def _load_default_desi_tracer(version):
     """
     if version == 'SV3':
         return ['BGS_ANY', 'BGS_BRIGHT', 'BGS_FAINT', 'LRG', 'LRG_LOWDENS', 'ELG', 'ELG_LOP', 'ELG_HIP', 'QSO']
-    elif version == 'MAIN':
+    if version == 'MAIN':
         return ['BGS_ANY', 'BGS_BRIGHT', 'BGS_FAINT', 'LRG', 'ELG', 'ELG_VLO', 'ELG_LOP', 'QSO']
-    else:
-        logger.error('Please choose either SV3 or MAIN for version')
-        sys.exit()
-
+    raise ValueError('Please choose either SV3 or MAIN for version')
 
 
 def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
