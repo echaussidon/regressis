@@ -82,6 +82,34 @@ def deep_update(source, overrides):
 
 
 #------------------------------------------------------------------------------#
+def build_healpix_map(nside, ra, dec, in_deg2=False):
+    """
+    Build healpix map from ra, dec input.
+
+    Parameters
+    ----------
+    nside: int
+        Healpix resolution of the output.
+    ra: array like
+        Array containg Right Ascension in degree.
+    dec: array like
+        Array containg Declination in degree. Same size than ra.
+    in_deg2: bool, default=False
+        If true, divide the output by the pixel areal.
+    return
+    ------
+    map: array
+        Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
+    """
+    map = np.zeros(hp.nside2npix(nside))
+    pixels = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
+    pix, counts = np.unique(pixels, return_counts=True)
+    map[pix] = counts
+    if in_deg2:
+        map /= hp.nside2pixarea(nside, degrees=True)
+    return map
+
+
 def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     """
     Determine which HEALPixels touch an RA, Dec box.
