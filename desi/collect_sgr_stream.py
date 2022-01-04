@@ -10,6 +10,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 import logging
+from regressis import setup_logging
 
 
 logger = logging.getLogger("Collect_sgr_stream")
