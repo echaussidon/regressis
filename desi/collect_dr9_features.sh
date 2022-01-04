@@ -22,16 +22,16 @@ echo " "
 ## run make_imaging_weight_map on 32 processors
 make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
 
-# NSIDE=256
-# echo "Build pixweight map for DR9 with Nside:256"
-# echo " "
-# ## run make_imaging_weight_map on 32 processors
-# make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
-#
-#
-# NSIDE=512
-# echo " "
-# echo "Build pixweight map for DR9 with Nside:512"
-# echo " "
-# ## run make_imaging_weight_map on 32 processors
-# make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
+NSIDE=256
+echo "Build pixweight map for DR9 with Nside:256"
+echo " "
+## run make_imaging_weight_map on 32 processors
+make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
+
+
+NSIDE=512
+echo " "
+echo "Build pixweight map for DR9 with Nside:512"
+echo " "
+## run make_imaging_weight_map on 32 processors
+make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
