@@ -401,7 +401,7 @@ class Regressor(object):
 
         Perform the training of the regressor with (X_train, Y_train) and evaluate it in X_eval.
         Y_eval is only used to plot efficiency and permutation importance if required.
-        
+
         Parameters
         ----------
         regressor: Scikit-learn Regressor Class
@@ -484,11 +484,14 @@ class Regressor(object):
         """
         Perform the Kfold training/evaluation of (X, Y) with regressor as engine for regression and nfold.
         The training is performed only with X[keep_to_train]. Warning the K-fold split is generated with pixels and not pixels[keep_to_train].
-        We use a group Kfold to control how the fold is performed.
+        We use group-Kfold to control how the folding is performed.
         This choice is done to have always the same splitting whatever the selection used to keep the training data.
         The Kfold is calibrated to create patch of 52 deg^2 each and to covert all the specific region of the footprint.
         Inspect the "kfold_repartition.png" for specific design.
-        Note that the Kfold is purely geometrical meaning that if two rows in X have the same pixel value it has to be in the K-fold.
+
+        In the future:
+        For the moment (photometric case) we expect unique value in pixels but it will be note the case with spectroscopic case. The group-kfold is purely geomtrical
+        to avoid overfitting. Meaning that in the case where two rows in X have the same pixel value they have to be in the same k-fold ! --> IT WILL BE IMPLEMENTED in the next.
 
         Parameters
         ----------

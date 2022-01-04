@@ -2,9 +2,9 @@
 # coding: utf-8
 
 import os
+import shutil
 import logging
-
-import numpy as np
+import time
 
 from regressis import PhotometricDataFrame, Regressor, DR9Footprint, setup_logging
 from regressis.utils import mkdir
@@ -61,6 +61,7 @@ def _bgs_weight(seed):
     """
         Compute weight with standard parametrization for BGS in MAIN.
     """
+    start = time.time()
     logger.info("Compute weight for BGS at Nside=256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS', '', 256
@@ -68,7 +69,7 @@ def _bgs_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -76,11 +77,14 @@ def _bgs_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _bgs_faint_weight(seed):
     """
         Compute weight with standard parametrization for BGS FAINT in MAIN.
     """
+    start = time.time()
     logger.info("Compute weight for BGS_FAINT at Nside=256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS_FAINT', '', 256
@@ -88,7 +92,7 @@ def _bgs_faint_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -96,11 +100,14 @@ def _bgs_faint_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _bgs_bright_weight(seed):
     """
         Compute weight with standard parametrization for BGS BRIGHT in MAIN.
     """
+    start = time.time()
     logger.info("Compute weight for BGS_BRIGHT at Nside=256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS_BRIGHT', '', 256
@@ -108,7 +115,7 @@ def _bgs_bright_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -116,11 +123,14 @@ def _bgs_bright_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _lrg_weight(seed):
     """
         Compute weight with standard parametrization for LRG in MAIN.
     """
+    start = time.time()
     logger.info("Compute weight for LRG at Nside=256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'LRG', '', 256
@@ -128,7 +138,7 @@ def _lrg_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -136,11 +146,14 @@ def _lrg_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _elg_weight(seed, add_stream=False):
     """
         Compute weight with standard parametrization for ELG in MAIN. If add_stream=True then add STREAM during the regression.
     """
+    start = time.time()
     logger.info(f"Compute weight for ELG at Nside=512 with Sgr. Stream? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG', '', 512
@@ -148,7 +161,7 @@ def _elg_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -164,11 +177,14 @@ def _elg_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _elg_vlo_weight(seed, add_stream=False):
     """
         Compute weight with standard parametrization for ELG VLO in MAIN. If add_stream=True then add STREAM during the regression.
     """
+    start = time.time()
     logger.info("Compute weight for ELG at Nside=512 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_VLO', '', 512
@@ -176,7 +192,7 @@ def _elg_vlo_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -193,11 +209,14 @@ def _elg_vlo_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _elg_lop_weight(seed, add_stream=False):
     """
         Compute weight with standard parametrization for ELG LOP in MAIN. If add_stream=True then add STREAM during the regression.
     """
+    start = time.time()
     logger.info("Compute weight for ELG at Nside=512 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_LOP', '', 512
@@ -205,7 +224,7 @@ def _elg_lop_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -222,11 +241,14 @@ def _elg_lop_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _qso_weight(seed):
     """
         Compute weight with standard parametrization for QSO in MAIN.
     """
+    start = time.time()
     logger.info("Compute weight for QSO at Nside=256 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'QSO', '', 256
@@ -234,7 +256,7 @@ def _qso_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/MAIN'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -242,14 +264,14 @@ def _qso_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
 
-'BGS_ANY', 'BGS_BRIGHT', 'BGS_FAINT', 'LRG', 'ELG', 'ELG_VLO', 'ELG_LOP', 'QSO'
 
 if __name__ == '__main__':
 
     setup_logging(log_file='MAIN.log')
 
-    mkdir('../res')
+    mkdir('../res/MAIN')
 
     _bgs_any_weight(130)
     _bgs_faint_weight(133)
@@ -262,3 +284,6 @@ if __name__ == '__main__':
     _elg_lop_weight(170)
     _elg_lop_weight(175, add_stream=True)
     _qso_weight(180)
+
+    print("\nMOVE the MAIN.log file into the output directory ../res/MAIN\n")
+    shutil.move('MAIN.log', '../res/MAIN/MAIN.log')

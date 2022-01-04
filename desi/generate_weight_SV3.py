@@ -2,9 +2,9 @@
 # coding: utf-8
 
 import os
+import shutil
 import logging
-
-import numpy as np
+import time
 
 from regressis import PhotometricDataFrame, Regressor, DR9Footprint, setup_logging
 from regressis.utils import mkdir
@@ -61,6 +61,7 @@ def _lrg_weight(seed):
     """
         Compute weight with standard parametrization for LRG in SV3.
     """
+    start = time.time()
     logger.info("Compute weight for LRG at Nside=256")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'LRG', '', 256
@@ -68,7 +69,7 @@ def _lrg_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -76,11 +77,14 @@ def _lrg_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _elg_weight(seed, add_stream=False):
     """
         Compute weight with standard parametrization for ELG in SV3. If add_stream=True then add STREAM during the regression.
     """
+    start = time.time()
     logger.info(f"Compute weight for ELG at Nside=512 with Sgr. Stream? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG', '', 512
@@ -88,7 +92,7 @@ def _elg_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -104,11 +108,14 @@ def _elg_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _elg_hip_weight(seed, add_stream=False):
     """
         Compute weight with standard parametrization for ELG HIP in SV3. If add_stream=True then add STREAM during the regression.
     """
+    start = time.time()
     logger.info("Compute weight for ELG at Nside=512 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG_HIP', '', 512
@@ -116,7 +123,7 @@ def _elg_hip_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -133,11 +140,14 @@ def _elg_hip_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 def _qso_weight(seed):
     """
         Compute weight with standard parametrization for QSO in SV3.
     """
+    start = time.time()
     logger.info("Compute weight for QSO at Nside=256 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'QSO', '', 256
@@ -145,7 +155,7 @@ def _qso_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -153,12 +163,14 @@ def _qso_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
 
+    logger.info(f"Done in {time.time() - start:2.2f}\n")
+
 
 if __name__ == '__main__':
 
     setup_logging(log_file='SV3.log')
 
-    mkdir('../res')
+    mkdir('../res/SV3')
 
     _lrg_weight(40)
     _elg_weight(50)
@@ -166,3 +178,6 @@ if __name__ == '__main__':
     _elg_hip_weight(60)
     #_elg_hip_weight(65, add_stream=True)
     _qso_weight(70)
+
+    print("\nMOVE the SV3.log file into the output directory ../res/SV3\n")
+    shutil.move('SV3.log', '../res/SV3/SV3.log')
