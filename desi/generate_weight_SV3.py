@@ -2,9 +2,8 @@
 # coding: utf-8
 
 import os
+import shutil
 import logging
-
-import numpy as np
 
 from regressis import PhotometricDataFrame, Regressor, DR9Footprint, setup_logging
 from regressis.utils import mkdir
@@ -68,7 +67,7 @@ def _lrg_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -88,7 +87,7 @@ def _elg_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = False
     param['region'] = ['North', 'South', 'Des']
@@ -116,7 +115,7 @@ def _elg_hip_weight(seed, add_stream=False):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -145,7 +144,7 @@ def _qso_weight(seed):
 
     param = dict()
     param['data_dir'] = '../data'
-    param['output_dir'] = '../res'
+    param['output_dir'] = '../res/SV3'
     param['use_median'] = False
     param['use_new_norm'] = True
     param['region'] = ['North', 'South', 'Des']
@@ -158,7 +157,7 @@ if __name__ == '__main__':
 
     setup_logging(log_file='SV3.log')
 
-    mkdir('../res')
+    mkdir('../res/SV3')
 
     _lrg_weight(40)
     _elg_weight(50)
@@ -166,3 +165,6 @@ if __name__ == '__main__':
     _elg_hip_weight(60)
     #_elg_hip_weight(65, add_stream=True)
     _qso_weight(70)
+
+    print("\nMOVE the SV3.log file into the output directory ../res/SV3\n")
+    shutil.move('SV3.log', '../res/SV3/SV3.log')
