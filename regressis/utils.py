@@ -135,18 +135,19 @@ def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
 def mean_on_healpix_map(map, depth_neighbours=1):
     """
     Build the average of a healpix map with a specific width.
-    It is similar than a convolution in a 2d matrix with a gaussian like kernel of size depth_neighbours.
+    It is similar to a convolution with a gaussian like kernel of size depth_neighbours.
 
     Parameters
     ----------
-    map: array
+    map : array
         Full healpix map supposed nested.
-    depth_neightbours: int
-        Width of the average.
+    depth_neighbours : int
+        Width of the kernel.
+
     Returns
     -------
-    mean_map: array
-        Full healpix map convolved with a gaussian like kernel.
+    mean_map : array
+        Full averaged healpix map.
     """
     def get_all_neighbours(nside, i, depth_neighbours=1):
         # get the pixel number of the neighbours of i at required width given by depth_neighbours
