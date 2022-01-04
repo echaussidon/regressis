@@ -47,6 +47,10 @@ def save_desi_targets(versions, nsides, dir_out, tracers=None):
     if np.ndim(nsides) == 0:
         nsides = [nsides]
 
+    use_default_tracer = tracers is None
+    if not use_default_tracer and np.ndim(tracers) == 0:
+        tracers = [tracers]
+
     for version in versions:
         version = version.upper()
         if version == 'SV3':
@@ -64,10 +68,8 @@ def save_desi_targets(versions, nsides, dir_out, tracers=None):
         else:
             raise ValueError('Please choose either SV3 or MAIN for version')
 
-        if tracers is None:
+        if use_default_tracer:
             tracers = _get_default_desi_tracer(version)
-        if np.ndim(tracers) == 0:
-            tracers = [tracers]
         tracers = np.asarray(tracers)
 
         sel_bright = np.isin(tracers, ['BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT'])
