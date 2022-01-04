@@ -74,7 +74,7 @@ sgr_stream_bottom_icrs = Sagittarius(Lambda=np.linspace(0, 2*np.pi, 200)*u.radia
 index_sgr_bottom = np.argsort(sgr_stream_bottom_icrs.ra.wrap_at(300*u.deg).degree)
 
 
-def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', savename=None, show=True, galactic_plane=False, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True, rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15):
+def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True, galactic_plane=False, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True, rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15):
 
     #transform healpix map to 2d array
     plt.figure(1)
@@ -86,8 +86,8 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', sav
     ra_edge = np.linspace(-180, 180, map_to_plot.shape[1]+1)
     dec_edge = np.linspace(-90, 90, map_to_plot.shape[0]+1)
 
-    ra_edge[ra_edge>180] -=360    # scale conversion to [-180, 180]
-    ra_edge=-ra_edge              # reverse the scale: East to the left
+    ra_edge[ra_edge>180] -= 360    # scale conversion to [-180, 180]
+    ra_edge=-ra_edge               # reverse the scale: East to the left
 
     ra_grid, dec_grid = np.meshgrid(ra_edge, dec_edge)
 
@@ -97,7 +97,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', sav
 
     mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap='jet', edgecolor='none', lw=0)
 
-    if label!=None:
+    if label is not None:
         ax_cb = inset_axes(ax, width="30%", height="4%", loc='lower left', bbox_to_anchor=(0.346, ycb_pos, 1.0, 1.0), bbox_transform=ax.transAxes, borderpad=0)
         cb = plt.colorbar(mesh, ax=ax, cax=ax_cb, orientation='horizontal', shrink=0.8, aspect=40)
         cb.outline.set_visible(False)
@@ -105,29 +105,29 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', sav
 
     if galactic_plane:
         ra, dec = galactic_plane_icrs.ra.degree - rot, galactic_plane_icrs.dec.degree
-        ra[ra>180] -=360    # scale conversion to [-180, 180]
-        ra=-ra              # reverse the scale: East to the left
+        ra[ra>180] -= 360    # scale conversion to [-180, 180]
+        ra=-ra               # reverse the scale: East to the left
         ax.plot(np.radians(ra[index_galactic]), np.radians(dec[index_galactic]), linestyle='-', linewidth=0.8, color='black', label='Galactic plane')
     if ecliptic_plane:
         ra, dec = ecliptic_plane_icrs.ra.degree - rot, ecliptic_plane_icrs.dec.degree
-        ra[ra>180] -=360    # scale conversion to [-180, 180]
-        ra=-ra              # reverse the scale: East to the left
+        ra[ra>180] -= 360    # scale conversion to [-180, 180]
+        ra=-ra               # reverse the scale: East to the left
         ax.plot(np.radians(ra[index_ecliptic]), np.radians(dec[index_ecliptic]), linestyle=':', linewidth=0.8, color='slategrey', label='Ecliptic plane')
     if sgr_plane:
         ra, dec = sgr_plane_icrs.ra.degree - rot, sgr_plane_icrs.dec.degree
-        ra[ra>180] -=360    # scale conversion to [-180, 180]
-        ra=-ra              # reverse the scale: East to the left
+        ra[ra>180] -= 360    # scale conversion to [-180, 180]
+        ra=-ra               # reverse the scale: East to the left
         ax.plot(np.radians(ra[index_sgr]), np.radians(dec[index_sgr]), linestyle='--', linewidth=0.8, color='navy', label='Sgr. plane')
 
         if stream_plane:
             ra, dec = sgr_stream_top_icrs.ra.degree - rot, sgr_stream_top_icrs.dec.degree
-            ra[ra>180] -=360    # scale conversion to [-180, 180]
-            ra=-ra              # reverse the scale: East to the left
+            ra[ra>180] -= 360    # scale conversion to [-180, 180]
+            ra=-ra               # reverse the scale: East to the left
             ax.plot(np.radians(ra[index_sgr_top]), np.radians(dec[index_sgr_top]), linestyle=':', linewidth=0.8, color='navy')
 
             ra, dec = sgr_stream_bottom_icrs.ra.degree - rot, sgr_stream_bottom_icrs.dec.degree
-            ra[ra>180] -=360    # scale conversion to [-180, 180]
-            ra=-ra              # reverse the scale: East to the left
+            ra[ra>180] -= 360    # scale conversion to [-180, 180]
+            ra=-ra               # reverse the scale: East to the left
             ax.plot(np.radians(ra[index_sgr_bottom]), np.radians(dec[index_sgr_bottom]), linestyle=':', linewidth=0.8, color='navy')
 
     tick_labels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
@@ -145,8 +145,8 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', sav
         ax.legend(loc='lower right')
     if title:
         plt.title(title)
-    if savename != None:
-        plt.savefig(savename)
+    if filename != None:
+        plt.savefig(filename)
     if show:
         plt.show()
     else:

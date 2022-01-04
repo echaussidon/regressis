@@ -16,29 +16,30 @@ from regressis.utils import build_healpix_map
 logger = logging.getLogger('Collect_desi_target')
 
 
-def _load_version_info(version):
+def _get_version_info(version):
     """
-    Load specific information and load specific functions related to SV3 or MAIN version of desitarget
+    Load specific information and functions related to SV3 or MAIN version of desitarget.
 
-    Parameter
-    ---------
-    version: str
+    Parameters
+    ----------
+    version : str
         Target selection version used.
 
     Returns
     -------
-    bright_dir: str
-        Path in NERSC where the bright target files created by desitarget are saved.
-    dark_dir: str
-        Path in NERSC where the dark target files created by desitarget are saved.
-    DESI_TARGET: str
-        Colunm name for TARGET related to version
+    bright_dir : str
+        Path where the bright target files created by desitarget are saved.
+    dark_dir : str
+        Path where the dark target files created by desitarget are saved.
+    DESI_TARGET : str
+        Colunm name for TARGET related to version.
     BGS_TARGET: str
-        Column name for BGS maskbit related to version
+        Column name for BGS maskbit related to version.
     """
     from collections import namedtuple
     version_info = namedtuple('version_info', ['bright_dir', 'dark_dir', 'DESI_TARGET', 'BGS_TARGET'])
 
+    version = version.upper()
     if version == 'SV3':
         from desitarget.sv3.sv3_targetmask import desi_mask, bgs_mask
         return version_info(bright_dir='/global/cfs/cdirs/desi/target/catalogs/dr9/0.57.0/targets/sv3/resolve/bright/',
@@ -54,10 +55,9 @@ def _load_version_info(version):
     raise ValueError('Please choose either SV3 or MAIN for version')
 
 
-def _load_default_desi_tracer(version):
-    """
-    Return default tracer to use as a function of SV3 or MAIN.
-    """
+def _get_default_desi_tracer(version):
+    """Return default list of tracers to use as a function of SV3 or MAIN."""
+    version = version.upper()
     if version == 'SV3':
         return ['BGS_ANY', 'BGS_BRIGHT', 'BGS_FAINT', 'LRG', 'LRG_LOWDENS', 'ELG', 'ELG_LOP', 'ELG_HIP', 'QSO']
     if version == 'MAIN':
@@ -65,38 +65,45 @@ def _load_default_desi_tracer(version):
     raise ValueError('Please choose either SV3 or MAIN for version')
 
 
-def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
+def save_desi_targets(versions, nsides, dir_out, tracers=None):
     """
-    Collect targets in NERSC from desitarget files and generate the density map in Healpix map with nside and nested scheme.
+    Collect targets in NERSC from desitarget files and generate the density map in Healpix map with required nside and in nested scheme.
 
     Parameters
     ----------
-    version_list: array like
-        Which version will be considered. Either MAIN or SV3
-    tracer_list: array like
-        Name of tracer which has to be collected. If None load default tracer name with _load_default_desi_tracer
-    nside_list: array_like
-        Healpix size of the saved maps.
-    dir_out: str
-        Path where the maps will be saved
+    versions : array like
+        Which versions will be considered. Either MAIN or SV3.
+    nsides : array_like
+        Healpix size of the maps.
+    dir_out : str
+        Directory where the maps will be saved.
+    tracers : array like
+        Name of tracers to be collected. If ``None`` get default tracer name with :func:`_get_default_desi_tracer`.
     """
-    for version in version_list:
-        bright_dir, dark_dir, DESI_TARGET, BGS_TARGET = _load_version_info(version)
+    if np.ndim(versions) == 0:
+        versions = [versions]
+    if np.ndim(nsides) == 0:
+        nsides = [nsides]
 
-        if tracer_list in None:
-            tracer_list = _load_default_desi_tracer(version)
-        tracer_list = np.array(tracer_list)
+    for version in versions:
+        bright_dir, dark_dir, DESI_TARGET, BGS_TARGET = _get_version_info(version)
 
-        sel_bright = np.isin(tracer_list, ['BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT'])
-        bright_tracer, dark_tracer = tracer_list[sel_bright], tracer_list[~sel_bright]
+        if tracers in None:
+            tracers = _get_default_desi_tracer(version)
+        if np.ndim(tracers) == 0:
+            tracers = [tracers]
+        tracers = np.asarray(tracers)
+
+        sel_bright = np.isin(tracers, ['BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT'])
+        bright_tracer, dark_tracer = tracers[sel_bright], tracers[~sel_bright]
 
         if bright_tracer.size:
-            logger.info(f"Collect {version} targets in Bright time to build pixmap...")
+            logger.info(f"Collect {version} targets in bright time to build pixmap with nside={nsides}...")
             objects = read_targets_in_box(bright_dir, [0, 360, -90, 90], quick=True, columns=['RA', 'DEC', DESI_TARGET, BGS_TARGET])
             desi_target, bgs_target = objects[DESI_TARGET][:], objects[BGS_TARGET][:]
             ra, dec = objects['RA'][:], objects['DEC'][:]
 
-            for nside in nside_list:
+            for nside in nsides:
                 for tracer in bright_tracer:
                     map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{nside}.npy')
                     logger.info(f"    * build healpix map for {tracer} and save it in: {map_path}")
@@ -107,12 +114,12 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
                     np.save(map_path, build_healpix_map(nside, ra[sel], dec[sel], in_deg2=False))
 
         if dark_tracer.size:
-            logger.info(f"Collect {version} targets in Dark time to build pixmap with Nside={nside}...")
+            logger.info(f"Collect {version} targets in dark time to build pixmap with nside={nsides}...")
             objects = read_targets_in_box(dark_dir, [0, 360, -90, 90], quick=True, columns=['RA', 'DEC', DESI_TARGET])
             desi_target = objects[DESI_TARGET][:]
             ra, dec = objects['RA'][:], objects['DEC'][:]
 
-            for nside in nside_list:
+            for nside in nsides:
                 for tracer in dark_tracer:
                     map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{Nside}.npy')
                     logger.info(f"    * build healpix map for {tracer} and save it in: {map_path}")
@@ -125,9 +132,8 @@ if __name__ == '__main__':
     setup_logging()
     os.environ["DESI_LOGLEVEL"] = "WARNING" #remove useless warning from desitarget
 
-    version = ['SV3', 'MAIN']
-    tracer = None
-    nside = [256, 512]
-    dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data/')
-
-    save_desi_targets(version, tracer, nside, dir_out)
+    versions = ['SV3', 'MAIN']
+    nsides = [256, 512]
+    dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
+    tracers = None
+    save_desi_targets(versions, nsides, dir_out, tracers=tracers)
