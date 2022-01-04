@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
+
 import numpy as np
 import pandas as pd
 import healpy as hp
@@ -9,46 +11,11 @@ import fitsio
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-import logging
 from regressis import setup_logging
+from regressis.utils import build_healpix_map, mean_on_healpix_map
 
 
 logger = logging.getLogger("Collect_sgr_stream")
-
-
-def _build_pixmap(data, sel, nside=256):
-    """
-    From (R.A., Dec.) catalog and selective mask, build the corresponding distribution
-    healpix map at nside in nested scheme
-    """
-    targets = np.zeros(hp.nside2npix(nside))
-    pixels = hp.ang2pix(nside, data['RA'][sel], data['DEC'][sel], nest=True, lonlat=True)
-    pix, counts = np.unique(pixels, return_counts=True)
-    targets[pix] = counts
-    return targets
-
-
-def _mean_on_healpy_map(nside, map, depth_neighbours=1): #supposed Nested and map a list of pixel
-    """
-    From map at nside, build the average with specific depth.
-    It is similar than a convolution in a 2d matrix with a gaussian kernel of size depth_neighbours.
-    """
-    def get_all_neighbours(nside, i, depth_neighbours=1):
-        pixel_list = hp.get_all_neighbours(nside, i, nest=True)
-        pixel_tmp = pixel_list
-        depth_neighbours -= 1
-        while depth_neighbours != 0 :
-            pixel_tmp = hp.get_all_neighbours(nside, pixel_tmp, nest=True)
-            pixel_tmp = np.reshape(pixel_tmp, pixel_tmp.size)
-            pixel_list = np.append(pixel_list, pixel_tmp)
-            depth_neighbours -= 1
-        return pixel_list
-
-    mean_map = np.zeros(len(map))
-    for i in range(len(map)):
-        neighbour_pixels = get_all_neighbours(nside, i, depth_neighbours)
-        mean_map[i] = np.nansum(map[neighbour_pixels], axis=0)/neighbour_pixels.size
-    return mean_map
 
 
 def _match_to_dr9(cat_sag):
@@ -222,12 +189,12 @@ def _build_color_dataFrame(data):
 
     attributes = colors(sel.sum(), 11, g[sel], r[sel], z[sel], W1[sel], W2[sel])
     attributes_label = ['g-r', 'r-z', 'g-z', 'g-W1', 'r-W1', 'z-W1', 'g-W2', 'r-W2', 'z-W2', 'W1-W2', 'r']
-    
+
     df_sag_colors = pd.DataFrame(attributes, columns=attributes_label)
     # warning, we do not want to select in function of the index of the dataframe!
     df_sag_colors['RA'] = data['RA'].values[sel]
     df_sag_colors['DEC'] = data['DEC'].values[sel]
-    
+
     return df_sag_colors
 
 
@@ -245,9 +212,9 @@ if __name__ == '__main__':
     sag_colors = _build_color_dataFrame(sag_dr9)
 
     sel = (sag_colors['r'] > 18) & (sag_colors['z-W1'] < -0.5) # remove true qsos from the catalog
-    sgr_map = _build_pixmap(sag_colors, sel, 256) / hp.nside2pixarea(256, degrees=True)
+    sgr_map =  build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
     sgr_map /= np.mean(sgr_map[sgr_map > 0])
-    sgr_map = _mean_on_healpy_map(256, sgr_map, depth_neighbours=2)
+    sgr_map = mean_on_healpix_map(256, sgr_map, depth_neighbours=2)
 
     logger.info('Save map at nside=128, 256, 512 in  ../data/')
     np.save('../data/sagittarius_stream_256.npy', sgr_map)
