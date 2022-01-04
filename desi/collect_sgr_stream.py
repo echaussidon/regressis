@@ -117,7 +117,7 @@ def _match_to_dr9(cat_sag):
     coorg_sag = SkyCoord(ra=cat_sag['ra'].values*u.degree, dec=cat_sag['dec'].values*u.degree)
     logger.info(f"catalog sag size : ", cat_sag.size, '\n')
 
-    sag_dr9 = pd.dataFrame()
+    sag_dr9 = pd.DataFrame()
     for name in list_name:
         sel_in_sag = (cat_sag['ra'].values < float(name[3])) & (cat_sag['ra'].values > float(name[0]))
         if name[1] == 'm':
