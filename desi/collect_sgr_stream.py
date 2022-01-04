@@ -214,7 +214,7 @@ if __name__ == '__main__':
     sel = (sag_colors['r'] > 18) & (sag_colors['z-W1'] < -0.5) # remove true qsos from the catalog
     sgr_map =  build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
     sgr_map /= np.mean(sgr_map[sgr_map > 0])
-    sgr_map = mean_on_healpix_map(256, sgr_map, depth_neighbours=2)
+    sgr_map = mean_on_healpix_map(sgr_map, depth_neighbours=2)
 
     logger.info('Save map at nside=128, 256, 512 in  ../data/')
     np.save('../data/sagittarius_stream_256.npy', sgr_map)
