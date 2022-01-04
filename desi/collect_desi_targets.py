@@ -103,7 +103,7 @@ if __name__ == '__main__':
     # Turn off: WARNING  passed shape lies partially beyond the footprint of targets
     logging.getLogger('desiutil.log.dlm58.info').setLevel(logging.ERROR)
 
-    version = ['MAIN'] #['SV3', 'MAIN']
+    version = ['SV3', 'MAIN']
     tracer = None
     nside = [256, 512]
     dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/')
