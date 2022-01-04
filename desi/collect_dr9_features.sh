@@ -11,7 +11,7 @@ module load desimodules
 # required by make_imaging_weight_map
 export GAIA_DIR='/global/cfs/projectdirs/desi/target/gaia_dr2'
 
-# Path & variable
+# path & variable
 RANDOMS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/randoms/resolve/randoms-1-7.fits
 TARGETS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/targets/main/resolve/dark/targets-dark-hp-11.fits
 OUTDIR=$PWD/../data
