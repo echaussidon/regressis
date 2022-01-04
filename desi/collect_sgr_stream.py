@@ -117,8 +117,8 @@ def _match_to_dr9(cat_sag):
     sweepname = SWEEP + 'sweep-{}{}{}-{}{}{}.fits'
     list_name = _collect_name_for_stream_region()
 
-    coorg_sag = SkyCoord(ra=cat_sag['ra'].values*u.degree, dec=cat_sag['dec'].values*u.degree)
-    logger.info(f"catalog sag size : ", cat_sag.size, '\n')
+    coord_sag = SkyCoord(ra=cat_sag['ra'].values*u.degree, dec=cat_sag['dec'].values*u.degree)
+    logger.info(f"catalog sag size : {cat_sag.size}")
 
     sag_dr9 = pd.DataFrame()
     for name in list_name:
@@ -143,8 +143,8 @@ def _match_to_dr9(cat_sag):
                 coord_sweep = SkyCoord(ra=sweep['RA'].values*u.degree, dec=sweep['DEC'].values*u.degree)
                 idx, d2d, d3d = coord_sag[sel_in_sag].match_to_catalog_sky(coord_sweep)
                 sel = (d2d.arcsec < 1)
-                logger.info(f"    *  Number of objetcs selected in the sweep file : {sel.sum()}")
-                sag_dr9 = pd.concat([sag_dr9, sweep[idx[sel]]], ignore_index=True)
+                logger.info(f"    * Number of objetcs selected in the sweep file : {sel.sum()}")
+                sag_dr9 = pd.concat([sag_dr9, sweep.loc[idx[sel]]], ignore_index=True)
             except:
                 print('')
 
@@ -157,8 +157,8 @@ def _build_color_dataFrame(data):
     A specific cut is applied to remove all the object with a missing photometric value and with to faint flux in WISE.
     """
     def magsExtFromFlux(dataArray):
-        # convert flux to magnitude applying photometric correction objects in the North.
-        from desitarget.cuts import shift_photo_north
+        # convert flux to magnitude applying NO photometric correction objects in the North.
+        # Ok no objects are expected in the North.
 
         gflux  = dataArray['FLUX_G'][:]/dataArray['MW_TRANSMISSION_G'][:]
         rflux  = dataArray['FLUX_R'][:]/dataArray['MW_TRANSMISSION_R'][:]
@@ -176,11 +176,6 @@ def _build_color_dataFrame(data):
         gflux[np.isinf(gflux)]=0.
         rflux[np.isinf(rflux)]=0.
         zflux[np.isinf(zflux)]=0.
-
-
-        is_north = (dataArray['DEC'][:] >= 32) & (dataArray['RA'][:] >= 60) & (dataArray['RA'][:] <= 310)
-        logger.info(f'shift photometry for {is_north.sum()} objects')
-        gflux[is_north], rflux[is_north], zflux[is_north] = shift_photo_north(gflux[is_north], rflux[is_north], zflux[is_north])
 
         g=np.where(gflux>0, 22.5-2.5*np.log10(gflux), 0.)
         r=np.where(rflux>0,22.5-2.5*np.log10(rflux), 0.)
@@ -227,11 +222,12 @@ def _build_color_dataFrame(data):
 
     attributes = colors(sel.sum(), 11, g[sel], r[sel], z[sel], W1[sel], W2[sel])
     attributes_label = ['g-r', 'r-z', 'g-z', 'g-W1', 'r-W1', 'z-W1', 'g-W2', 'r-W2', 'z-W2', 'W1-W2', 'r']
-
+    
     df_sag_colors = pd.DataFrame(attributes, columns=attributes_label)
-    df_sag_colors['RA'] = data['RA'][sel]
-    df_sag_colors['DEC'] = data['DEC'][sel]
-
+    # warning, we do not want to select in function of the index of the dataframe!
+    df_sag_colors['RA'] = data['RA'].values[sel]
+    df_sag_colors['DEC'] = data['DEC'].values[sel]
+    
     return df_sag_colors
 
 
