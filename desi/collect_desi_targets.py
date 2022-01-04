@@ -81,7 +81,7 @@ def save_desi_targets(versions, nsides, dir_out, tracers=None):
 
             for nside in nsides:
                 for tracer in bright_tracer:
-                    map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{nside}.npy')
+                    map_path = os.path.join(dir_out, f'{version}_{tracer}_{nside}.npy')
                     logger.info(f"    * build healpix map for {tracer} and save it in: {map_path}")
                     if tracer in ['BGS_FAINT', 'BGS_BRIGHT']:
                         sel = (bgs_target & bgs_mask.mask(tracer)) != 0
@@ -97,7 +97,7 @@ def save_desi_targets(versions, nsides, dir_out, tracers=None):
 
             for nside in nsides:
                 for tracer in dark_tracer:
-                    map_path = os.path.join(dir_out, f'{version}_{tracer}_targets_{nside}.npy')
+                    map_path = os.path.join(dir_out, f'{version}_{tracer}_{nside}.npy')
                     logger.info(f"    * build healpix map for {tracer} and save it in: {map_path}")
                     sel = (desi_target & desi_mask.mask(tracer)) != 0
                     np.save(map_path, build_healpix_map(nside, ra[sel], dec[sel], in_deg2=False))
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     # Turn off: WARNING  passed shape lies partially beyond the footprint of targets
     logging.getLogger('desiutil.log.dlm58.info').setLevel(logging.ERROR)
 
-    versions = ['MAIN'] #['SV3', 'MAIN']
+    versions = ['SV3', 'MAIN']
     nsides = [256, 512]
     dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/')
 

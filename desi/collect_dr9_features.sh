@@ -16,16 +16,22 @@ RANDOMS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/randoms/resolve/
 TARGETS=/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/targets/main/resolve/dark/targets-dark-hp-11.fits
 OUTDIR=$PWD/../data
 
-NSIDE=256
-echo "Build pixweight map for DR9 with Nside:256"
+NSIDE=128
+echo "Build pixweight map for DR9 with Nside:128"
 echo " "
 ## run make_imaging_weight_map on 32 processors
 make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
 
-
-NSIDE=512
-echo " "
-echo "Build pixweight map for DR9 with Nside:512"
-echo " "
-## run make_imaging_weight_map on 32 processors
-make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
+# NSIDE=256
+# echo "Build pixweight map for DR9 with Nside:256"
+# echo " "
+# ## run make_imaging_weight_map on 32 processors
+# make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}
+#
+#
+# NSIDE=512
+# echo " "
+# echo "Build pixweight map for DR9 with Nside:512"
+# echo " "
+# ## run make_imaging_weight_map on 32 processors
+# make_imaging_weight_map ${RANDOMS} ${TARGETS} ${OUTDIR}/pixweight-dr9-${NSIDE}.fits --nside ${NSIDE}

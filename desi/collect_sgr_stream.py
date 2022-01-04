@@ -12,33 +12,11 @@ import fitsio
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from regressis import utils, setup_logging
+from regressis import setup_logging
+from regressis.utils import build_healpix_map, mean_on_healpix_map
 
 
 logger = logging.getLogger("Collect_sgr_stream")
-
-
-def _mean_on_healpy_map(nside, map, depth_neighbours=1): # supposed nested and map a list of pixel
-    """
-    From map at nside, build the average with specific depth.
-    It is similar to a convolution with a gaussian? kernel of size depth_neighbours.
-    """
-    def get_all_neighbours(nside, i, depth_neighbours=1):
-        pixel_list = hp.get_all_neighbours(nside, i, nest=True)
-        pixel_tmp = pixel_list
-        depth_neighbours -= 1
-        while depth_neighbours != 0 :
-            pixel_tmp = hp.get_all_neighbours(nside, pixel_tmp, nest=True)
-            pixel_tmp = np.reshape(pixel_tmp, pixel_tmp.size)
-            pixel_list = np.append(pixel_list, pixel_tmp)
-            depth_neighbours -= 1
-        return pixel_list
-
-    mean_map = np.zeros(len(map))
-    for i in range(len(map)):
-        neighbour_pixels = get_all_neighbours(nside, i, depth_neighbours)
-        mean_map[i] = np.nansum(map[neighbour_pixels], axis=0)/neighbour_pixels.size
-    return mean_map
 
 
 def _match_to_dr9(cat_sag):
@@ -201,9 +179,9 @@ if __name__ == '__main__':
     sag_colors = _build_color_dataFrame(sag_dr9)
 
     sel = (sag_colors['r'] > 18) & (sag_colors['z-W1'] < -0.5) # remove true qsos from the catalog
-    sgr_map = utils.build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
+    sgr_map =  build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
     sgr_map /= np.mean(sgr_map[sgr_map > 0])
-    sgr_map = _mean_on_healpy_map(256, sgr_map, depth_neighbours=2)
+    sgr_map = mean_on_healpix_map(sgr_map, depth_neighbours=2)
 
     logger.info('Save map at nside=128, 256, 512 in  ../data/')
     np.save('../data/sagittarius_stream_256.npy', sgr_map)
