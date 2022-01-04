@@ -111,6 +111,42 @@ def build_healpix_map(nside, ra, dec, in_deg2=False):
     return map
 
 
+def mean_on_healpix_map(map, depth_neighbours=1):
+    """
+    Build the average of a healpix map with a specific width.
+    It is similar than a convolution in a 2d matrix with a gaussian like kernel of size depth_neighbours.
+
+    Parameters
+    ----------
+    map: array
+        Full healpix map supposed nested.
+    depth_neightbours: int
+        Width of the average.
+    Returns
+    -------
+    mean_map: array
+        Full healpix map convolved with a gaussian like kernel.
+    """
+    def get_all_neighbours(nside, i, depth_neighbours=1):
+        # get the pixel number of the neighbours of i at required width given by depth_neighbours
+        pixel_list = hp.get_all_neighbours(nside, i, nest=True)
+        pixel_tmp = pixel_list
+        depth_neighbours -= 1
+        while depth_neighbours != 0 :
+            pixel_tmp = hp.get_all_neighbours(nside, pixel_tmp, nest=True)
+            pixel_tmp = np.reshape(pixel_tmp, pixel_tmp.size)
+            pixel_list = np.append(pixel_list, pixel_tmp)
+            depth_neighbours -= 1
+        return pixel_list
+
+    nside = hp.npix2nside(map.size)
+    mean_map = np.zeros(map.size)
+    for i in range(map.size):
+        neighbour_pixels = get_all_neighbours(nside, i, depth_neighbours)
+        mean_map[i] = np.nansum(map[neighbour_pixels], axis=0)/neighbour_pixels.size
+    return mean_map
+
+
 def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     """
     Determine which HEALPixels touch an RA, Dec box.
