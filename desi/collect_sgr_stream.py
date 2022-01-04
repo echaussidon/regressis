@@ -106,8 +106,11 @@ def _match_to_dr9(cat_sag):
 
         ra_list = [0, 10, 20, 30, 40, 50, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 300, 310, 320, 330, 340, 350, 360]
         dec_list = [-30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30]
+
         list_name = build_list_name(ra_list, dec_list)
-        return reorganise(list_name)
+        reorganise(list_name)
+
+        return list_name
 
     # where the DR9 SWEEP ARE
     SWEEP = '/global/cfs/cdirs/cosmo/data/legacysurvey/dr9/south/sweep/9.0/'
