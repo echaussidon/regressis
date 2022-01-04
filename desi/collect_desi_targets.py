@@ -43,6 +43,9 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
     dir_out: str
         Path where the maps will be saved
     """
+
+    use_default_tracer = (tracer_list is None)
+
     for version in version_list:
         if version == 'SV3':
             from desitarget.sv3.sv3_targetmask import desi_mask, bgs_mask
@@ -59,7 +62,7 @@ def save_desi_targets(version_list, tracer_list, nside_list, dir_out):
         else:
             raise ValueError('Please choose either SV3 or MAIN for version')
 
-        if tracer_list is None:
+        if use_default_tracer:
             tracer_list = _load_default_desi_tracer(version)
         tracer_list = np.array(tracer_list)
 
