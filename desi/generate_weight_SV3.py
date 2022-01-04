@@ -39,7 +39,7 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_p
     feature_names: list of str
         Names of features used during the regression. If ``None``, use default one.
     """
-    dataframe = PhotometricDataFrame(version, tracer, dr9_footprint, suffix_tracer, **dataframe_params)
+    dataframe = PhotometricDataFrame(version, tracer, footprint, suffix_tracer, **dataframe_params)
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)

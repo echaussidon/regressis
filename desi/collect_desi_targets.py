@@ -64,7 +64,7 @@ def save_desi_targets(versions, nsides, dir_out, tracers=None):
         else:
             raise ValueError('Please choose either SV3 or MAIN for version')
 
-        if tracers in None:
+        if tracers is None:
             tracers = _get_default_desi_tracer(version)
         if np.ndim(tracers) == 0:
             tracers = [tracers]
