@@ -8,7 +8,9 @@ import logging
 import traceback
 
 import numpy as np
+import pandas as pd
 import healpy as hp
+import fitsio 
 
 
 logger = logging.getLogger("Utils")
