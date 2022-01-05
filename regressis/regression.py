@@ -694,12 +694,13 @@ class Regression(object):
             Where the figure will be saved.
         """
         from sklearn.inspection import permutation_importance
-        ## The permutation feature importance is defined to be the decrease in a model score
-        ## when a single feature value is randomly shuffled. This procedure breaks the relationship
-        ## between the feature and the target, thus the drop in the model score is indicative of
-        ## how much the model depends on the feature.
+        # The permutation feature importance is defined to be the decrease in a model score
+        # when a single feature value is randomly shuffled. This procedure breaks the relationship
+        # between the feature and the target, thus the drop in the model score is indicative of
+        # how much the model depends on the feature.
         logger.info("          --> Compute permutation importance feature...")
-        permut_importance = permutation_importance(regressor, X, Y, n_repeats=15, random_state=4)
+        # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
+        permut_importance = permutation_importance(regressor, X[~np.isnan(Y)], Y[~np.isnan(Y)], n_repeats=15, random_state=4)
 
         fig, ax = plt.subplots()
         ax.boxplot(permut_importance.importances.T, vert=False, labels=feature_names)
@@ -758,6 +759,6 @@ class Regression(object):
             map_to_plot -= 1
             plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=False, filename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
 
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
+        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.regions,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
                                   cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea)
