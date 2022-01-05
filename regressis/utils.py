@@ -155,9 +155,9 @@ def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
     pix = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
-    map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
+    map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))    
     if in_deg2:
-        map /= hp.nside2pixarea(nside, degrees=True)
+        map = map / hp.nside2pixarea(nside, degrees=True)
     return map
 
 
