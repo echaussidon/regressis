@@ -10,7 +10,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-logger = logging.getLogger("systematics")
+
+logger = logging.getLogger("Systematics")
 
 
 def _get_desi_photometric_plot_attrs(region):
