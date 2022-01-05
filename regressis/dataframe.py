@@ -213,6 +213,8 @@ class PhotometricDataFrame(object):
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
+        # file to load DR9 footprint is roughly what we expect to be DR9. At the border, it is expected to have pixel with fracarea == 0 and which are in DR9 Footprint
+        # {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} > 99.9 % is similar than 100 %.
         logger.info(f"The considered footprint represents {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} of the DR9 footprint")
         logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training i.e. {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} of the considered footprint")
 
