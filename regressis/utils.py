@@ -102,7 +102,34 @@ def deep_update(source, overrides):
             source[key] = value
 
 
-#------------------------------------------------------------------------------#
+def read_fits_to_pandas(filename, ext_name=1, columns=None):
+    """
+    Read a fits file and converet it into a pandas DataFrame.
+    Warning: it does not work if a column contains a list or an array ...
+
+    Parameters
+    ----------
+    filename : str
+        Path where the fits file is saved
+    ext_name : int or str
+        Extension to read. ext_name can be int or string
+    columns : list of str
+        list of columns to read. Useful to avoid to use too much memory.
+
+    Returns :
+    ---------
+    dataFrame : pandas DataFrame
+        Return the fits file read into a pandas DataFrame
+    """
+
+    logger.info(f'Read ext: {ext_name} from {filename}')
+    if columns is None:
+        dataFrame = pd.DataFrame(fitsio.FITS(filename)[ext_name].read().byteswap().newbyteorder())
+    else:
+        dataFrame = pd.DataFrame(fitsio.FITS(filename)[ext_name][columns].read().byteswap().newbyteorder())
+    return dataFrame
+
+
 def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
     """
     Build healpix map from input ra, dec.
