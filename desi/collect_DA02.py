@@ -6,35 +6,19 @@ import sys
 import logging
 
 import numpy as np
+import pandas as pd
 import healpy as hp
 
-from desitarget.io import read_targets_in_box
-
-from regressis import setup_logging
-from regressis.utils import build_healpix_map
+from regressis import DR9Footprint, setup_logging
+from regressis.utils import read_fits_to_pandas, build_healpix_map
 
 
 logger = logging.getLogger('Collect_desi_target')
 
 
-import os
-
-import fitsio
-import numpy as np
-import pandas as pd
-import healpy as hp
-import matplotlib.pyplot as plt
-plt.style.use('~/Software/desi_ec/ec_style.mplstyle')
-
-import ts_utils, tpcf
-from plot import plot_moll
-
-from regressis import DR9Footprint
-from regressis.utils import read_fits_to_pandas, build_healpix_map
-
-
 def _redshift_selection(tracer):
-    ## see: https://github.com/desihub/LSS/blob/692e1943cc87fa52490eed2181e0ca52603974f4/scripts/main/mkCat_main.py#L239
+    """ It gives the correct redshift range for clustering analysis as a function of tracer.  
+        see: https://github.com/desihub/LSS/blob/692e1943cc87fa52490eed2181e0ca52603974f4/scripts/main/mkCat_main.py#L239 """
     if tracer == 'BGS':
         z_lim = (0.1, 0.5)
     elif tracer == 'LRG':
@@ -50,8 +34,23 @@ def _redshift_selection(tracer):
 
 def save_desi_data(LSS, version, tracer, nside, dir_out):
     """
-
+    
+    From clustering and randoms catalog build and save the healpix distribution of considered observed objects and the corresponding fracarea. 
+    
+    Parameters
+    ----------
+    LSS : str
+        Path to locate where are the catalogs of galaxies / quasars.
+    version : str
+        Which version is used. Only relevant for the filename of the outputs. DA02 is expected here.
+    tracer : str
+        Which tracer is used. BGS_ANY / LRG / ELG / QSO.
+    nside : int
+        Resolution of the healpix distribution map of the objects.
+    dir_out : str
+        Path where the ouputs will be saved.
     """
+    logger.info(f"Collect DA02 data for {tracer}:")
 
     data = read_fits_to_pandas(os.path.join(LSS, f'{tracer}zdone_clustering.dat.fits'))
     z_lim = _redshift_selection(tracer)
@@ -61,9 +60,9 @@ def save_desi_data(LSS, version, tracer, nside, dir_out):
     #load photometric regions:
     north, south, des = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False).get_imaging_surveys()
     logger.info("Number of pixels observed in each region:")
-    logger.info(f"        * North: {np.sum(map_data_clust[north] > 0)} ({np.sum(map_data_clust[north] > 0)/np.sum(map_data_clust > 0):2.2%})")
-    logger.info(f"        * South: {np.sum(map_data_clust[south] > 0)} ({np.sum(map_data_clust[south] > 0)/np.sum(map_data_clust > 0):2.2%})")
-    logger.info(f"        * Des:   {np.sum(map_data_clust[des] > 0)}  ({np.sum(map_data_clust[des] > 0)/np.sum(map_data_clust > 0):2.2%})")
+    logger.info(f"        * North: {np.sum(map_data[north] > 0)} ({np.sum(map_data[north] > 0)/np.sum(map_data > 0):2.2%})")
+    logger.info(f"        * South: {np.sum(map_data[south] > 0)} ({np.sum(map_data[south] > 0)/np.sum(map_data > 0):2.2%})")
+    logger.info(f"        * Des:   {np.sum(map_data[des] > 0)}  ({np.sum(map_data[des] > 0)/np.sum(map_data > 0):2.2%})")
 
     randoms = pd.concat([read_fits_to_pandas(os.path.join(LSS, f'{tracer}zdone_{i}_clustering.ran.fits'), columns=['RA', 'DEC', 'Z']) for i in range(10)], ignore_index=True)
     # load in deg2 since we know the density of generated randoms in deg2
@@ -83,22 +82,23 @@ def save_desi_data(LSS, version, tracer, nside, dir_out):
     logger.info(f'Save data: {filename_data}')
     np.save(filename_data, map_data)
     filename_fracarea = os.path.join(dir_out, f'{version}_{tracer}_fracarea_{nside}.npy')
-    logger.info(f'Save corresponding fracarea: {filename_fracarea}')
-    np.save(f'/global/u2/e/edmondc/Target_Selection/Imaging_weight/Data/DA02_{tracer}_fracarea_128.npy', fracarea)
+    logger.info(f'Save corresponding fracarea: {filename_fracarea}\n')
+    np.save(filename_fracarea, fracarea)
 
 
 if __name__ == '__main__':
 
     setup_logging()
 
+    # Wiki page for DA02: https://desi.lbl.gov/trac/wiki/ClusteringWG/LSScat/DA02main/version1
+    # We compte photometric weight for clustering catalog.
+    
+    # The offical repos for DA02 is not updated with the last version of LSS code for the moment
+    # I'm still using everest/test version (the number of targets will not be changed since we are in evererst 
+    # But take care the repo can be broken at any moment...
+    
     LSS = '/global/cfs/cdirs/desi/survey/catalogs/main/LSS/everest/LSScats/test'
-
-    # les fichiers sont la pour DA02 --> mais attention ca ne contient pas tous les fichiers que je voulais ...
     #LSS = '/global/cfs/cdirs/desi/survey/catalogs/DA02/LSS/everest/LSScats/1'
-
-    #https://desi.lbl.gov/trac/wiki/ClusteringWG/LSScat/DA02main/version1
-
-    ## dire qu'on prend les catalogues de clustering + mettre le lien du wiki ect ...
 
     version = 'DA02'
     tracers = ['BGS_ANY', 'LRG', 'ELG', 'QSO']
