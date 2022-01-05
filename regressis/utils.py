@@ -140,7 +140,7 @@ def mean_on_healpix_map(map, depth_neighbours=1):
     Parameters
     ----------
     map : array
-        Full healpix map supposed nested.
+        Full healpix map assumed nested.
     depth_neighbours : int
         Width of the kernel.
 
