@@ -603,7 +603,7 @@ class Regression(object):
 
         if save:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name)
+                savedir = os.path.join(self.dataframe.output_dir, self.dataframe.version, self.regressor_name)
             filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.nside}.npy')
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
@@ -759,6 +759,6 @@ class Regression(object):
             map_to_plot -= 1
             plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=False, filename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
 
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.region,
+        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.regions,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
                                   cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea)
