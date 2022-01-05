@@ -43,7 +43,7 @@ def _redshift_selection(tracer):
         z_lim = (0.8, 1.5)
     elif tracer == 'QSO':
         z_lim = (0.8, 3.5)
-    else
+    else:
         z_lim = (0.1, 5.9)
     return z_lim
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     # les fichiers sont la pour DA02 --> mais attention ca ne contient pas tous les fichiers que je voulais ...
     #LSS = '/global/cfs/cdirs/desi/survey/catalogs/DA02/LSS/everest/LSScats/1'
- 
+
     #https://desi.lbl.gov/trac/wiki/ClusteringWG/LSScat/DA02main/version1
 
     ## dire qu'on prend les catalogues de clustering + mettre le lien du wiki ect ...
