@@ -5,13 +5,29 @@ import os
 import sys
 import time
 import logging
+import traceback
 
 import numpy as np
 import healpy as hp
 
-logger = logging.getLogger("utils")
+
+logger = logging.getLogger("Utils")
 
 _logging_handler = None
+
+
+def exception_handler(exc_type, exc_value, exc_traceback):
+    """Print exception with a logger."""
+    # Do not print traceback if the exception has been handled and logged
+    _logger_name = 'Exception'
+    log = logging.getLogger(_logger_name)
+    line = '='*100
+    #log.critical(line[len(_logger_name) + 5:] + '\n' + ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)) + line)
+    log.critical('\n' + line + '\n' + ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)) + line)
+    if exc_type is KeyboardInterrupt:
+        log.critical('Interrupted by the user.')
+    else:
+        log.critical('An error occured.')
 
 
 def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
@@ -21,17 +37,16 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
     Parameters
     ----------
     log_level : 'info', 'debug', 'warning', 'error'
-        the logging level to set; logging below this level is ignored.
+        Logging level, message below this level are not logged.
     stream : sys.stdout or sys.stderr
-    log_file : filename path where the logger has to be written
+        Where to stream.
+    log_file : str, default=None
+        If not ``None`` stream to file name.
     """
-
-    levels = {
-            "info" : logging.INFO,
-            "debug" : logging.DEBUG,
-            "warning" : logging.WARNING,
-            "error" : logging.ERROR
-            }
+    levels = {"info" : logging.INFO,
+              "debug" : logging.DEBUG,
+              "warning" : logging.WARNING,
+              "error" : logging.ERROR}
 
     logger = logging.getLogger();
     t0 = time.time()
@@ -48,13 +63,14 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
         logger.addHandler(_logging_handler)
 
     _logging_handler.setFormatter(fmt)
-    logger.setLevel(levels[log_level])
+    logger.setLevel(levels[log_level.lower()])
 
     # SAVE LOG INTO A LOG FILE
     if log_file is not None:
         fh = logging.FileHandler(log_file)
         fh.setFormatter(fmt)
         logger.addHandler(fh)
+    sys.excepthook = exception_handler
 
 
 def mkdir(dirname):
@@ -65,8 +81,13 @@ def mkdir(dirname):
         return
 
 
-#------------------------------------------------------------------------------#
-# dictionary upadte at different level
+def unique_list(li):
+    """Remove duplicates while preserving order."""
+    toret = []
+    for el in li:
+        if el not in toret: toret.append(el)
+    return toret
+
 
 def deep_update(source, overrides):
     """
@@ -82,30 +103,30 @@ def deep_update(source, overrides):
 
 
 #------------------------------------------------------------------------------#
-def build_healpix_map(nside, ra, dec, in_deg2=False):
+def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
     """
-    Build healpix map from ra, dec input.
+    Build healpix map from input ra, dec.
 
     Parameters
     ----------
-    nside: int
+    nside : int
         Healpix resolution of the output.
-    ra: array like
+    ra : array like
         Array containg Right Ascension in degree.
-    dec: array like
-        Array containg Declination in degree. Same size than ra.
-    in_deg2: bool, default=False
-        If true, divide the output by the pixel areal.
+    dec : array like
+        Array containg Declination in degree. Same size as ``ra``.
+    weights : array like, default=None
+        Optional weights.
+    in_deg2 : bool, default=False
+        If ``True``, divide the output by the pixel area.
 
     Returns
     -------
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
-    map = np.zeros(hp.nside2npix(nside))
-    pixels = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
-    pix, counts = np.unique(pixels, return_counts=True)
-    map[pix] = counts
+    pix = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
+    map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
     if in_deg2:
         map /= hp.nside2pixarea(nside, degrees=True)
     return map
@@ -114,18 +135,19 @@ def build_healpix_map(nside, ra, dec, in_deg2=False):
 def mean_on_healpix_map(map, depth_neighbours=1):
     """
     Build the average of a healpix map with a specific width.
-    It is similar than a convolution in a 2d matrix with a gaussian like kernel of size depth_neighbours.
+    It is similar to a convolution with a gaussian like kernel of size depth_neighbours.
 
     Parameters
     ----------
-    map: array
-        Full healpix map supposed nested.
-    depth_neightbours: int
-        Width of the average.
+    map : array
+        Full healpix map assumed nested.
+    depth_neighbours : int
+        Width of the kernel.
+
     Returns
     -------
-    mean_map: array
-        Full healpix map convolved with a gaussian like kernel.
+    mean_map : array
+        Full averaged healpix map.
     """
     def get_all_neighbours(nside, i, depth_neighbours=1):
         # get the pixel number of the neighbours of i at required width given by depth_neighbours
@@ -154,30 +176,30 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
 
     Parameters
     ----------
-    nside : :class:`int`
+    nside : int
         (NESTED) HEALPixel nside.
-    radecbox : :class:`list`
+    radecbox : list
         4-entry list of coordinates [ramin, ramax, decmin, decmax]
         forming the edges of a box in RA/Dec (degrees).
-    inclusive : :class:`bool`, optional, defaults to ``True``
-        see documentation for `healpy.query_polygon()`.
-    fact : :class:`int`, optional defaults to 4
-        see documentation for `healpy.query_polygon()`.
+    inclusive : bool, optional, default=True
+        See documentation for :meth:`healpy.query_polygon`.
+    fact : int, default=4
+        See documentation for :meth:`healpy.query_polygon`.
 
     Returns
     -------
-    :class:`list`
+    pixels : list
         HEALPixels at the passed `nside` that touch the RA/Dec box.
 
     Notes
     -----
-        - Uses `healpy.query_polygon()` to retrieve the RA geodesics
-          and then :func:`hp_in_dec_range()` to limit by Dec.
-        - When the RA range exceeds 180o, `healpy.query_polygon()`
-          defines the range as that with the smallest area (i.e the box
-          can wrap-around in RA). To avoid any ambiguity, this function
-          will only limit by the passed Decs in such cases.
-        - Only strictly correct for Decs from -90+1e-3(o) to 90-1e3(o).
+    - Uses `healpy.query_polygon()` to retrieve the RA geodesics
+      and then :func:`hp_in_dec_range()` to limit by Dec.
+    - When the RA range exceeds 180o, `healpy.query_polygon()`
+      defines the range as that with the smallest area (i.e the box
+      can wrap-around in RA). To avoid any ambiguity, this function
+      will only limit by the passed Decs in such cases.
+    - Only strictly correct for Decs from -90+1e-3(o) to 90-1e3(o).
     """
     ramin, ramax, decmin, decmax = radecbox
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
 import logging
 
 import numpy as np
@@ -19,15 +20,10 @@ logger = logging.getLogger("Collect_sgr_stream")
 
 
 def _match_to_dr9(cat_sag):
-    """
-    From a (R.A., Dec.) catalog match all the objects to the DR9 photometry
-    """
+    """From a (R.A., Dec.) catalog match all the objects to the DR9 photometry."""
     def _collect_name_for_stream_region():
         # build quickly all the name that we need to explore all
         # the sweep containg Sgr. Stream information
-        def reorganise(lst):
-            for elt in lst:
-                elt[1], elt[2], elt[3] = elt[2], elt[3], elt[1]
 
         def build_list_name(ra, dec):
             lst = []
@@ -68,20 +64,19 @@ def _match_to_dr9(cat_sag):
                     else:
                         dec2= f'0{dec2}'
 
-                    lst += [[ra1, ra2, sgn1, dec1, sgn2, dec2]]
+                    lst += [[ra1, sgn1, dec1, ra2, sgn2, dec2]]
             return lst
 
         ra_list = [0, 10, 20, 30, 40, 50, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 300, 310, 320, 330, 340, 350, 360]
         dec_list = [-30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30]
 
         list_name = build_list_name(ra_list, dec_list)
-        reorganise(list_name)
 
         return list_name
 
-    # where the DR9 SWEEP ARE
-    SWEEP = '/global/cfs/cdirs/cosmo/data/legacysurvey/dr9/south/sweep/9.0/'
-    sweepname = SWEEP + 'sweep-{}{}{}-{}{}{}.fits'
+    # where the DR9 sweeps are
+    dirname = '/global/cfs/cdirs/cosmo/data/legacysurvey/dr9/south/sweep/9.0/'
+    sweepname = os.path.join(dirname, 'sweep-{}{}{}-{}{}{}.fits')
     list_name = _collect_name_for_stream_region()
 
     coord_sag = SkyCoord(ra=cat_sag['ra'].values*u.degree, dec=cat_sag['dec'].values*u.degree)
@@ -91,15 +86,15 @@ def _match_to_dr9(cat_sag):
     for name in list_name:
         sel_in_sag = (cat_sag['ra'].values < float(name[3])) & (cat_sag['ra'].values > float(name[0]))
         if name[1] == 'm':
-            sel_in_sag &=  (cat_sag['dec'].values > - float(name[2]))
+            sel_in_sag &= (cat_sag['dec'].values > - float(name[2]))
         else:
-            sel_in_sag &=  (cat_sag['dec'].values > float(name[2]))
+            sel_in_sag &= (cat_sag['dec'].values > float(name[2]))
         if name[4] == 'm':
             sel_in_sag &= (cat_sag['dec'].values < - float(name[5]))
         else:
             sel_in_sag &= (cat_sag['dec'].values < float(name[5]))
 
-        if sel_in_sag.sum() != 0:
+        if sel_in_sag.sum():
             logger.info(f"[SWEEP] : {name}")
             logger.info(f"    * Number of objetcs in this sweep in sag catalog : {sel_in_sag.sum()}")
             try:
@@ -121,51 +116,24 @@ def _match_to_dr9(cat_sag):
 def _build_color_dataFrame(data):
     """
     Return color (Legacy Imaging Surveys like) dataframe from a data (array like) which contains the flux and the transmission in the five bands: g, r, z, W1, W2.
-    A specific cut is applied to remove all the object with a missing photometric value and with to faint flux in WISE.
+    A specific cut is applied to remove all the object with a missing photometric value and with too faint flux in WISE.
     """
-    def magsExtFromFlux(dataArray):
+    def mags_from_flux(data):
         # convert flux to magnitude applying NO photometric correction objects in the North.
         # Ok no objects are expected in the North.
+        toret = []
+        for band in ['G', 'R', 'Z', 'W1', 'W2']:
+            flux = data['flux_{}'.format(band)] = data['FLUX_{}'.format(band)][:]/data['MW_TRANSMISSION_{}'.format(band)][:]
+            flux[np.isinf(flux) | np.isnan(flux)] = 0.
+            mag = np.where(gflux>0, 22.5-2.5*np.log10(gflux), 0.)
+            mag[np.isinf(mag) | np.isnan(mag)] = 0.
+            toret.append(mag)
+        return toret
 
-        gflux  = dataArray['FLUX_G'][:]/dataArray['MW_TRANSMISSION_G'][:]
-        rflux  = dataArray['FLUX_R'][:]/dataArray['MW_TRANSMISSION_R'][:]
-        zflux  = dataArray['FLUX_Z'][:]/dataArray['MW_TRANSMISSION_Z'][:]
-        W1flux  = dataArray['FLUX_W1'][:]/dataArray['MW_TRANSMISSION_W1'][:]
-        W2flux  = dataArray['FLUX_W2'][:]/dataArray['MW_TRANSMISSION_W2'][:]
-
-        W1flux[np.isnan(W1flux)]=0.
-        W2flux[np.isnan(W2flux)]=0.
-        gflux[np.isnan(gflux)]=0.
-        rflux[np.isnan(rflux)]=0.
-        zflux[np.isnan(zflux)]=0.
-        W1flux[np.isinf(W1flux)]=0.
-        W2flux[np.isinf(W2flux)]=0.
-        gflux[np.isinf(gflux)]=0.
-        rflux[np.isinf(rflux)]=0.
-        zflux[np.isinf(zflux)]=0.
-
-        g=np.where(gflux>0, 22.5-2.5*np.log10(gflux), 0.)
-        r=np.where(rflux>0,22.5-2.5*np.log10(rflux), 0.)
-        z=np.where(zflux>0,22.5-2.5*np.log10(zflux), 0.)
-        W1=np.where(W1flux>0, 22.5-2.5*np.log10(W1flux), 0.)
-        W2=np.where(W2flux>0, 22.5-2.5*np.log10(W2flux), 0.)
-
-        g[np.isnan(g)]=0.
-        g[np.isinf(g)]=0.
-        r[np.isnan(r)]=0.
-        r[np.isinf(r)]=0.
-        z[np.isnan(z)]=0.
-        z[np.isinf(z)]=0.
-        W1[np.isnan(W1)]=0.
-        W1[np.isinf(W1)]=0.
-        W2[np.isnan(W2)]=0.
-        W2[np.isinf(W2)]=0.
-
-        return g, r, z, W1, W2
-
-    def colors(nbEntries, nfeatures, g, r, z, W1, W2):
+    def colors(g, r, z, W1, W2):
         # Compute the colors and keep also r as additional information.
-        colors = np.zeros((nbEntries,nfeatures))
+        labels = ['g-r', 'r-z', 'g-z', 'g-W1', 'r-W1', 'z-W1', 'g-W2', 'r-W2', 'z-W2', 'W1-W2', 'r']
+        colors = np.zeros((len(g), len(labels)))
 
         colors[:,0] = g-r
         colors[:,1] = r-z
@@ -179,18 +147,17 @@ def _build_color_dataFrame(data):
         colors[:,9] = W1-W2
         colors[:,10] = r
 
-        return colors
+        return colors, labels
 
-    g, r, z, W1, W2 = magsExtFromFlux(data)
+    g, r, z, W1, W2 = mags_from_flux(data)
 
     logger.info('We keep only stars without any photometric problems in DR9')
     sel = (r >= 16.0) & (g > 16.0) & (z > 16.0) & (W1 > 16.0) & (W2 > 16.0) # remove objects with a missing value
     sel &= (W1 < 24) & (W2 < 24) # remove to faint objects in WISE --> cannot be selected
 
-    attributes = colors(sel.sum(), 11, g[sel], r[sel], z[sel], W1[sel], W2[sel])
-    attributes_label = ['g-r', 'r-z', 'g-z', 'g-W1', 'r-W1', 'z-W1', 'g-W2', 'r-W2', 'z-W2', 'W1-W2', 'r']
+    values, labels = colors(sel.sum(), g[sel], r[sel], z[sel], W1[sel], W2[sel])
 
-    df_sag_colors = pd.DataFrame(attributes, columns=attributes_label)
+    df_sag_colors = pd.DataFrame(values, columns=labels)
     # warning, we do not want to select in function of the index of the dataframe!
     df_sag_colors['RA'] = data['RA'].values[sel]
     df_sag_colors['DEC'] = data['DEC'].values[sel]

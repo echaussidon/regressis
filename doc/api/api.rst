@@ -17,10 +17,10 @@ Footprint
   :inherited-members:
   :show-inheritance:
 
-Regressor
----------
+Regression
+----------
 
-.. automodule:: regressis.regressor
+.. automodule:: regressis.regression
   :members:
   :inherited-members:
   :show-inheritance:
