@@ -10,7 +10,7 @@ import traceback
 import numpy as np
 import pandas as pd
 import healpy as hp
-import fitsio 
+import fitsio
 
 
 logger = logging.getLogger("Utils")
@@ -73,6 +73,13 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
         fh.setFormatter(fmt)
         logger.addHandler(fh)
     sys.excepthook = exception_handler
+
+
+def load_regressis_style():
+    """Load the default regressis style for matplotlib"""
+    # On NERSC, you may need to load tex with `module load texlive`
+    from matplotlib import pyplot as plt
+    plt.style.use(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'regressis.mplstyle'))
 
 
 def mkdir(dirname):
@@ -155,7 +162,7 @@ def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
     pix = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
-    map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))    
+    map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
     if in_deg2:
         map = map / hp.nside2pixarea(nside, degrees=True)
     return map
