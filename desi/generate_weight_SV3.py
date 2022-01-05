@@ -7,7 +7,7 @@ import logging
 import time
 
 from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
-from regressis.utils import mkdir
+from regressis.utils import mkdir, load_regressis_style
 
 
 logger = logging.getLogger('SV3')
@@ -150,6 +150,7 @@ def _qso_weight(seed):
 if __name__ == '__main__':
 
     setup_logging(log_file='SV3.log')
+    load_regressis_style()
 
     mkdir('../res/SV3')
 
