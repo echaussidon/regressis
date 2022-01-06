@@ -669,7 +669,7 @@ class Regression(object):
         ax = plt.gca()
         sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=2, color="k")
         sns.boxplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], fliersize=0.6, palette=sns.color_palette("husl", 8), linewidth=0.6, showmeans=False, meanline=True, meanprops=dict(linestyle=':', linewidth=1.5, color='dimgrey'))
-        ax.set_xticklabels(feature_importance.index[:max_num_feature], rotation=15, ha='center')
+        ax.set_xticklabels([utils.to_tex(name) for name in feature_importance.index[:max_num_feature]], rotation=15, ha='center')
         ax.set_xlabel("")
         ax.set_ylabel("")
         plt.tight_layout()
@@ -700,10 +700,10 @@ class Regression(object):
         # how much the model depends on the feature.
         logger.info("          --> Compute permutation importance feature...")
         # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
-        permut_importance = permutation_importance(regressor, X[(~np.isnan(Y)) & np.isfinite(Y)], Y[(~np.isnan(Y)) & np.isfinite(Y)], n_repeats=15, random_state=4)
+        permut_importance = permutation_importance(regressor, X[(~np.isnan(Y)) & np.isfinite(Y)], Y[(~np.isnan(Y)) & np.isfinite(Y)], n_repeats=20, random_state=4)
 
         fig, ax = plt.subplots()
-        ax.boxplot(permut_importance.importances.T, vert=False, labels=feature_names)
+        ax.boxplot(permut_importance.importances.T, vert=False, labels=[utils.to_tex(name) for name in feature_names])
         ax.set_title(f"Permutation Importance")
         ax.set_ylabel("Features")
         fig.tight_layout()
