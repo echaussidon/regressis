@@ -203,7 +203,7 @@ class Regression(object):
 
     """Implementation of template fitting regression."""
 
-    def __init__(self, dataframe, regressor='RF', feature_names=None, use_kfold=True,
+    def __init__(self, dataframe, regressor='RF', suffix_regressor='', feature_names=None, use_kfold=True,
                  regressor_params=None, nfold_params=None, compute_permutation_importance=True,
                  overwrite=False, save_regressor=False, n_jobs=6, seed=123):
         """
@@ -215,6 +215,8 @@ class Regression(object):
             Data frame containing all the information to fit/train the regressor.
         regressor : str, scikit-learn Regressor
             Either "RF" (random forest), "NN" (multi layer perceptron), "Linear", or scikit-learn Regressor class or instance.
+        suffix_regressor: str
+            Additional suffix for regressor. Used only for output directory / names. Useful to compare same regressor with different hyperparameters or features.
         feature_names : list of str, default=None
             Names of features used during the regression. By default get feature names from :func:`_get_feature_names`.
         use_kfold : bool, default=True
@@ -250,6 +252,7 @@ class Regression(object):
 
         self.regressor_params = _format_regressor_params(regressor_params or {}, regions=self.dataframe.regions)
         self.regressor = regressor
+        self.suffix_regressor = suffix_regressor
 
         if isinstance(regressor, str):
             self.regressor_name = regressor
@@ -285,14 +288,14 @@ class Regression(object):
         # If not self.dataframe.output is None --> save figure and info !!
         if self.dataframe.output_dir is not None:
             # create the corresponding output folder --> put here since self.regressor_name can be update with use_kfold = False
-            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name)):
+            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)):
                 if not overwrite:
-                    raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.regressor_name)} already exists and overwrite is set as {overwrite}")
-                logger.warning(f"Overwriting {os.path.join(self.dataframe.output_dir, self.regressor_name)}")
-                logger.warning(f"Please remove the output folder to have a clean output: rm -rf {os.path.join(self.dataframe.output_dir, self.regressor_name)}")
+                    raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)} already exists and overwrite is set as {overwrite}")
+                logger.warning(f"Overwriting {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)}")
+                logger.warning(f"Please remove the output folder to have a clean output: rm -rf {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)}")
             else:
-                logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.regressor_name)} is created")
-            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name))
+                logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)} is created")
+            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix))
         self.run()
 
     def run(self):
@@ -308,7 +311,7 @@ class Regression(object):
         for region in self.dataframe.regions:
             if self.dataframe.output_dir is not None:
                 save_info = True
-                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name, region)
+                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, region)
                 utils.mkdir(save_dir)
             else:
                 save_info = False
@@ -347,8 +350,8 @@ class Regression(object):
         self.fold_index = fold_index # fold_index --> useful to save if we want to reapply the regressor
 
         if save_info and fold_index is not None:
-            logger.info(f"    --> Save k-fold index in {os.path.join(self.dataframe.output_dir, self.regressor_name, f'kfold_index.joblib')}")
-            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name, f'kfold_index.joblib'))
+            logger.info(f"    --> Save k-fold index in {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, f'kfold_index.joblib')}")
+            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, f'kfold_index.joblib'))
 
     @staticmethod
     def build_kfold(kfold, pixels, groups):
@@ -603,7 +606,7 @@ class Regression(object):
 
         if save:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name)
+                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)
             filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
@@ -739,7 +742,7 @@ class Regression(object):
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
 
-        dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name, 'Fig')
+        dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, 'Fig')
         if not os.path.isdir(dir_output):
             os.mkdir(dir_output)
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
