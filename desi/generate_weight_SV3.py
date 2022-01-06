@@ -4,7 +4,6 @@
 import os
 import shutil
 import logging
-import time
 
 from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
 from regressis.utils import mkdir, load_regressis_style
@@ -44,7 +43,7 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_p
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)
     regression = Regression(dataframe, regressor='RF', n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
-    regression.get_weight_map(save=True, savedir=dataframe_params['output_dir'])
+    regression.get_weight_map(save=True)
     regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart)
 
 
@@ -65,8 +64,6 @@ def _lrg_weight(seed):
     max_plot_cart = 1000
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
-
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
 
 
 def _elg_weight(seed, add_stream=False):
@@ -95,12 +92,10 @@ def _elg_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names)
 
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
-
 
 def _elg_hip_weight(seed, add_stream=False):
     """Compute weight with standard parametrization for ELG HIP in SV3. If ``add_stream`` is ``True`` then add STREAM during the regression."""
-    logger.info("Compute weight for ELG at nside = 512 with Sgr. Stream map")
+    logger.info(f"Compute weight for ELG_HIP at nside = 512 with Sgr. Stream map? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG_HIP', '', 512
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
@@ -124,8 +119,6 @@ def _elg_hip_weight(seed, add_stream=False):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names)
 
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
-
 
 def _qso_weight(seed):
     """Compute weight with standard parametrization for QSO in SV3."""
@@ -144,8 +137,6 @@ def _qso_weight(seed):
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
 
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
-
 
 if __name__ == '__main__':
 
@@ -154,11 +145,11 @@ if __name__ == '__main__':
 
     mkdir('../res/SV3')
 
-    _lrg_weight(40)
-    _elg_weight(50)
-    #_elg_weight(55, add_stream=True)
+    #_lrg_weight(40)
+    #_elg_weight(50)
+    # _elg_weight(55, add_stream=True)
     _elg_hip_weight(60)
-    #_elg_hip_weight(65, add_stream=True)
+    # _elg_hip_weight(65, add_stream=True)
     _qso_weight(70)
 
     print("\nMOVE the SV3.log file into the output directory ../res/SV3\n")

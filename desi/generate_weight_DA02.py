@@ -4,16 +4,15 @@
 import os
 import shutil
 import logging
-import time
 
-from regressis import PhotometricDataFrame, Regressor, DR9Footprint, setup_logging
+from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
 from regressis.utils import mkdir, load_regressis_style
 
 
 logger = logging.getLogger('DA02')
 
 
-def _compute_weight(version, tracer, footprint, suffix_tracer, seed, param, max_plot_cart, feature_names=None):
+def _compute_weight(version, tracer, footprint, suffix_tracer, cut_fracarea, seed, dataframe_params, max_plot_cart, feature_names=None):
     """
 
     Compute weight for a given tracer with a given parametrization
@@ -31,6 +30,8 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, param, max_
     suffix_tracer: str
         Additional suffix for tracer. Usefull only to load default map saved in data_dir and for
         the output name of the directory or filename.
+    cut_fracarea: bool
+        If True create the dataframe with a selection on fracarea. In DA02, fracarea is already selected (set as nan where we don't want to use it) in the corresponding fracarea file.
     seed: int
         Fix the seed in ML algorithm for reproductibility
     param: dict
@@ -43,9 +44,9 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, param, max_
     dataframe = PhotometricDataFrame(version, tracer, footprint, suffix_tracer, **dataframe_params)
     dataframe.set_features()
     dataframe.set_targets()
-    dataframe.build(cut_fracarea=True)
+    dataframe.build(cut_fracarea=cut_fracarea)
     regression = Regression(dataframe, regressor='RF', n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
-    regression.get_weight_map(save=True, savedir=dataframe_params['output_dir'])
+    regression.get_weight_map(save=True)
     regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart)
 
 
@@ -53,89 +54,86 @@ def _bgs_any_weight(seed):
     """
         Compute weight with standard parametrization for BGS_ANY in DA02.
     """
-    start = time.time()
     logger.info("Compute weight for BGS_ANY at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'BGS_ANY', '', 128
-    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, desi_cut=False)
+    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
     param['data_dir'] = '../data'
     param['output_dir'] = '../res/DA02'
     param['use_median'] = False
     param['use_new_norm'] = False
-    param['region'] = ['North', 'South', 'Des']
+    param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 2000
+    
+    cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
-
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _lrg_weight(seed):
     """
         Compute weight with standard parametrization for LRG in DA02.
     """
-    start = time.time()
     logger.info("Compute weight for LRG at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'LRG', '', 128
-    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, desi_cut=False)
+    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
     param['data_dir'] = '../data'
     param['output_dir'] = '../res/DA02'
     param['use_median'] = False
     param['use_new_norm'] = False
-    param['region'] = ['North', 'South', 'Des']
+    param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1000
+    
+    cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
-
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _elg_weight(seed):
     """
         Compute weight with standard parametrization for ELG in DA02.
     """
-    start = time.time()
     logger.info(f"Compute weight for ELG at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'ELG', '', 512
-    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, desi_cut=False)
+    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
     param['data_dir'] = '../data'
     param['output_dir'] = '../res/DA02'
     param['use_median'] = False
     param['use_new_norm'] = False
-    param['region'] = ['North', 'South', 'Des']
-
+    param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 3500
+    
+    cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart)
-
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _qso_weight(seed, use_stream=True, use_stardens=True):
     """
         Compute weight with standard parametrization for QSO in DA02. If use_stream / use_stardens is False --> do not use STREAM / STARDENS as feature during the regression.
     """
-    start = time.time()
     logger.info(f"Compute weight for QSO at Nside=256 with Sgr. Stream? {use_stream} with stardens? {use_stardens}")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'QSO', '', 128
-    dr9_footprint = DR9Footprint(nside, mask_lmc=True, clear_south=True, mask_around_des=True, desi_cut=False)
+    dr9_footprint = DR9Footprint(nside, mask_lmc=True, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
     param['data_dir'] = '../data'
     param['output_dir'] = '../res/DA02'
     param['use_median'] = False
     param['use_new_norm'] = False
-    param['region'] = ['North', 'South', 'Des']
+    param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 400
+    
+    cut_fracarea = False
 
     feature_names = ['EBV',
                      'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
@@ -149,9 +147,7 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
     else:
         suffix_tracer += '_without_stardens'
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, param, max_plot_cart, feature_names)
-
-    logger.info(f"Done in {time.time() - start:2.2f}\n")
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart, feature_names)
 
 
 if __name__ == '__main__':
@@ -165,9 +161,6 @@ if __name__ == '__main__':
     _lrg_weight(220)
     _elg_weight(240)
     _qso_weight(250)
-    _qso_weight(250)
-    _qso_weight(250)
-
 
     print("\nMOVE the DA02.log file into the output directory ../res/DA02\n")
     shutil.move('DA02.log', '../res/DA02/DA02.log')
