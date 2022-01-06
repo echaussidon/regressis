@@ -699,17 +699,21 @@ class Regression(object):
         # when a single feature value is randomly shuffled. This procedure breaks the relationship
         # between the feature and the target, thus the drop in the model score is indicative of
         # how much the model depends on the feature.
-        logger.info("          --> Compute permutation importance feature...")
-        # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
-        permut_importance = permutation_importance(regressor, X[np.isfinite(Y)], Y[np.isfinite(Y)], n_repeats=20, random_state=4)
+        
+        if np.isfinite(Y).sum() == 0:
+            logger.info("          --> No data to compute permutation feature...")
+        else:
+            logger.info("          --> Compute permutation importance feature...")
+            # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
+            permut_importance = permutation_importance(regressor, X[np.isfinite(Y)], Y[np.isfinite(Y)], n_repeats=20, random_state=4)
 
-        fig, ax = plt.subplots()
-        ax.boxplot(permut_importance.importances.T, vert=False, labels=[utils.to_tex(name) for name in feature_names])
-        ax.set_title(f"Permutation Importance")
-        ax.set_ylabel("Features")
-        fig.tight_layout()
-        plt.savefig(filename)
-        plt.close()
+            fig, ax = plt.subplots()
+            ax.boxplot(permut_importance.importances.T, vert=False, labels=[utils.to_tex(name) for name in feature_names])
+            ax.set_title(f"Permutation Importance")
+            ax.set_ylabel("Features")
+            fig.tight_layout()
+            plt.savefig(filename)
+            plt.close()
 
     def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2,
                                   adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
