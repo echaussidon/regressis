@@ -85,7 +85,7 @@ if __name__ == '__main__':
         mkdir(tmpdir)
         
         gaialoc = os.path.join(os.path.abspath(os.path.dirname(__file__)), f'../data/stardens-{nside}.fits')
-        nbr_randoms = 10
+        nbr_randoms = 10 # 19 can be relevant for 512
 
         for i in range(nbr_randoms):
             make_imaging_weight_map(randoms.format(i), targets, os.path.join(tmpdir, f'pixweight-tmp-{i}.fits'), nside, gaialoc)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
         fracarea /= nbr_randoms
         pixmap['FRACAREA_12290'] = fracarea
 
-        fits = fitsio.FITS(os.path.join(outdir, f'pixweight-dr9-{nside}.fits'), 'rw')
+        fits = fitsio.FITS(os.path.join(outdir, f'pixweight-dr9-{nside}-new.fits'), 'rw')
         fits.write(pixmap)
         fits.close()
 
