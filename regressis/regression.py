@@ -674,7 +674,8 @@ class Regression(object):
         ax.set_ylabel("")
         plt.tight_layout()
         plt.savefig(filename)
-
+        plt.close()
+        
     @staticmethod
     def plot_permutation_importance(regressor, X, Y, feature_names, filename):
         """
@@ -700,7 +701,7 @@ class Regression(object):
         # how much the model depends on the feature.
         logger.info("          --> Compute permutation importance feature...")
         # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
-        permut_importance = permutation_importance(regressor, X[(~np.isnan(Y)) & np.isfinite(Y)], Y[(~np.isnan(Y)) & np.isfinite(Y)], n_repeats=20, random_state=4)
+        permut_importance = permutation_importance(regressor, X[np.isfinite(Y)], Y[np.isfinite(Y)], n_repeats=20, random_state=4)
 
         fig, ax = plt.subplots()
         ax.boxplot(permut_importance.importances.T, vert=False, labels=[utils.to_tex(name) for name in feature_names])
