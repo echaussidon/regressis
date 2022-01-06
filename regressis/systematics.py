@@ -150,7 +150,7 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
     if cut_fracarea:
         # max value just due to poisson Noise
         logger.info(f"Keep only pixels with {limits_fracarea[0]} < fracarea < {limits_fracarea[1]}")
-        pix_to_keep &= (fracarea < limits_fracarea[0]) & (fracarea > limits_fracarea[1])
+        pix_to_keep &= (fracarea > limits_fracarea[0]) & (fracarea < limits_fracarea[1])
 
     return pix_to_keep
 
@@ -163,7 +163,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
     for num_fig, region in enumerate(regions):
         logger.info(f'Work with {region}')
 
-        sysdic = _get_desi_photometric_plot_attrs()
+        sysdic = _get_desi_photometric_plot_attrs(region)
         sysnames = list(sysdic.keys())
 
         # extract which pixels we will use to make the plot !
