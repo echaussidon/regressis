@@ -109,6 +109,12 @@ def deep_update(source, overrides):
             deep_update(source[key], value)
         else:
             source[key] = value
+            
+            
+def to_tex(string):
+    """Remplace '_' by ' ' in a string to plot in latex format in matplotlib """
+    string = string.replace('_', ' ')
+    return string
 
 
 def read_fits_to_pandas(filename, ext_name=1, columns=None):
