@@ -13,6 +13,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from . import utils
+from .plot import plot_moll
 
 
 logger = logging.getLogger('DataFrame')
@@ -207,8 +208,8 @@ class PhotometricDataFrame(object):
         if cut_fracarea:
             if isinstance(fracarea_limits, (tuple, list)):
                 min_fracarea, max_fracarea = fracarea_limits
-            elif self.nside >= 512:
-                min_fracarea, max_fracarea = 0.5, 1.5
+            elif self.nside >= 512: # can be cirvumvent increasing the number of randoms...
+                min_fracarea, max_fracarea = 0.85, 1.15
             else:
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
@@ -236,8 +237,11 @@ class PhotometricDataFrame(object):
             else:
                 mean_targets_density_estimators = np.median(self.targets[pix_to_use_norm] / self.fracarea[pix_to_use_norm])
 
-            # compute normalized_targets every where but we don't care we only use keep_to_train == 1 during the training
-            normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region]*mean_targets_density_estimators)
+            # compute normalized_targets every where 
+            # We will only use keep_to_train == 1 during the training (where fracarea > 0)
+            # Can avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
+            with np.errstate(divide='ignore',invalid='ignore'):
+                normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region]*mean_targets_density_estimators)
             mean_targets_density[region_name] = mean_targets_density_estimators
             logger.info(f"  ** {region_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
 
@@ -254,11 +258,8 @@ class PhotometricDataFrame(object):
             plt.close()
 
             tmp = np.zeros(hp.nside2npix(self.nside))
-            tmp[self.pixels[keep_to_train == False]] = 1
-            plt.figure(figsize=(8,6))
-            hp.mollview(tmp, rot=120, nest=True, title='strange pixel', cmap='jet')
-            plt.savefig(os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
-            plt.close()
+            tmp[self.pixels[keep_to_train == False]] = 1    
+            plot_moll(tmp, show=False, label='strange pixel', filename=os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"), galactic_plane=True, ecliptic_plane=True)
 
             plt.figure(figsize=(8,6))
             plt.hist(normalized_targets[keep_to_train], range=(0.1,5), bins=100)
