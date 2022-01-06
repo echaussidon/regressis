@@ -1,6 +1,6 @@
 # Compute photometric weight for DESI
 
-This code was used to compute the photometric weights for the QSO target selection in Chaussidon et. al 2022 (https://arxiv.org/abs/2108.03640
+This code was used to compute the photometric weights for the QSO target selection in Chaussidon et. al 2022 (https://arxiv.org/abs/2108.03640)
 
 ## 1. Collect features:
 
