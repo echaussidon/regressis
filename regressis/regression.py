@@ -603,7 +603,7 @@ class Regression(object):
 
         if save:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output_dir, self.dataframe.version, self.regressor_name)
+                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name)
             filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.nside}.npy')
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
@@ -700,7 +700,7 @@ class Regression(object):
         # how much the model depends on the feature.
         logger.info("          --> Compute permutation importance feature...")
         # Warning: If you do not use keep_to_train, you can have some weird value in Y (mostly at the border of the footprint)
-        permut_importance = permutation_importance(regressor, X[~np.isnan(Y)], Y[~np.isnan(Y)], n_repeats=15, random_state=4)
+        permut_importance = permutation_importance(regressor, X[(~np.isnan(Y)) & np.isfinite(Y)], Y[(~np.isnan(Y)) & np.isfinite(Y)], n_repeats=15, random_state=4)
 
         fig, ax = plt.subplots()
         ax.boxplot(permut_importance.importances.T, vert=False, labels=feature_names)
