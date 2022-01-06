@@ -604,7 +604,7 @@ class Regression(object):
         if save:
             if savedir is None:
                 savedir = os.path.join(self.dataframe.output_dir, self.regressor_name)
-            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}_imaging_weight_{self.dataframe.nside}.npy')
+            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
 
@@ -675,7 +675,7 @@ class Regression(object):
         plt.tight_layout()
         plt.savefig(filename)
         plt.close()
-        
+
     @staticmethod
     def plot_permutation_importance(regressor, X, Y, feature_names, filename):
         """
