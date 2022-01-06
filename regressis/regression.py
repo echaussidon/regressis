@@ -288,14 +288,14 @@ class Regression(object):
         # If not self.dataframe.output is None --> save figure and info !!
         if self.dataframe.output_dir is not None:
             # create the corresponding output folder --> put here since self.regressor_name can be update with use_kfold = False
-            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)):
+            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)):
                 if not overwrite:
-                    raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)} already exists and overwrite is set as {overwrite}")
-                logger.warning(f"Overwriting {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)}")
-                logger.warning(f"Please remove the output folder to have a clean output: rm -rf {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)}")
+                    raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)} already exists and overwrite is set as {overwrite}")
+                logger.warning(f"Overwriting {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)}")
+                logger.warning(f"Please remove the output folder to have a clean output: rm -rf {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)}")
             else:
-                logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)} is created")
-            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix))
+                logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)} is created")
+            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor))
         self.run()
 
     def run(self):
@@ -311,7 +311,7 @@ class Regression(object):
         for region in self.dataframe.regions:
             if self.dataframe.output_dir is not None:
                 save_info = True
-                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, region)
+                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, region)
                 utils.mkdir(save_dir)
             else:
                 save_info = False
@@ -350,8 +350,8 @@ class Regression(object):
         self.fold_index = fold_index # fold_index --> useful to save if we want to reapply the regressor
 
         if save_info and fold_index is not None:
-            logger.info(f"    --> Save k-fold index in {os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, f'kfold_index.joblib')}")
-            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, f'kfold_index.joblib'))
+            logger.info(f"    --> Save k-fold index in {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, f'kfold_index.joblib')}")
+            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, f'kfold_index.joblib'))
 
     @staticmethod
     def build_kfold(kfold, pixels, groups):
@@ -606,7 +606,7 @@ class Regression(object):
 
         if save:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix)
+                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)
             filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
@@ -746,7 +746,7 @@ class Regression(object):
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
 
-        dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.regressor_suffix, 'Fig')
+        dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, 'Fig')
         if not os.path.isdir(dir_output):
             os.mkdir(dir_output)
         logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
