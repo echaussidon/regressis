@@ -43,7 +43,7 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_p
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)
-    regression = Regression(dataframe, regressor='LINEAR', use_kfold=False, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, n_jobs=6, seed=seed, save_regressor=False)
+    regression = Regression(dataframe, regressor='RF', n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
     regression.get_weight_map(save=True, savedir=dataframe_params['output_dir'])
     regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart)
 
