@@ -202,7 +202,9 @@ class PhotometricDataFrame(object):
         # use only pixels which are observed for the training
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
-        considered_footprint = (self.fracarea > 0) & self.footprint('footprint')
+        # remove also pixel with 0 targets --> it should be already removed with fracarea > 0 in targets case
+        # but not always with real desi data which have low fracarea...
+        considered_footprint = (self.fracarea > 0) & (self.targets > 0) & self.footprint('footprint')
         keep_to_train = considered_footprint.copy()
 
         if cut_fracarea:
@@ -237,7 +239,7 @@ class PhotometricDataFrame(object):
             else:
                 mean_targets_density_estimators = np.median(self.targets[pix_to_use_norm] / self.fracarea[pix_to_use_norm])
 
-            # compute normalized_targets every where 
+            # compute normalized_targets every where
             # We will only use keep_to_train == 1 during the training (where fracarea > 0)
             # Can avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
             with np.errstate(divide='ignore',invalid='ignore'):
@@ -258,7 +260,7 @@ class PhotometricDataFrame(object):
             plt.close()
 
             tmp = np.zeros(hp.nside2npix(self.nside))
-            tmp[self.pixels[keep_to_train == False]] = 1    
+            tmp[self.pixels[keep_to_train == False]] = 1
             plot_moll(tmp, show=False, label='strange pixel', filename=os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"), galactic_plane=True, ecliptic_plane=True)
 
             plt.figure(figsize=(8,6))
