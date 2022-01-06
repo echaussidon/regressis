@@ -121,12 +121,12 @@ class DR9Footprint(Footprint):
 
     def get_full(self):
         """Return full DR9 footprint -> healpix map with :attr:`nside` in nested ordering."""
-        return self.update_map(self.data['ISDR9'])
+        return self.update_map(self.data['ISDR9'].copy())
 
 
     def get_ngc_sgc(self):
         """Return NGC and SGC masks -> healpix map with :attr:`nside` in nested ordering."""
-        return self.update_map(self.data['ISNGC']), self.update_map(self.data['ISSGC'])
+        return self.update_map(self.data['ISNGC'].copy()), self.update_map(self.data['ISSGC'].copy())
 
 
     def get_imaging_surveys(self, ngc_sgc_split=False):
@@ -143,9 +143,9 @@ class DR9Footprint(Footprint):
         (North, South, Des) or (North, South_ngc, South_sgc, Des) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
         if ngc_sgc_split:
-            return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES'] & self.data['ISNGC']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES'] & self.data['ISSGC']), self.update_map(self.data['ISDES'])
+            return self.update_map(self.data['ISNORTH'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy() & self.data['ISNGC'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy() & self.data['ISSGC'].copy()), self.update_map(self.data['ISDES'].copy())
 
-        return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES']), self.update_map(self.data['ISDES'])
+        return self.update_map(self.data['ISNORTH'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy()), self.update_map(self.data['ISDES'].copy())
 
     def get_elg_region(self, ngc_sgc_split=False):
         """
@@ -160,7 +160,7 @@ class DR9Footprint(Footprint):
         -------
         (North, South_mid, South_pole) or (North, South_mid_ngc, South_mid_sgc, South_pole) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
-        dec, all_south = self.data['DEC'], self.data['ISSOUTH']
+        dec, all_south = self.data['DEC'], self.data['ISSOUTH'].copy()
 
         south_mid = all_south.copy()
         south_mid[dec <= -30] = False
@@ -169,9 +169,9 @@ class DR9Footprint(Footprint):
         south_pole[dec > -30] = False
 
         if ngc_sgc_split:
-            return self.update_map(self.data['ISNORTH']), self.update_map(south_mid & self.data['ISNGC']), self.update_map(south_mid & self.data['ISSGC']), self.update_map(south_pole)
+            return self.update_map(self.data['ISNORTH'].copy()), self.update_map(south_mid & self.data['ISNGC'].copy()), self.update_map(south_mid & self.data['ISSGC'].copy()), self.update_map(south_pole)
 
-        return self.update_map(self.data['ISNORTH']), self.update_map(south_mid), self.update_map(south_pole)
+        return self.update_map(self.data['ISNORTH'].copy()), self.update_map(south_mid), self.update_map(south_pole)
 
     def __call__(self, region):
         """
