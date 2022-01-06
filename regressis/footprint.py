@@ -59,7 +59,7 @@ class DR9Footprint(Footprint):
     Name: North = MzLS, South = DECaLS (without DES), Des = DES
     WARNING: ISSOUTH is everything with Dec. < 32.275
     """
-    def __init__(self, nside=256, mask_lmc=False, clear_south=False, mask_around_des=False, cut_desi=False):
+    def __init__(self, nside=256, mask_lmc=False, clear_south=False, mask_around_des=False, cut_desi=False, pixmap=None):
         """
         Initialize :class:`DR9Footprint` .
 
@@ -75,6 +75,8 @@ class DR9Footprint(Footprint):
             Mask the border of the footprint around DES which is contained in South; useful for systematic weights and avoid strange area in the K-fold training. This zone will not be observed by DESI.
         cut_desi : bool, default=False
             Mask out the south part of the NGC with Dec. < -30. It is expected to be not observed with the nominal DESI Y5.
+        pixmap : bool array or str, default=None
+            Footprint map array, or path to the .fits file containg this array. Defaults to footprint in ./data/.
         """
         self.nside = nside
         self.mask_lmc = mask_lmc
@@ -83,21 +85,42 @@ class DR9Footprint(Footprint):
         self.cut_desi = cut_desi
         logger.info(f'Load DR9 footprint with mask_lmc={self.mask_lmc}, clear_south={self.clear_south}, mask_around_des={self.mask_around_des} and cut_desi={self.cut_desi}')
 
-        self.data = fitsio.read(os.path.join(os.path.dirname(__file__), '..', 'data', 'Legacy_Imaging_DR9_footprint_256.fits'))
+        path_pixmap = None
+        if isinstance(pixmap, str):
+            path_pixmap = pixmap
+        elif pixmap is None:
+            path_pixmap = os.path.join(os.path.dirname(__file__), 'data', 'Legacy_Imaging_DR9_footprint_256.fits')
+
+        if path_pixmap is not None:
+            self.data = fitsio.read(path_pixmap)
+        else:
+            self.data = pixmap
 
         self.default_regions = ['North', 'South', 'Des']
         # remark: Global = Footprint, South_ngc = South_all_ngc = South_mid_ngc
         self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc',
                                   'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid', 'Global', 'Footprint']
 
-    def update_map(self, pixmap):
+    def update_map(self, pixmap, copy=True):
         """
         Apply mask and ud_grade input pixmap.
 
         Parameters
         ----------
-        pixmap: pixmap to return with mask at the correct nside.
+        pixmap : bool array
+            pixmap to return with mask at the correct nside.
+
+        copy : bool, default=True
+            Whether to copy input pixmap.
+
+        Returns
+        -------
+        pixmap : bool array
+            pixmap with mask at the correct nside.
         """
+        if copy:
+            pixmap = pixmap.copy()
+
         if self.mask_lmc:
             pixmap[utils.hp_in_box(256, [52, 120, -90, -50], inclusive=True)] = False
 
@@ -118,16 +141,13 @@ class DR9Footprint(Footprint):
 
         return pixmap
 
-
     def get_full(self):
         """Return full DR9 footprint -> healpix map with :attr:`nside` in nested ordering."""
-        return self.update_map(self.data['ISDR9'].copy())
-
+        return self.update_map(self.data['ISDR9'])
 
     def get_ngc_sgc(self):
         """Return NGC and SGC masks -> healpix map with :attr:`nside` in nested ordering."""
-        return self.update_map(self.data['ISNGC'].copy()), self.update_map(self.data['ISSGC'].copy())
-
+        return self.update_map(self.data['ISNGC']), self.update_map(self.data['ISSGC'])
 
     def get_imaging_surveys(self, ngc_sgc_split=False):
         """
@@ -143,9 +163,9 @@ class DR9Footprint(Footprint):
         (North, South, Des) or (North, South_ngc, South_sgc, Des) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
         if ngc_sgc_split:
-            return self.update_map(self.data['ISNORTH'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy() & self.data['ISNGC'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy() & self.data['ISSGC'].copy()), self.update_map(self.data['ISDES'].copy())
+            return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES'] & self.data['ISNGC']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES'] & self.data['ISSGC']), self.update_map(self.data['ISDES'])
 
-        return self.update_map(self.data['ISNORTH'].copy()), self.update_map(self.data['ISSOUTH'].copy() & ~self.data['ISDES'].copy()), self.update_map(self.data['ISDES'].copy())
+        return self.update_map(self.data['ISNORTH']), self.update_map(self.data['ISSOUTH'] & ~self.data['ISDES']), self.update_map(self.data['ISDES'])
 
     def get_elg_region(self, ngc_sgc_split=False):
         """
@@ -160,7 +180,7 @@ class DR9Footprint(Footprint):
         -------
         (North, South_mid, South_pole) or (North, South_mid_ngc, South_mid_sgc, South_pole) if ngc_sgc_split=True -> healpix map with :attr:`nside` in nested ordering.
         """
-        dec, all_south = self.data['DEC'], self.data['ISSOUTH'].copy()
+        dec, all_south = self.data['DEC'], self.data['ISSOUTH']
 
         south_mid = all_south.copy()
         south_mid[dec <= -30] = False
@@ -169,9 +189,9 @@ class DR9Footprint(Footprint):
         south_pole[dec > -30] = False
 
         if ngc_sgc_split:
-            return self.update_map(self.data['ISNORTH'].copy()), self.update_map(south_mid & self.data['ISNGC'].copy()), self.update_map(south_mid & self.data['ISSGC'].copy()), self.update_map(south_pole)
+            return self.update_map(self.data['ISNORTH']), self.update_map(south_mid & self.data['ISNGC']), self.update_map(south_mid & self.data['ISSGC']), self.update_map(south_pole)
 
-        return self.update_map(self.data['ISNORTH'].copy()), self.update_map(south_mid), self.update_map(south_pole)
+        return self.update_map(self.data['ISNORTH']), self.update_map(south_mid), self.update_map(south_pole)
 
     def __call__(self, region):
         """

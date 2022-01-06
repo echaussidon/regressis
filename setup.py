@@ -9,5 +9,6 @@ setup(name='regressis',
       license='GPLv3',
       url='http://github.com/echaussidon/regressis',
       install_requires=['scikit-learn', 'fitsio', 'healpy', 'astropy'],
+      package_data={'regressis': ['*.mplstyle', 'data/*']},
       packages=['regressis']
 )

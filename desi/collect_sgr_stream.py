@@ -62,7 +62,7 @@ def _match_to_dr9(cat_sag):
                     if len(dec2) == 1:
                         dec2 = f'00{dec2}'
                     else:
-                        dec2= f'0{dec2}'
+                        dec2 = f'0{dec2}'
 
                     lst += [[ra1, sgn1, dec1, ra2, sgn2, dec2]]
             return lst
@@ -96,7 +96,7 @@ def _match_to_dr9(cat_sag):
 
         if sel_in_sag.sum():
             logger.info(f"[SWEEP] : {name}")
-            logger.info(f"    * Number of objetcs in this sweep in sag catalog : {sel_in_sag.sum()}")
+            logger.info(f"    * Number of objects in this sweep in sag catalog : {sel_in_sag.sum()}")
             try:
                 columns = ['RA', 'DEC',
                            'FLUX_G', 'FLUX_R', 'FLUX_Z', 'FLUX_W1', 'FLUX_W2',
@@ -105,7 +105,7 @@ def _match_to_dr9(cat_sag):
                 coord_sweep = SkyCoord(ra=sweep['RA'].values*u.degree, dec=sweep['DEC'].values*u.degree)
                 idx, d2d, d3d = coord_sag[sel_in_sag].match_to_catalog_sky(coord_sweep)
                 sel = (d2d.arcsec < 1)
-                logger.info(f"    * Number of objetcs selected in the sweep file : {sel.sum()}")
+                logger.info(f"    * Number of objects selected in the sweep file : {sel.sum()}")
                 sag_dr9 = pd.concat([sag_dr9, sweep.loc[idx[sel]]], ignore_index=True)
             except:
                 print('')
