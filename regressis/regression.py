@@ -702,7 +702,7 @@ class Regression(object):
         # when a single feature value is randomly shuffled. This procedure breaks the relationship
         # between the feature and the target, thus the drop in the model score is indicative of
         # how much the model depends on the feature.
-        
+
         if np.isfinite(Y).sum() == 0:
             logger.info("          --> No data to compute permutation feature...")
         else:
@@ -718,7 +718,7 @@ class Regression(object):
             plt.savefig(filename)
             plt.close()
 
-    def plot_maps_and_systematics(self, max_plot_cart=400, ax_lim=0.2,
+    def plot_maps_and_systematics(self, show=False, save=True, max_plot_cart=400, ax_lim=0.2,
                                   adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                                   cut_fracarea=True, limits_fracarea=(0.9, 1.1)):
         """
@@ -727,6 +727,11 @@ class Regression(object):
 
         Parameters
         ----------
+        show: bool
+            If True display the figure.
+        save: bool
+            If True save the figure in os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, 'Fig').
+            Directory is created if it does not exist !
         max_plot_cart : float, default=400
             Maximum density in the plot of object density in the sky.
         ax_lim : float, default=0.2
@@ -746,10 +751,13 @@ class Regression(object):
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
 
-        dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, 'Fig')
-        if not os.path.isdir(dir_output):
-            os.mkdir(dir_output)
-        logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
+        if save:
+            dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, 'Fig')
+            if not os.path.isdir(dir_output):
+                os.mkdir(dir_output)
+            logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
+        else:
+            dir_output = None
 
         with np.errstate(divide='ignore',invalid='ignore'): #to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
             targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
@@ -760,13 +768,17 @@ class Regression(object):
         targets_without_systematics = targets*w
 
         with np.errstate(divide='ignore',invalid='ignore'):
-            plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, filename=os.path.join(dir_output, 'targets.pdf'), galactic_plane=True, ecliptic_plane=True)
-            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=False, filename=os.path.join(dir_output, 'targets_without_systematics.pdf'), galactic_plane=True, ecliptic_plane=True)
+            filename = None
+            if save: filename = os.path.join(dir_output, 'targets.pdf')
+            plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+            if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
+            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
             map_to_plot = w.copy()
             map_to_plot[map_to_plot == 0] = np.nan
             map_to_plot -= 1
-            plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=False, filename=os.path.join(dir_output, 'systematic_weights.pdf'), galactic_plane=True, ecliptic_plane=True)
+            if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
+            plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
 
         plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, dir_output, self.dataframe.regions,
                                   ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
-                                  cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea)
+                                  cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, save=save, show=show)
