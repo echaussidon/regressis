@@ -30,14 +30,14 @@ def test_case_qso():
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)
     regression = Regression(dataframe, regressor='RF', compute_permutation_importance=False, overwrite=False, n_jobs=6, seed=123, save_regressor=False, nfold_params={'Des':2})
-    wsys = regression.get_weight_map(save=False, savedir=params['data_dir'])
+    wsys = regression.get_weight(save=False, savedir=params['data_dir'])
     if params.get('output_dir', None) is not None:
         regression.plot_maps_and_systematics(max_plot_cart=400)
 
     logger.info('Load precomputed systematic weights and compare to the current computation')
     wsys_ref = np.load(os.path.join(params['data_dir'], 'SV3_QSO_imaging_weight_256.npy'))
-    mask = ~np.isnan(wsys)
-    assert np.allclose(wsys[mask], wsys_ref[mask]), "The computation of systematic weights in test case yields incorrt result, have you changed any parameter in tests.py?"
+    mask = ~np.isnan(wsys.map)
+    assert np.allclose(wsys.map[mask], wsys_ref[mask]), "The computation of systematic weights in test case yields incorrt result, have you changed any parameter in tests.py?"
     logger.info('Test completed without any error')
 
 

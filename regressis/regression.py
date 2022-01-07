@@ -17,6 +17,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import dump, load
 
 from . import utils
+from .weight import PhotoWeight
 
 
 logger = logging.getLogger("Regression")
@@ -584,9 +585,9 @@ class Regression(object):
         logger.info("    --> Done in: {:.3f} s".format(time.time() - start))
         return Y_pred, index
 
-    def get_weight_map(self, save=False, savedir=None):
+    def get_weight(self, save=False, savedir=None):
         """
-        We save the healpix systematic maps.
+        Save the healpix systematic maps.
 
         Parameters
         ----------
@@ -598,8 +599,8 @@ class Regression(object):
 
         Returns
         -------
-        w : array
-            Weight map, to be applied to data.
+        w : ``PhotoWeight`` class
+            Weight class with callable function to apply it into a real catalogue.
         """
         w = np.zeros(hp.nside2npix(self.dataframe.nside))*np.nan
         w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0/self.Y_pred[self.Y_pred > 0]
@@ -611,7 +612,7 @@ class Regression(object):
             logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
             np.save(filename_weight_save, w)
 
-        return w
+        return PhotoWeight(w)
 
     @staticmethod
     def plot_efficiency(Y, Y_pred, filename):
