@@ -44,6 +44,13 @@ Or in development mode (any change to Python code will take place immediately):
 python setup.py develop --user
 ```
 
+### test
+
+Check the installation using the test file. No errors should appear.
+```
+python regressis/tests/tests.py
+```
+
 ## License
 
 **regressis** is free software distributed under a BSD3 license. For details see the [LICENSE](https://github.com/echaussidon/regressis/blob/main/LICENSE).
