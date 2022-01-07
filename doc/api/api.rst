@@ -41,15 +41,18 @@ Utilities
   :inherited-members:
   :show-inheritance:
 
-DESI Utilities
---------------
+Weight
+------
 
-.. automodule:: desi.collect_desi_targets
+.. automodule:: regressis.weight
     :members:
     :inherited-members:
     :show-inheritance:
 
-.. automodule:: desi.generate_weight_SV3
+DESI Utilities
+--------------
+
+.. automodule:: desi.collect_desi_targets
     :members:
     :inherited-members:
     :show-inheritance:
