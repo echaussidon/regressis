@@ -12,7 +12,7 @@ from regressis.utils import mkdir, setup_mplstyle
 logger = logging.getLogger('DA02')
 
 
-def _compute_weight(version, tracer, footprint, suffix_tracer, cut_fracarea, seed, dataframe_params, max_plot_cart, feature_names=None):
+def _compute_weight(version, tracer, footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, dataframe_params, max_plot_cart, feature_names=None):
     """
 
     Compute weight for a given tracer with a given parametrization
@@ -30,6 +30,8 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, cut_fracarea, see
     suffix_tracer: str
         Additional suffix for tracer. Usefull only to load default map saved in data_dir and for
         the output name of the directory or filename.
+    suffix_regressor : str
+        Additional suffix to build regressor output directory. Useful to test on the same data different hyperparameters.
     cut_fracarea: bool
         If True create the dataframe with a selection on fracarea. In DA02, fracarea is already selected (set as nan where we don't want to use it) in the corresponding fracarea file.
     seed: int
@@ -45,9 +47,9 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, cut_fracarea, see
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=cut_fracarea)
-    regression = Regression(dataframe, regressor='RF', n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
+    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
     regression.get_weight_map(save=True)
-    regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart)
+    regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart, cut_fracarea=cut_fracarea)
 
 
 def _bgs_any_weight(seed):
@@ -57,6 +59,7 @@ def _bgs_any_weight(seed):
     logger.info("Compute weight for BGS_ANY at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'BGS_ANY', '', 128
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
@@ -69,7 +72,7 @@ def _bgs_any_weight(seed):
 
     cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _lrg_weight(seed):
@@ -79,6 +82,7 @@ def _lrg_weight(seed):
     logger.info("Compute weight for LRG at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'LRG', '', 128
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
@@ -91,7 +95,7 @@ def _lrg_weight(seed):
 
     cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _elg_weight(seed):
@@ -101,6 +105,7 @@ def _elg_weight(seed):
     logger.info(f"Compute weight for ELG at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'ELG', '', 512
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
@@ -113,7 +118,7 @@ def _elg_weight(seed):
 
     cut_fracarea = False
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _qso_weight(seed, use_stream=True, use_stardens=True):
@@ -123,6 +128,7 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
     logger.info(f"Compute weight for QSO at Nside=256 with Sgr. Stream? {use_stream} with stardens? {use_stardens}")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'QSO', '', 128
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=True, clear_south=True, mask_around_des=True, cut_desi=False)
 
     param = dict()
@@ -135,19 +141,19 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
 
     cut_fracarea = False
 
-    feature_names = ['EBV',
+    feature_names = ['EBV', 'STARDENS', 'STREAM',
                      'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
                      'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
 
-    if use_stream:
-        feature_names.append('STREAM')
-        suffix_tracer = '_with_stream'
-    if use_stradens:
-        feature_names.append('STARDENS')
-    else:
-        suffix_tracer += '_without_stardens'
+    if not use_stardens:
+        feature_names.remove('STARDENS')
+        suffix_regressor += '_without_stardens'
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart, feature_names)
+    if not use_stream:
+        feature_names.remove('STREAM')
+        suffix_regressor += '_without_stream'
+
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart, feature_names)
 
 
 if __name__ == '__main__':
@@ -161,6 +167,7 @@ if __name__ == '__main__':
     _lrg_weight(220)
     _elg_weight(240)
     _qso_weight(250)
+    _qso_weight(250, use_stream=False, use_stardens)
 
     print("\nMOVE the DA02.log file into the output directory ../res/DA02\n")
     shutil.move('DA02.log', '../res/DA02/DA02.log')
