@@ -12,7 +12,7 @@ from regressis.utils import mkdir, setup_mplstyle
 logger = logging.getLogger('MAIN')
 
 
-def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names=None):
+def _compute_weight(version, tracer, footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart, feature_names=None):
     """
     Compute weight for a given tracer with a given parametrization.
 
@@ -29,6 +29,8 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_p
     suffix_tracer : str, default=''
         Additional suffix for tracer. Useful only to load default map saved in ``data_dir`` and for
         the output name of the directory or file name.
+    suffix_regressor : str
+        Additional suffix to build regressor output directory. Useful to test on the same data different hyperparameters.
     seed : int, default=123
         Fix the random state of RF and NN for reproducibility.
     dataframe_params : dict
@@ -42,9 +44,9 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, seed, dataframe_p
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)
-    regression = Regression(dataframe, regressor='RF', n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
+    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
     regression.get_weight_map(save=True)
-    regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart)
+    regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart, cut_fracarea=True)
 
 
 def _bgs_any_weight(seed):
@@ -52,6 +54,7 @@ def _bgs_any_weight(seed):
     logger.info("Compute weight for BGS at nside = 256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS_ANY', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -62,7 +65,7 @@ def _bgs_any_weight(seed):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1800
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
 def _bgs_faint_weight(seed):
@@ -70,6 +73,7 @@ def _bgs_faint_weight(seed):
     logger.info("Compute weight for BGS_FAINT at nside = 256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS_FAINT', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -80,7 +84,7 @@ def _bgs_faint_weight(seed):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1000
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
 def _bgs_bright_weight(seed):
@@ -88,6 +92,7 @@ def _bgs_bright_weight(seed):
     logger.info("Compute weight for BGS_BRIGHT at nside = 256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'BGS_BRIGHT', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -98,7 +103,7 @@ def _bgs_bright_weight(seed):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1000
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
 def _lrg_weight(seed):
@@ -106,6 +111,7 @@ def _lrg_weight(seed):
     logger.info("Compute weight for LRG at nside = 256")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'LRG', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -116,14 +122,15 @@ def _lrg_weight(seed):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1000
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
-def _elg_weight(seed, add_stream=False):
+def _elg_weight(seed, use_stream=False):
     """Compute weight with standard parametrization for ELG in MAIN. If add_stream=True then add STREAM during the regression."""
-    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {add_stream}")
+    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG', '', 512
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -132,24 +139,25 @@ def _elg_weight(seed, add_stream=False):
     dataframe_params['use_median'] = False
     dataframe_params['use_new_norm'] = False
     dataframe_params['regions'] = ['North', 'South', 'Des']
-    if add_stream:
+    if use_stream:
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
-        suffix_tracer = '_with_stream'
+        suffix_regressor = '_with_stream'
         dataframe_params['use_new_norm'] = True
     else:
         feature_names = None
     max_plot_cart = 3500
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart, feature_names)
 
 
-def _elg_vlo_weight(seed, add_stream=False):
+def _elg_vlo_weight(seed, use_stream=False):
     """Compute weight with standard parametrization for ELG VLO in MAIN. If add_stream=True then add STREAM during the regression."""
-    logger.info(f"Compute weight for ELG_VLO at nside = 256 with Sgr. Stream map? {add_stream}")
+    logger.info(f"Compute weight for ELG_VLO at nside = 256 with Sgr. Stream map? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_VLO', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -164,19 +172,20 @@ def _elg_vlo_weight(seed, add_stream=False):
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
-        suffix_tracer = '_with_stream'
+        suffix_regressor = '_with_stream'
         dataframe_params['use_new_norm'] = True
     else:
         feature_names = None
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart, feature_names)
 
 
-def _elg_lop_weight(seed, add_stream=False):
+def _elg_lop_weight(seed, use_stream=False):
     """Compute weight with standard parametrization for ELG LOP in MAIN. If add_stream=True then add STREAM during the regression."""
-    logger.info("Compute weight for ELG at nside = 512 with Sgr. Stream map")
+    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream map? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_LOP', '', 512
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -191,12 +200,12 @@ def _elg_lop_weight(seed, add_stream=False):
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
-        suffix_tracer = '_with_stream'
+        suffix_regressor = '_with_stream'
         dataframe_params['use_new_norm'] = True
     else:
         feature_names = None
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart, feature_names)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart, feature_names)
 
 
 def _qso_weight(seed):
@@ -204,6 +213,7 @@ def _qso_weight(seed):
     logger.info("Compute weight for QSO at nside = 256 with Sgr. Stream map")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'QSO', '', 256
+    suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=True, clear_south=True, mask_around_des=True, cut_desi=False)
 
     dataframe_params = dict()
@@ -214,7 +224,7 @@ def _qso_weight(seed):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 400
 
-    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, seed, dataframe_params, max_plot_cart)
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
 if __name__ == '__main__':
@@ -224,16 +234,16 @@ if __name__ == '__main__':
 
     mkdir('../res/MAIN')
 
-    #_bgs_any_weight(130)
-    #_bgs_faint_weight(133)
-    #_bgs_bright_weight(136)
-    #_lrg_weight(140)
-    #_elg_weight(150)
+    _bgs_any_weight(130)
+    _bgs_faint_weight(133)
+    _bgs_bright_weight(136)
+    _lrg_weight(140)
+    _elg_weight(150)
     # _elg_weight(155, add_stream=True)
     _elg_vlo_weight(160)
     # _elg_vlo_weight(165, add_stream=True)
     _elg_lop_weight(170)
-    _elg_lop_weight(175, add_stream=True)
+    _elg_lop_weight(175, use_stream=True)
     _qso_weight(180)
 
     print("\nMOVE the MAIN.log file into the output directory ../res/MAIN\n")
