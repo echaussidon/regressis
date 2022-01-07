@@ -6,7 +6,7 @@ import shutil
 import logging
 
 from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
-from regressis.utils import mkdir, load_regressis_style
+from regressis.utils import mkdir, setup_mplstyle
 
 
 logger = logging.getLogger('DA02')
@@ -66,7 +66,7 @@ def _bgs_any_weight(seed):
     param['use_new_norm'] = False
     param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 2000
-    
+
     cut_fracarea = False
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
@@ -88,7 +88,7 @@ def _lrg_weight(seed):
     param['use_new_norm'] = False
     param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1000
-    
+
     cut_fracarea = False
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
@@ -110,7 +110,7 @@ def _elg_weight(seed):
     param['use_new_norm'] = False
     param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 3500
-    
+
     cut_fracarea = False
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, cut_fracarea, seed, param, max_plot_cart)
@@ -132,7 +132,7 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
     param['use_new_norm'] = False
     param['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 400
-    
+
     cut_fracarea = False
 
     feature_names = ['EBV',
@@ -153,7 +153,7 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
 if __name__ == '__main__':
 
     setup_logging(log_file='DA02.log')
-    load_regressis_style()
+    setup_mplstyle()
 
     mkdir('../res/DA02')
 

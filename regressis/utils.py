@@ -75,7 +75,7 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
     sys.excepthook = exception_handler
 
 
-def load_regressis_style():
+def setup_mplstyle():
     """Load the default regressis style for matplotlib"""
     # On NERSC, you may need to load tex with `module load texlive`
     from matplotlib import pyplot as plt
@@ -109,40 +109,36 @@ def deep_update(source, overrides):
             deep_update(source[key], value)
         else:
             source[key] = value
-            
-            
+
+
 def to_tex(string):
-    """Remplace '_' by ' ' in a string to plot in latex format in matplotlib """
-    string = string.replace('_', ' ')
-    return string
+    """Replace '_' by ' ' in a string to use latex format in matplotlib."""
+    return string.replace('_', ' ')
 
 
-def read_fits_to_pandas(filename, ext_name=1, columns=None):
+def read_fits_to_pandas(filename, ext=1, columns=None):
     """
-    Read a fits file and converet it into a pandas DataFrame.
-    Warning: it does not work if a column contains a list or an array ...
+    Read a .fits file and convert it into a :class:`pandas.DataFrame`.
+    Warning: it does not work if a column contains a list or an array.
 
     Parameters
     ----------
     filename : str
-        Path where the fits file is saved
-    ext_name : int or str
-        Extension to read. ext_name can be int or string
+        Path where the .fits file is saved.
+    ext : int or str
+        Extension to read.
     columns : list of str
-        list of columns to read. Useful to avoid to use too much memory.
+        List of columns to read. Useful to avoid to use too much memory.
 
     Returns :
     ---------
-    dataFrame : pandas DataFrame
-        Return the fits file read into a pandas DataFrame
+    data_frame : pandas.DataFrame
+        Data frame containing data in the fits file.
     """
-
-    logger.info(f'Read ext: {ext_name} from {filename}')
-    if columns is None:
-        dataFrame = pd.DataFrame(fitsio.FITS(filename)[ext_name].read().byteswap().newbyteorder())
-    else:
-        dataFrame = pd.DataFrame(fitsio.FITS(filename)[ext_name][columns].read().byteswap().newbyteorder())
-    return dataFrame
+    logger.info(f'Read ext: {ext} from {filename}')
+    file = fitsio.FITS(filename)[ext]
+    if columns is None: file = file[columns]
+    return pd.DataFrame(file.read().byteswap().newbyteorder())
 
 
 def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
