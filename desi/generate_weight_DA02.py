@@ -167,7 +167,7 @@ if __name__ == '__main__':
     _lrg_weight(220)
     _elg_weight(240)
     _qso_weight(250)
-    _qso_weight(250, use_stream=False, use_stardens)
+    _qso_weight(250, use_stream=False, use_stardens=False)
 
     print("\nMOVE the DA02.log file into the output directory ../res/DA02\n")
     shutil.move('DA02.log', '../res/DA02/DA02.log')
