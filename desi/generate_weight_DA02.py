@@ -104,7 +104,7 @@ def _elg_weight(seed):
     """
     logger.info(f"Compute weight for ELG at Nside=128")
 
-    version, tracer, suffix_tracer, nside = 'DA02', 'ELG', '', 512
+    version, tracer, suffix_tracer, nside = 'DA02', 'ELG', '', 128
     suffix_regressor = ''
     dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
 
