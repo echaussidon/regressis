@@ -773,7 +773,7 @@ class Regression(object):
             if save: filename = os.path.join(dir_output, 'targets.pdf')
             plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
             if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
-            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density' show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
             map_to_plot = w.copy()
             map_to_plot[map_to_plot == 0] = np.nan
             map_to_plot -= 1
