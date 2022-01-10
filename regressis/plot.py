@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 import astropy.units as u
-from astropy.coordinates import SkyCoord, coord, frame_transform_graph
+import astropy.coordinates as coord
+from astropy.coordinates import SkyCoord, frame_transform_graph
 from astropy.coordinates.matrix_utilities import rotation_matrix, matrix_product, matrix_transpose
 
 # to avoid this warning:
