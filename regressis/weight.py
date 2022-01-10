@@ -31,6 +31,23 @@ class PhotoWeight(object):
         self.nside = hp.npix2nside(sys_weight_map.size)
 
     def __call__(self, ra, dec):
+        """
+
+        Build the photometric weight from a healpix map to a (R.A., Dec.) catalog.
+
+        Parameters
+        ----------
+        ra : float array
+            Array containing the R.A. values
+        dec : float array
+            Array containing the Dec. values. Same size than ra.
+
+        Returns
+        -------
+        w : float array
+            Photometric weight for each (Ra, Dec) values.
+
+        """
         pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
         return self.map[pix]
 

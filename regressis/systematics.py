@@ -135,6 +135,9 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
 
 def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_fracarea=(0.9, 1.1)):
     """
+    Create pixel mask to only consider pixels in the correct region determined
+    thanks to footprint with non zero fracarea and with a specific selection along fracarea if required with cut_fracarea.
+
     Returns
     -------
     pix_to_keep: bool array
@@ -155,11 +158,48 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
     return pix_to_keep
 
 
-def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, savedir, regions=['North', 'South', 'Des'],
-                             ax_lim=0.3, adaptative_binning=False, nobj_per_bin=2000, n_bins=None, cut_fracarea=True, limits_fracarea=(0.9, 1.1),
-                             show=False, save=True):
+def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, regions=['North', 'South', 'Des'],
+                             ax_lim=0.2, adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
+                             cut_fracarea=True, limits_fracarea=(0.9, 1.1),
+                             show=False, save=True, savedir=None):
+    """
+    Create systematic plots (ie) relative density of pixel map as a function of observational features.
+    Here only the following features are displayed : stardens, ebv, stream, psf_depth r,g,z,W1,W2, psf_size r,g,z.
 
+    Parameters
+    ----------
+    map_list : float array list
+        list containing healpix density map in nested scheme.
+    label_list : str list
+        list containing the label corresponding to the maps.
+    fracarea : float array
+        Healpix map of the corresponding fracarea (ie) observed fractional sky area for a pixel.
+    footprint : :class:`Footprint`
+        Corresponding footprint used to keep pixels in desired region.
+    pixmap : float array
+        Array containing the heampix map at correct nside of dr9 features.
+    regions : str list
+        regions where the systematic plots will be created. Each region is treat individually.
+    ax_lim : float
+        limit of the y axis (ie) of the relative density - 1.
+    adaptative_binning : bool
+        If True, use same number of pixels in each bins.
+    nobj_per_bin : int
+        If adaptative_binning is True, fix the number of objects desired in each bin.
+    n_bins : int
+        If not None, will used as default value for nbins in each histogram.
+    cut_fracarea : bool
+        If True, apply addiational mask based on fracarea selection
+    limits_fracarea : float tuple
+        Used if cut_fracarea is True. Fix the bottom and up limit of the fracarea selection.
+    show : bool
+        If True, display the figures.
+    save : bool
+        If True, save the figures.
+    savedir : str
+        Path were the figures will be saved.
 
+    """
     for num_fig, region in enumerate(regions):
         logger.info(f'Work with {region}')
 
