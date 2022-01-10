@@ -9,6 +9,19 @@ Dataframe
   :inherited-members:
   :show-inheritance:
 
+Plots
+-----
+
+.. automodule:: regressis.systematics
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: regressis.plot
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
 Footprint
 ---------
 
@@ -21,14 +34,6 @@ Regression
 ----------
 
 .. automodule:: regressis.regression
-  :members:
-  :inherited-members:
-  :show-inheritance:
-
-Systematics
------------
-
-.. automodule:: regressis.systematics
   :members:
   :inherited-members:
   :show-inheritance:
@@ -52,7 +57,22 @@ Weight
 DESI Utilities
 --------------
 
+.. automodule:: desi.collect_dr9_features
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: desi.collect_sgr_stream
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
 .. automodule:: desi.collect_desi_targets
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: desi.collect_DA02
     :members:
     :inherited-members:
     :show-inheritance:

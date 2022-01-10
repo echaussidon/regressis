@@ -24,6 +24,10 @@ First::
 
   git clone https://github.com/echaussidon/regressis.git
 
+If you have an ssh-key and want to contribute, you should prefer::
+
+  git clone git@github.com:echaussidon/regressis.git
+
 To install the code::
 
   python setup.py install --user
