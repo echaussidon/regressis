@@ -41,25 +41,6 @@ class PhotoWeight(object):
         self.regions = regions
         self.mean_density_region = mean_density_region
 
-    def __call__(self, ra, dec):
-        """
-        Build the photometric weight from a healpix map to a (R.A., Dec.) catalog.
-
-        Parameters
-        ----------
-        ra : float array
-            Array containing the R.A. values
-        dec : float array
-            Array containing the Dec. values. Same size than ra.
-
-        Returns
-        -------
-        w : float array
-            Photometric weight for each (Ra, Dec) values.
-        """
-        pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
-        return self.map[pix]
-
     def __str__(self):
         """Return comprehensible print for PhotoWeight class"""
         return f"PhotoWeight at nside:{self.nside} generated on {self.regions}"
@@ -86,6 +67,45 @@ class PhotoWeight(object):
         utils.mkdir(os.path.dirname(filename))
         np.save(filename, self.__getstate__())
         logger_photo.info(f"Save PhotoWeight class in {filename}")
+
+    def __call__(self, ra, dec):
+        """
+        Build the photometric weight from a healpix map to a (R.A., Dec.) catalog.
+
+        Parameters
+        ----------
+        ra : float array
+            Array containing the R.A. values
+        dec : float array
+            Array containing the Dec. values. Same size than ra.
+
+        Returns
+        -------
+        w : float array
+            Photometric weight for each (Ra, Dec) values.
+        """
+        pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
+        return self.map[pix]
+
+    def fracion_to_remove_per_pixel(self, footprint, ratio_mock_reality):
+        """
+        Build the fraction of objects in each pixel to remove to build the contamination with minimal value to zeros.
+        Parameters
+        ----------
+        footprint : class ``Footprint``
+            The footprint information specifying regions in an Healpix format.
+        ratio_mock_reality: dict
+            For each region in regions contain the ratio between the mock and the expected density.
+        Returns
+        -------
+        frac_to_remove : array like
+            Healpix map in nested scheme with self.nside. Contain the percentage of how many targets will be removed during mocks contamination.
+        """
+        frac_to_remove = np.zeros(self.map.size)*np.nan
+        for region in self.regions:
+            frac_to_remove[footprint(region)] = 1 - 1/(self.map[footprint(region)]*ratio_mock_reality[region])
+        frac_to_remove[frac_to_remove<0] = 0.
+        return frac_to_remove
 
 
 # class SpectroPhotoWeight(Base):
