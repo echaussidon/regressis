@@ -4,7 +4,6 @@
 import numpy as np
 import healpy as hp
 from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 import astropy.units as u
 import astropy.coordinates as coord
@@ -206,6 +205,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap='jet', edgecolor='none', lw=0)
 
     if label is not None:
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         ax_cb = inset_axes(ax, width="30%", height="4%", loc='lower left', bbox_to_anchor=(0.346, ycb_pos, 1.0, 1.0), bbox_transform=ax.transAxes, borderpad=0)
         cb = plt.colorbar(mesh, ax=ax, cax=ax_cb, orientation='horizontal', shrink=0.8, aspect=40)
         cb.outline.set_visible(False)
