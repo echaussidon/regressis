@@ -604,15 +604,15 @@ class Regression(object):
         """
         w = np.zeros(hp.nside2npix(self.dataframe.nside))*np.nan
         w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0/self.Y_pred[self.Y_pred > 0]
+        weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions, mean_density_region=self.dataframe.mean_density_region)
 
         if save:
             if savedir is None:
                 savedir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)
-            filename_weight_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
-            logger.info(f"Save photometric weight in a healpix map with {self.dataframe.nside} here: {filename_weight_save}")
-            np.save(filename_weight_save, w)
+            filename_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
+            weight.save(filename_save)
 
-        return PhotoWeight(w)
+        return weight
 
     @staticmethod
     def plot_efficiency(Y, Y_pred, filename):
