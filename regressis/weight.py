@@ -10,11 +10,11 @@ import healpy as hp
 from . import utils
 
 
+logger_photo = logging.getLogger('PhotoWeight')
+
+
 class PhotoWeight(object):
-
     """Container of photometric weight with callable function to apply it to a (R.A., Dec.) catalog"""
-
-    logger = logging.getLogger('PhotoWeight')
 
     def __init__(self, sys_weight_map="/global/cfs/cdirs/desi/users/edmondc/Imaging_weight/MAIN/MAIN_LRG_imaging_weight_256.npy",
                  regions=None, mean_density_region=None):
@@ -76,7 +76,7 @@ class PhotoWeight(object):
     def load(cls, filename):
         """Load class from disk. Instantiate and initalise class with state dictionary. """
         state = np.load(filename, allow_pickle=True).item()
-        logger.info(f"Load PhotoWeight class from {filename}")
+        logger_photo.info(f"Load PhotoWeight class from {filename}")
         new = cls.__new__(cls)
         new.__setstate__(state)
         return new
@@ -85,11 +85,10 @@ class PhotoWeight(object):
         """Save class to disk. Remark: np.load(dictionary) will call pickle.dumps(). Here we just avoid to load this module."""
         utils.mkdir(os.path.dirname(filename))
         np.save(filename, self.__getstate__())
-        logger.info(f"Save PhotoWeight class in {filename}")
+        logger_photo.info(f"Save PhotoWeight class in {filename}")
 
 
 # class SpectroPhotoWeight(Base):
-
     # """Container of photometric weight with callable function to apply it to a (R.A., Dec.) catalog"""
     #
     # logger = logging.getLogger('SpectroPhotoWeight')
@@ -109,7 +108,3 @@ class PhotoWeight(object):
     #
     #     self.map = sys_weight_map
     #     self.nside = hp.npix2nside(sys_weight_map.size)
-    #
-    # def __call__(self, ra, dec):
-    #     pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
-    #     return self.map[pix]
