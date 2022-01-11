@@ -41,7 +41,7 @@ class PhotometricDataFrame(object):
         tracer : str
             Which tracer you want to use. Useful only to load default map saved in data_dir and for
             the output name of the directory or file name.
-        footprint : Footprint
+        footprint : class ``Footprint``
             The footprint information specifying regions in an Healpix format.
         suffix_tracer : str, default=''
             Additional suffix for tracer. Useful only to load default map saved in ``data_dir`` and for
