@@ -141,7 +141,7 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     return pd.DataFrame(file.read().byteswap().newbyteorder())
 
 
-def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
+def build_healpix_map(nside, ra, dec, sel=None, weights=None, in_deg2=False):
     """
     Build healpix map from input ra, dec.
 
@@ -153,6 +153,8 @@ def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
         Array containg Right Ascension in degree.
     dec : array like
         Array containg Declination in degree. Same size as ``ra``.
+    sel : boolean array like, default=None
+        Mask array to select only considered objects from ra, dec catalog. Same size as ``ra``.
     weights : array like, default=None
         Optional weights.
     in_deg2 : bool, default=False
@@ -163,6 +165,8 @@ def build_healpix_map(nside, ra, dec, weights=None, in_deg2=False):
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
+    if sel is not None:
+        ra, dec = ra[sel], dec[sel]
     pix = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
     map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
     if in_deg2:
