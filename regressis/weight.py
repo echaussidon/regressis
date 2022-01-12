@@ -32,7 +32,7 @@ class PhotoWeight(object):
             Dictionary containing the corresponding mask for each region in regions. Mask is a healpix map at self.nside in nested scheme.
             The mask can be collected with :class:`Footprint`. mask_region = {region:Footprint(region) for region in regions}
         mean_density_region : dict
-            Dictionary containing the mean density over region of the considered data for each region in regions
+            Dictionary containing the mean density over region of the considered data for each region in regions. NOT expected in deg2.
         """
 
         if isinstance(sys_weight_map, str):
