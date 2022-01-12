@@ -69,10 +69,10 @@ def _lrg_weight(seed):
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart)
 
 
-def _elg_weight(seed, use_stream=False):
+def _elg_weight(seed, add_stream=False):
     """Compute weight with standard parametrization for ELG in SV3. If ``add_stream`` is ``True`` then add STREAM during the regression."""
 
-    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
+    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG', '', 512
     suffix_regressor = ''
@@ -97,9 +97,9 @@ def _elg_weight(seed, use_stream=False):
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, seed, dataframe_params, max_plot_cart, feature_names)
 
 
-def _elg_hip_weight(seed, use_stream=False):
+def _elg_hip_weight(seed, add_stream=False):
     """Compute weight with standard parametrization for ELG HIP in SV3. If ``add_stream`` is ``True`` then add STREAM during the regression."""
-    logger.info(f"Compute weight for ELG_HIP at nside = 512 with Sgr. Stream map? {use_stream}")
+    logger.info(f"Compute weight for ELG_HIP at nside = 512 with Sgr. Stream map? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG_HIP', '', 512
     suffix_regressor = ''
@@ -151,11 +151,11 @@ if __name__ == '__main__':
 
     mkdir('../res/SV3')
 
-    _lrg_weight(40)
+    #_lrg_weight(40)
     _elg_weight(50)
-    # _elg_weight(55, use_stream=True)
+    # _elg_weight(55, add_stream=True)
     _elg_hip_weight(60)
-    # _elg_hip_weight(65, use_stream=True)
+    # _elg_hip_weight(65, add_stream=True)
     _qso_weight(70)
 
     print("\nMOVE the SV3.log file into the output directory ../res/SV3\n")
