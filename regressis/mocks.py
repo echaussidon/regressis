@@ -72,7 +72,7 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     # Build flag to have contaminate mocks
     np.random.seed(seed) #fix the seed for reproductibility
     is_for_wsys_cont = np.random.random(pix_number.size) <= frac_to_remove[pix_number]
-    logger.info(f'We remove {(~is_is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
+    logger.info(f'We remove {(~is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
 
     if show or savedir is not None:
         from regressis.plot import plot_moll
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     sel_pnz = fitsio.FITS(os.path.join(flag_dir, 'pnz.fits'))[1]['pnz'].read()
 
     # Compute flag to build contaminated mock
-    is_in_wsys_footprint, is_for_wsys_cont, pix_number = create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, plot=False, savedir=None)
+    is_in_wsys_footprint, is_for_wsys_cont, pix_number = create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, show=False, savedir=None)
 
     if False:
         # Save flags in the flag directory
