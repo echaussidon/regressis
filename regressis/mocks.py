@@ -143,7 +143,7 @@ if __name__ == '__main__':
     wsys = PhotoWeight.load(f'/global/u2/e/edmondc/Software/regressis/res/SV3/SV3_LRG_256/RF/SV3_LRG_imaging_weight_256.npy')
 
     # Load mock
-    mock_name = mock_filename(tracer='LRG', ph=0)
+    mock_name = _desi_mock_filename(tracer='LRG', ph=0)
     logger.info(f"Read Mock: {mock_name}")
     mock = fitsio.FITS(mock_name)[1].read()
 
@@ -157,4 +157,4 @@ if __name__ == '__main__':
 
     if False:
         # Save flags in the flag directory
-        save_flag([pix_number, is_in_wsys_footprint, is_for_wsys_cont, wsys(pix_number)], ['HPX', 'IS_IN_WSYS', 'IS_FOR_CONT', 'WSYS'], os.path.join(flag_dir, 'photo_contamination.fits'))
+        _save_flag([pix_number, is_in_wsys_footprint, is_for_wsys_cont, wsys(pix_number)], ['HPX', 'IS_IN_WSYS', 'IS_FOR_CONT', 'WSYS'], os.path.join(flag_dir, 'photo_contamination.fits'))
