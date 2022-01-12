@@ -72,7 +72,7 @@ def _lrg_weight(seed):
 def _elg_weight(seed, use_stream=False):
     """Compute weight with standard parametrization for ELG in SV3. If ``use_stream`` is ``True`` then add STREAM during the regression."""
 
-    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {add_stream}")
+    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG', '', 512
     suffix_regressor = ''
