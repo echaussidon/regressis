@@ -5,8 +5,8 @@ import os
 import shutil
 import logging
 
-from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
-from regressis.utils import mkdir, setup_mplstyle
+from regressis import PhotometricDataFrame, Regression, DR9Footprint
+from regressis.utils import mkdir, setup_logging, setup_mplstyle
 
 
 logger = logging.getLogger('SV3')
@@ -72,7 +72,7 @@ def _lrg_weight(seed):
 def _elg_weight(seed, use_stream=False):
     """Compute weight with standard parametrization for ELG in SV3. If ``use_stream`` is ``True`` then add STREAM during the regression."""
 
-    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
+    logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {add_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG', '', 512
     suffix_regressor = ''
