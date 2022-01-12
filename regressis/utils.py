@@ -141,7 +141,7 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     return pd.DataFrame(file.read().byteswap().newbyteorder())
 
 
-def build_healpix_map(nside, ra, dec, sel=None, weights=None, in_deg2=False):
+def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=None, in_deg2=False):
     """
     Build healpix map from input ra, dec.
 
@@ -150,9 +150,11 @@ def build_healpix_map(nside, ra, dec, sel=None, weights=None, in_deg2=False):
     nside : int
         Healpix resolution of the output.
     ra : array like
-        Array containg Right Ascension in degree.
+        Array containing Right Ascension in degree.
     dec : array like
-        Array containg Declination in degree. Same size as ``ra``.
+        Array containing Declination in degree. Same size as ``ra``.
+    precomputed_pix : array like, default=None
+        Array containing precomputed healpix pixel values for each (ra, dec) given. Avoid the time consuming computation: hp.ang2pix. Same size as ``ra``.
     sel : boolean array like, default=None
         Mask array to select only considered objects from ra, dec catalog. Same size as ``ra``.
     weights : array like, default=None
@@ -165,9 +167,10 @@ def build_healpix_map(nside, ra, dec, sel=None, weights=None, in_deg2=False):
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
-    if sel is not None:
-        ra, dec = ra[sel], dec[sel]
-    pix = hp.ang2pix(nside, ra, dec, nest=True, lonlat=True)
+    if precomputed_pix is None:
+        pix = hp.ang2pix(nside, ra[sel], dec[sel], nest=True, lonlat=True)
+    else:
+        pix = precomputed_pix[sel]
     map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
     if in_deg2:
         map = map / hp.nside2pixarea(nside, degrees=True)
