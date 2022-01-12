@@ -42,7 +42,7 @@ class PhotoWeight(object):
         self.nside = hp.npix2nside(sys_weight_map.size)
 
         self.regions = regions
-        self.mask_regions = mask_regions
+        self.mask_region = mask_region
         self.mean_density_region = mean_density_region
 
     def __str__(self):
@@ -107,7 +107,7 @@ class PhotoWeight(object):
         """
         frac_to_remove = np.zeros(self.map.size)*np.nan
         for region in self.regions:
-            frac_to_remove[self.mask_regions[region]] = 1 - 1/(self.map[self.mask_regions[region]]*ratio_mock_reality[region])
+            frac_to_remove[self.mask_region[region]] = 1 - 1/(self.map[self.mask_region[region]]*ratio_mock_reality[region])
         frac_to_remove[frac_to_remove<0] = 0.
         return frac_to_remove
 
