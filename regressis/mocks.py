@@ -16,59 +16,7 @@ from regressis.utils import build_healpix_map
 logger = logging.getLogger("Mocks")
 
 
-def apply_contamination(pix_number, frac_to_remove):
-    """
-    Create mask to select which objects have to be kept to have contaminated mock.
-
-    Remark: += python list is really more faster than np.concatenate two numpy array ! (memory allocation)
-
-    Parameters
-    ----------
-    pix_number : int array
-        Value of healpix pixel for each object in mock.
-    frac_to_remove : float array
-        Healpix map containing the fraction of objects to remove in each pixel.
-
-    Returns
-    -------
-    is_for_wsys_cont : boolean array
-        Mask to select which objects need to be kept to have contaminated mock.
-    """
-    # sort pix_number and collect starting idx for each pixel
-    ind_sort = np.argsort(pix_number)
-    pix_number_sorted = pix_number[ind_sort]
-    num, idx = np.unique(pix_number_sorted, return_index=True)
-    # to avoid problem with i == (len(num) - 1)
-    idx = np.append(idx, len(pix_number_sorted))
-
-    # remove randomly object in the mock to match the contamination estimated with w_sys_weght
-    removed_objects_for_systematic = []
-    for i in tqdm.tqdm(range(len(num)), ncols=200):
-        nbr_objects_in_pix = idx[i+1] - idx[i]
-
-        if not np.isnan(frac_to_remove[num[i]]): #is num[i] is in wsys_footprint (ie) frac_to_remove is not nan
-            nbr_objects_to_remove_in_pix = nbr_objects_in_pix * frac_to_remove[num[i]]
-            # Add randomly 1 due to decimal part
-            nbr_objects_to_remove_in_pix, dec_part = int(nbr_objects_to_remove_in_pix), nbr_objects_to_remove_in_pix - int(nbr_objects_to_remove_in_pix)
-            if np.random.random() >= dec_part:
-                # remove on additional object
-                nbr_objects_to_remove_in_pix += 1
-            which_objects_to_remove_in_pix = [True if j<nbr_objects_to_remove_in_pix else False for j in range(nbr_objects_in_pix)]
-            np.random.shuffle(which_objects_to_remove_in_pix)
-        else: # remove all the objects
-            which_objects_to_remove_in_pix = [True for j in range(nbr_objects_in_pix)]
-        removed_objects_for_systematic += which_objects_to_remove_in_pix
-
-    removed_objects_for_systematic = np.array(removed_objects_for_systematic)
-
-    # Build mask !
-    is_for_wsys_cont = np.zeros(ind_sort.size, dtype='bool')
-    is_for_wsys_cont[ind_sort] = ~removed_objects_for_systematic
-
-    return is_for_wsys_cont
-
-
-def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, show=False, savedir=None):
+def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, seed=123, show=False, savedir=None):
     """
     Create boolean mask to select which object from mocks with high density have to be kept to have systematic contaminated mocks.
 
@@ -82,6 +30,8 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         Photometric weight used to compute mock computation. See :class:`PhotoWeight` to build it easily.
     use_real_density : bool
         If True use density from PhotoWeight class instead of the ratio from mock which is the same for each photometric footprint...
+    seed : int
+        Numpy seed for reproductibility of np.random.random()
     show : bool
         If True display the figure
     savedir : str
@@ -120,7 +70,8 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     # Build fraction of objetcs to remove
     frac_to_remove = wsys.fracion_to_remove_per_pixel(ratio_mock_reality)
     # Build flag to have contaminate mocks
-    is_for_wsys_cont = apply_contamination(pix_number, frac_to_remove)
+    np.random.seed(seed) #fix the seed for reproductibility
+    is_for_wsys_cont = np.random.random(pix_number.size) <= frac_to_remove[pix_number]
     logger.info(f'We remove {(~is_is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
 
     if show or savedir is not None:
