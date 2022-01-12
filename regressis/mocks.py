@@ -3,7 +3,6 @@
 
 import os
 import logging
-import tqdm
 
 import fitsio
 import numpy as np
@@ -66,7 +65,7 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         ratio_mock_reality = {region:ratio_tmp for region in wsys.regions}
 
     # Create flag for Legacy Imaging Survey
-    is_in_wsys_footprint = np.array(sum([wsys.mask_region[region] for region in wsys.regions])) > 0
+    is_in_wsys_footprint = (np.array(sum([wsys.mask_region[region] for region in wsys.regions])) > 0)[pix_number]
     # Build fraction of objetcs to remove
     frac_to_remove = wsys.fracion_to_remove_per_pixel(ratio_mock_reality)
     # Build flag to have contaminate mocks
