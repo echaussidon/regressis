@@ -126,7 +126,7 @@ def _lrg_weight(seed):
 
 
 def _elg_weight(seed, use_stream=False):
-    """Compute weight with standard parametrization for ELG in MAIN. If add_stream=True then add STREAM during the regression."""
+    """Compute weight with standard parametrization for ELG in MAIN. If use_stream=True then add STREAM during the regression."""
     logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG', '', 512
@@ -153,7 +153,7 @@ def _elg_weight(seed, use_stream=False):
 
 
 def _elg_vlo_weight(seed, use_stream=False):
-    """Compute weight with standard parametrization for ELG VLO in MAIN. If add_stream=True then add STREAM during the regression."""
+    """Compute weight with standard parametrization for ELG VLO in MAIN. If use_stream=True then add STREAM during the regression."""
     logger.info(f"Compute weight for ELG_VLO at nside = 256 with Sgr. Stream map? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_VLO', '', 256
@@ -168,7 +168,7 @@ def _elg_vlo_weight(seed, use_stream=False):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 1500
 
-    if add_stream:
+    if use_stream:
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
@@ -181,7 +181,7 @@ def _elg_vlo_weight(seed, use_stream=False):
 
 
 def _elg_lop_weight(seed, use_stream=False):
-    """Compute weight with standard parametrization for ELG LOP in MAIN. If add_stream=True then add STREAM during the regression."""
+    """Compute weight with standard parametrization for ELG LOP in MAIN. If use_stream=True then add STREAM during the regression."""
     logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream map? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'MAIN', 'ELG_LOP', '', 512
@@ -196,7 +196,7 @@ def _elg_lop_weight(seed, use_stream=False):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 2500
 
-    if add_stream:
+    if use_stream:
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
@@ -239,9 +239,9 @@ if __name__ == '__main__':
     _bgs_bright_weight(136)
     _lrg_weight(140)
     _elg_weight(150)
-    # _elg_weight(155, add_stream=True)
+    # _elg_weight(155, use_stream=True)
     _elg_vlo_weight(160)
-    # _elg_vlo_weight(165, add_stream=True)
+    # _elg_vlo_weight(165, use_stream=True)
     _elg_lop_weight(170)
     _elg_lop_weight(175, use_stream=True)
     _qso_weight(180)

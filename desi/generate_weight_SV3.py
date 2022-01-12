@@ -70,7 +70,7 @@ def _lrg_weight(seed):
 
 
 def _elg_weight(seed, use_stream=False):
-    """Compute weight with standard parametrization for ELG in SV3. If ``add_stream`` is ``True`` then add STREAM during the regression."""
+    """Compute weight with standard parametrization for ELG in SV3. If ``use_stream`` is ``True`` then add STREAM during the regression."""
 
     logger.info(f"Compute weight for ELG at nside = 512 with Sgr. Stream? {use_stream}")
 
@@ -84,7 +84,7 @@ def _elg_weight(seed, use_stream=False):
     dataframe_params['use_median'] = False
     dataframe_params['use_new_norm'] = False
     dataframe_params['regions'] = ['North', 'South', 'Des']
-    if add_stream:
+    if use_stream:
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
@@ -98,7 +98,7 @@ def _elg_weight(seed, use_stream=False):
 
 
 def _elg_hip_weight(seed, use_stream=False):
-    """Compute weight with standard parametrization for ELG HIP in SV3. If ``add_stream`` is ``True`` then add STREAM during the regression."""
+    """Compute weight with standard parametrization for ELG HIP in SV3. If ``use_stream`` is ``True`` then add STREAM during the regression."""
     logger.info(f"Compute weight for ELG_HIP at nside = 512 with Sgr. Stream map? {use_stream}")
 
     version, tracer, suffix_tracer, nside = 'SV3', 'ELG_HIP', '', 512
@@ -113,7 +113,7 @@ def _elg_hip_weight(seed, use_stream=False):
     dataframe_params['regions'] = ['North', 'South', 'Des']
     max_plot_cart = 2500
 
-    if add_stream:
+    if use_stream:
         feature_names = ['STARDENS', 'EBV', 'STREAM',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
