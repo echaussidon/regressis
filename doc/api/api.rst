@@ -9,6 +9,14 @@ Dataframe
   :inherited-members:
   :show-inheritance:
 
+Mocks
+-----
+
+.. automodule:: regressis.mocks
+  :members:
+  :inherited-members:
+  :show-inheritance:
+
 Plots
 -----
 
