@@ -154,7 +154,9 @@ def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=No
     dec : array like
         Array containing Declination in degree. Same size as ``ra``.
     precomputed_pix : array like, default=None
-        Array containing precomputed healpix pixel values for each (ra, dec) given. Avoid the time consuming computation: hp.ang2pix. Same size as ``ra``.
+        Array containing precomputed healpix pixel values for each (ra, dec) given.
+        Avoid the time consuming computation: hp.ang2pix. Same size as ``ra``.
+        Note if precomputed_pix is passed, ra, dec info can be whatever they will be not used.
     sel : boolean array like, default=None
         Mask array to select only considered objects from ra, dec catalog. Same size as ``ra``.
     weights : array like, default=None
@@ -167,10 +169,9 @@ def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=No
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
     """
-    if precomputed_pix is None:
-        pix = hp.ang2pix(nside, ra[sel], dec[sel], nest=True, lonlat=True)
-    else:
-        pix = precomputed_pix[sel]
+    if sel is None:
+        sel = np.ones(precomputed_pix.size if (precomputed_pix is not None) else ra.size, dtype='?')
+    pix = precomputed_pix[sel] if (precomputed_pix is not None) else hp.ang2pix(nside, ra[sel], dec[sel], nest=True, lonlat=True)
     map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside))
     if in_deg2:
         map = map / hp.nside2pixarea(nside, degrees=True)
