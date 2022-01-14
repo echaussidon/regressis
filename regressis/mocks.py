@@ -68,9 +68,9 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     is_in_wsys_footprint = (np.array(sum([wsys.mask_region[region] for region in wsys.regions])) > 0)[pix_number]
     # Build fraction of objetcs to remove
     frac_to_remove = wsys.fracion_to_remove_per_pixel(ratio_mock_reality)
-    # Build flag to have contaminate mocks
+    # Build flag to have contaminate mocks with correct n(z) (given by & sel_pnz)
     np.random.seed(seed) #fix the seed for reproductibility
-    is_for_wsys_cont = np.random.random(pix_number.size) <= frac_to_remove[pix_number]
+    is_for_wsys_cont = (np.random.random(pix_number.size) <= (1-frac_to_remove[pix_number])) & sel_pnz
     logger.info(f'We remove {(~is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
 
     if show or savedir is not None:
@@ -78,12 +78,12 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         plot_moll(frac_to_remove, title='fraction of objects to remove per pixels', label='', galactic_plane=True, show=show, filename=None if (savedir is None) else os.path.join(savedir, 'contamination_moll.pdf'))
 
         plt.figure(figsize=(5, 4))
-        plt.hist(frac_to_remove, histtype='step', bins=100, label='contamination')
-        plt.axvline(np.mean(frac_to_remove[dr9_footprint('footprint')]), ls='--', c='k', label='mean on DR9')
+        plt.hist(frac_to_remove, histtype='step', bins=100, label='fraction to remove')
+        plt.axvline(np.mean(frac_to_remove[frac_to_remove>=0]), ls='--', c='k', label='mean on DR9')
         plt.legend()
         plt.tight_layout()
         if savedir is not None:
-            plt.savefig(os.path.join(savedir, 'contamination.pdf'))
+            plt.savefig(os.path.join(savedir, 'frac_to_remove.pdf'))
         if show:
             plt.show()
         else:
@@ -92,9 +92,9 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         ## selection mock with expected n(z)
         sel_nz = mock['STATUS'] & 2**0 != 0
         plt.figure(figsize=(5, 4))
-        plt.hist(mock['Z'][sel_nz&is_in_wsys_footprint], histtype='step', bins=100, range=(0.0, 2.4), label='expected n(z)')
         plt.hist(mock['Z'][sel_pnz&is_in_wsys_footprint], histtype='step', bins=100, range=(0.0, 2.4), label='high density n(z)')
-        plt.hist(mock['Z'][is_for_wsys], histtype='step', bins=100, range=(0.0, 2.4), label='final n(z)')
+        plt.hist(mock['Z'][sel_nz&is_in_wsys_footprint], histtype='step', lw=2.5, bins=100, range=(0.0, 2.4), label='expected n(z)')
+        plt.hist(mock['Z'][is_for_wsys_cont], alpha=0.6, bins=100, range=(0.0, 2.4), label='final n(z)')
         plt.legend()
         plt.xlabel('z')
         plt.tight_layout()
