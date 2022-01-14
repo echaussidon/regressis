@@ -14,7 +14,7 @@ doc/_build/
 **/_catalogs
 **/.ipynb_checkpoints
 **/bak
-**/_tests
 *.DS_Store
+data/
 res/
 *.log
