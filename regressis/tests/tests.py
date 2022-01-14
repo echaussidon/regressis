@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 
-from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
+from regressis import PhotometricDataFrame, Regression, DR9Footprint, PhotoWeight, setup_logging
 
 
 logger = logging.getLogger('Tests')
@@ -17,7 +17,7 @@ def test_case_qso():
     dr9_footprint = DR9Footprint(256, mask_lmc=True, clear_south=True, mask_around_des=True, cut_desi=False)
 
     params = dict()
-    params['data_dir'] = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'test_case_qso') # where the pixmap + sgr + QSO target maps are
+    params['data_dir'] = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'test_data') # where the pixmap + sgr + QSO target maps are
     #params['output_dir'] = '../../Res'
     params['output_dir'] = None # do not save figure
     params['use_median'] = False
@@ -35,7 +35,7 @@ def test_case_qso():
         regression.plot_maps_and_systematics(max_plot_cart=400)
 
     logger.info('Load precomputed systematic weights and compare to the current computation')
-    wsys_ref = np.load(os.path.join(params['data_dir'], 'SV3_QSO_imaging_weight_256.npy'))
+    wsys_ref = np.load(os.path.join(params['data_dir'], 'SV3_QSO_imaging_weight_256_healpix_map.npy'))
     mask = ~np.isnan(wsys.map)
     assert np.allclose(wsys.map[mask], wsys_ref[mask]), "The computation of systematic weights in test case yields incorrt result, have you changed any parameter in tests.py?"
     logger.info('Test completed without any error')
