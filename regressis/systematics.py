@@ -160,7 +160,7 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, regions=['North', 'South', 'Des'],
                              ax_lim=0.2, adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
-                             cut_fracarea=True, limits_fracarea=(0.9, 1.1),
+                             cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False,
                              show=False, save=True, savedir=None):
     """
     Create systematic plots (ie) relative density of pixel map as a function of observational features.
@@ -252,7 +252,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
              #   num_to_plot += 1
 
             if i == 10:
-                ax.legend(bbox_to_anchor=(-1.1, 0.8), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large', title=region, title_fontsize='large')
+                title = region if legend_title else None
+                ax.legend(bbox_to_anchor=(-1.1, 0.8), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large', title=title, title_fontsize='large')
                 ax_hist.legend(bbox_to_anchor=(-1.1, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large')
 
         if save:
