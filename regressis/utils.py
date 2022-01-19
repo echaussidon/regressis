@@ -141,7 +141,7 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     return pd.DataFrame(file.read().byteswap().newbyteorder())
 
 
-def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=None, in_deg2=False):
+def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=None, in_deg2=False, return_pix=False):
     """
     Build healpix map from input ra, dec.
 
@@ -163,11 +163,15 @@ def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=No
         Optional weights.
     in_deg2 : bool, default=False
         If ``True``, divide the output by the pixel area.
+    return_pix : bool, default=False
+        If ``True``, return also the healpix value for each (ra, dec) input.
 
     Returns
     -------
     map: array
         Density map of objetcs from (ra, dec) in a healpix map at nside in nested order.
+    pix: array
+        Healpix value at ``nside``, return only if return_pix is ``True``.
     """
     if sel is None:
         sel = np.ones(precomputed_pix.size if (precomputed_pix is not None) else ra.size, dtype='?')
@@ -175,6 +179,7 @@ def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=No
     map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside)) / 1.0
     if in_deg2:
         map = map / hp.nside2pixarea(nside, degrees=True)
+    if return_pix: return map, pix
     return map
 
 
