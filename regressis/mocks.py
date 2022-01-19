@@ -67,10 +67,10 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     # Create flag for Legacy Imaging Survey
     is_in_wsys_footprint = (np.array(sum([wsys.mask_region[region] for region in wsys.regions])) > 0)[pix_number]
     # Build fraction of objetcs to remove
-    frac_to_remove = wsys.fracion_to_remove_per_pixel(ratio_mock_reality)
+    frac_to_remove = wsys.fraction_to_remove_per_pixel(ratio_mock_reality)
     # Build flag to have contaminate mocks with correct n(z) (given by & sel_pnz)
-    np.random.seed(seed) #fix the seed for reproductibility
-    is_for_wsys_cont = (np.random.random(pix_number.size) <= (1-frac_to_remove[pix_number])) & sel_pnz
+    r = np.random.RandomState(seed) # Set a random state for reproductibility
+    is_for_wsys_cont = (r.random(pix_number.size) <= (1-frac_to_remove[pix_number])) & sel_pnz
     logger.info(f'We remove {(~is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
 
     if show or savedir is not None:

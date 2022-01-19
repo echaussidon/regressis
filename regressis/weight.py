@@ -91,7 +91,7 @@ class PhotoWeight(object):
         pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
         return self.map[pix]
 
-    def fracion_to_remove_per_pixel(self, ratio_mock_reality):
+    def fraction_to_remove_per_pixel(self, ratio_mock_reality):
         """
         Build the fraction of objects in each pixel to remove to build the contamination with minimal value to zeros.
 
