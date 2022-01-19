@@ -192,6 +192,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         If True, apply addiational mask based on fracarea selection
     limits_fracarea : float tuple
         Used if cut_fracarea is True. Fix the bottom and up limit of the fracarea selection.
+    legend_title : bool, default=False
+        If True display on top of the legend the region name where the systematic plots are drawn.
     show : bool
         If True, display the figures.
     save : bool
