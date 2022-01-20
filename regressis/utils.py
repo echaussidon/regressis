@@ -137,7 +137,7 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     """
     logger.info(f'Read ext: {ext} from {filename}')
     file = fitsio.FITS(filename)[ext]
-    if columns is None: file = file[columns]
+    if columns is not None: file = file[columns]
     return pd.DataFrame(file.read().byteswap().newbyteorder())
 
 
