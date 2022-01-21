@@ -193,7 +193,7 @@ class PhotometricDataFrame(object):
         ----------
         cut_fracarea : bool, default=False
             If ``True`` remove queue distribution of the fracarea. This is not mandatory since it can be already done
-            when building the target density map with more specificity, e.g. for DA02.
+            when building the target density map (and the corresponding fracarea) with more specificity, e.g. for DA02.
             Max fracarea can be strictly > 1 due to Poisson noise.
 
         fracarea_limits : tuple, list, default=None
@@ -203,7 +203,7 @@ class PhotometricDataFrame(object):
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
         # remove also pixel with 0 targets --> it should be already removed with fracarea > 0 in targets case
-        # but not always with real desi data which have low fracarea...
+        # but not always with real desi data which have low fracarea at the beginning...
         considered_footprint = (self.fracarea > 0) & (self.targets > 0) & self.footprint('footprint')
         keep_to_train = considered_footprint.copy()
 
@@ -216,7 +216,7 @@ class PhotometricDataFrame(object):
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
-        # file to load DR9 footprint is roughly what we expect to be DR9. At the border, it is expected to have pixel with fracarea == 0 and which are in DR9 Footprint
+        # file to load DR9 footprint is roughly what we expect to be DR9. At the border, it is expected to have pixels with fracarea == 0 and which are in DR9 Footprint
         # {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} > 99.9 % is similar than 100 %.
         logger.info(f"The considered footprint represents {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} of the DR9 footprint")
         logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training i.e. {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} of the considered footprint")
@@ -241,7 +241,7 @@ class PhotometricDataFrame(object):
 
             # compute normalized_targets every where
             # We will only use keep_to_train == 1 during the training (where fracarea > 0)
-            # Can avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
+            # To avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
             with np.errstate(divide='ignore',invalid='ignore'):
                 normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region]*mean_targets_density_estimators)
             mean_targets_density[region_name] = mean_targets_density_estimators
