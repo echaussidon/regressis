@@ -75,6 +75,7 @@ if __name__ == '__main__':
     logging.getLogger('desiutil.log.dlm58.info').setLevel(logging.ERROR)
     
     randoms = '/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/randoms/resolve/randoms-1-{}.fits'
+    # we do not need any target density informations. Just to avoid error.
     targets = '/global/cfs/projectdirs/desi/target/catalogs/dr9/0.49.0/targets/main/resolve/dark/targets-dark-hp-11.fits'
     tmpdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'tmp')
     outdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data')
@@ -86,6 +87,9 @@ if __name__ == '__main__':
         
         gaialoc = os.path.join(os.path.abspath(os.path.dirname(__file__)), f'../data/stardens-{nside}.fits')
         nbr_randoms = 10 # 19 can be relevant for 512
+        # there is a full random files called randomsall which is 17 times larger than the standard ones.
+        # use this file to avoid the stupid loop to compute the fracarea.
+        # take care it is time consuming and for small values of Nside, the loop can be quicker since 5 randoms can be enough.
 
         for i in range(nbr_randoms):
             make_imaging_weight_map(randoms.format(i), targets, os.path.join(tmpdir, f'pixweight-tmp-{i}.fits'), nside, gaialoc)
