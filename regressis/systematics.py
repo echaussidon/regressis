@@ -212,8 +212,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         pix_to_keep = _select_good_pixels(region, fracarea, footprint, cut_fracarea, limits_fracarea=limits_fracarea)
 
         # Plot photometric systematic plots:
-        fig = plt.figure(num_fig, figsize=(16.0,10.0))
-        gs = GridSpec(4, 3, figure=fig, left=0.06, right=0.96, bottom=0.08, top=0.96, hspace=0.35 , wspace=0.20)
+        fig = plt.figure(num_fig, figsize=(8.0, 5.2))
+        gs = GridSpec(4, 3, figure=fig, left=0.1, right=0.92, bottom=0.08, top=0.98, hspace=0.55, wspace=0.25)
 
         num_to_plot = 0
         for i in range(12):
@@ -225,13 +225,12 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
             if i not in [9]:
                 ax = fig.add_subplot(gs[i//3, i%3])
                 ax.set_xlabel(plotlabel)
-                if i in [0, 3, 6]:
-                    ax.set_ylabel("Relative density - 1")
                 ax.set_ylim(-ax_lim, ax_lim)
+                ax.set_yticks([-ax_lim, -ax_lim/2, 0, ax_lim/2, ax_lim])
 
                 for mp, label in zip(map_list, label_list):
                     bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]), sysname, downclip=conversion(down), upclip=conversion(up), nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
-                    ax.errorbar(binmid, meds - 1*np.ones(binmid.size), yerr=meds_err, marker='.', linestyle='-', lw=0.8, label=label)
+                    ax.errorbar(binmid, meds - 1*np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
 
                 ax_hist = ax.twinx()
                 ax_hist.set_xlim(ax.get_xlim())
@@ -240,7 +239,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     normalisation = nbr_obj_bins/0.1
                 else:
                     normalisation = nbr_obj_bins.sum()
-                ax_hist.bar(binmid, nbr_obj_bins/normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of nbr objects by bin')
+                ax_hist.bar(binmid, nbr_obj_bins/normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of nbr objects\nby bin')
                 ax_hist.grid(False)
                 ax_hist.set_yticks([])
 
@@ -252,11 +251,14 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
              #   ax.text(0.5, 0.5, f"Zone : {region}", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
                 #on enleve le STREAM comme feature ok
              #   num_to_plot += 1
+            
+            if i == 3:
+                ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
 
             if i == 10:
                 title = region if legend_title else None
-                ax.legend(bbox_to_anchor=(-1.1, 0.8), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large', title=title, title_fontsize='large')
-                ax_hist.legend(bbox_to_anchor=(-1.1, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1, fontsize='large')
+                ax.legend(bbox_to_anchor=(-1.20, 0.85), loc='upper left', borderaxespad=0., frameon=False, ncol=1, title=title)
+                ax_hist.legend(bbox_to_anchor=(-1.20, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1)
 
         if save:
             plt.savefig(os.path.join(savedir, f"{region}_systematics_plot.pdf"))
