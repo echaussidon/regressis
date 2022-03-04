@@ -61,7 +61,8 @@ font.family         : serif
 ## TEXT
 text.color          : k
 text.usetex         : True
-text.latex.preamble : \newcommand{\mathdefault}[1][]{}
+#With python3.9 it is now useless.
+#text.latex.preamble : \newcommand{\mathdefault}[1][]{}
 
 #mathtext.cal : cursive
 #mathtext.rm  : serif
