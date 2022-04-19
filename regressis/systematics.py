@@ -239,7 +239,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     normalisation = nbr_obj_bins/0.1
                 else:
                     normalisation = nbr_obj_bins.sum()
-                ax_hist.bar(binmid, nbr_obj_bins/normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of nbr objects\nby bin')
+                ax_hist.bar(binmid, nbr_obj_bins/normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
                 ax_hist.grid(False)
                 ax_hist.set_yticks([])
 
