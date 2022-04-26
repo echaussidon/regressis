@@ -22,13 +22,18 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     Parameters
     ----------
     mock : array like
-        Array containing (Ra, Dec, Z, RAW_NZ, NZ, STATUS) column.
+        Array containing (Ra, Dec, Z, RAW_NZ, NZ, STATUS) column. 
+        Note: 
+            * Z, RAW_NZ, NZ are used if use_real_density = False 
+            * Z / STATUS are used to plot some figures -> not used if show = False and savedir is None
+        
     sel_pnz : boolean array
         Mask to select high denisty mock with correct n(z) in mock.
     wsys : :class:`PhotoWeight`
         Photometric weight used to compute mock computation. See :class:`PhotoWeight` to build it easily.
     use_real_density : bool
         If True use density from PhotoWeight class instead of the ratio from mock which is the same for each photometric footprint...
+        If False, you do not match the observed density in each photometric footprint
     seed : int
         Numpy seed for reproductibility of np.random.random()
     show : bool

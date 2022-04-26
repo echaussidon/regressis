@@ -159,8 +159,8 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
 
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, regions=['North', 'South', 'Des'],
-                             ax_lim=0.2, adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
-                             cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False,
+                             ax_lim=0.2, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
+                             cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True,
                              show=False, save=True, savedir=None):
     """
     Create systematic plots (ie) relative density of pixel map as a function of observational features.
@@ -212,7 +212,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         pix_to_keep = _select_good_pixels(region, fracarea, footprint, cut_fracarea, limits_fracarea=limits_fracarea)
 
         # Plot photometric systematic plots:
-        fig = plt.figure(num_fig, figsize=(8.0, 5.2))
+        fig = plt.figure(num_fig, figsize=figsize)
         gs = GridSpec(4, 3, figure=fig, left=0.1, right=0.92, bottom=0.08, top=0.98, hspace=0.55, wspace=0.25)
 
         num_to_plot = 0
@@ -257,8 +257,9 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
             if i == 10:
                 title = region if legend_title else None
-                ax.legend(bbox_to_anchor=(-1.20, 0.85), loc='upper left', borderaxespad=0., frameon=False, ncol=1, title=title)
-                ax_hist.legend(bbox_to_anchor=(-1.20, 0.35), loc='upper left', borderaxespad=0., frameon=False, ncol=1)
+                ax.legend(bbox_to_anchor=(-1.3, 0.9), loc='upper left', borderaxespad=0., frameon=False, ncol=1, title=title)
+                if hist_legend:
+                    ax_hist.legend(bbox_to_anchor=(-1.3, 0.2), loc='upper left', borderaxespad=0., frameon=False, ncol=1)
 
         if save:
             plt.savefig(os.path.join(savedir, f"{region}_systematics_plot.pdf"))
