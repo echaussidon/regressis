@@ -27,7 +27,7 @@ _all_feature_names = ['STARDENS', 'EBV', 'STREAM',
                       'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
                       'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
 
-_all_regions = ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_pole', 'South_mid_no_des', 'Des_mid']
+_all_regions = ['North', 'South', 'Des', 'South_all', 'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'South_mid_no_des', 'Des_mid']
 
 
 def _get_feature_names(tracer=None, use_stream=None, use_stars=None, feature_names=None):
@@ -195,7 +195,7 @@ def _get_nfold_params(params=None, regions=None):
     param : dict
         Dictionary containing for each region the number of folds for the k-fold training.
     """
-    default = _format_regressor_params({'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_pole':5, 'Des_mid':3}, regions=regions)
+    default = _format_regressor_params({'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_mid_ngc':7, 'South_mid_sgc':7, 'South_pole':5, 'Des_mid':3}, regions=regions)
     utils.deep_update(default, _format_regressor_params(params or {}, regions=regions))
     return default
 
