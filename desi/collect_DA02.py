@@ -19,7 +19,7 @@ logger = logging.getLogger('Collect_desi_target')
 def _redshift_selection(tracer):
     """ It gives the correct redshift range for clustering analysis as a function of tracer.  
         see: https://github.com/desihub/LSS/blob/692e1943cc87fa52490eed2181e0ca52603974f4/scripts/main/mkCat_main.py#L239 """
-    if tracer == 'BGS':
+    if tracer in ['BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT']:
         z_lim = (0.1, 0.5)
     elif tracer == 'LRG':
         z_lim = (0.4, 1.1)
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     #LSS = '/global/cfs/cdirs/desi/survey/catalogs/DA02/LSS/everest/LSScats/1'
 
     version = 'DA02'
-    tracers = ['BGS_ANY', 'LRG', 'ELG', 'QSO']
+    tracers = ['BGS_ANY', 'BGS_BRIGHT', 'LRG', 'ELG', 'QSO']
     nside = 128 # same nside for all tracer
     dir_out = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/')
 

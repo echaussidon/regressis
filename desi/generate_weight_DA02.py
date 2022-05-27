@@ -73,6 +73,29 @@ def _bgs_any_weight(seed):
     cut_fracarea = False
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
+    
+    
+def _bgs_bright_weight(seed):
+    """
+        Compute weight with standard parametrization for BGS_BRIGHT in DA02.
+    """
+    logger.info("Compute weight for BGS_BRIGHT at Nside=128")
+
+    version, tracer, suffix_tracer, nside = 'DA02', 'BGS_BRIGHT', '', 128
+    suffix_regressor = ''
+    dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=True, mask_around_des=True, cut_desi=False)
+
+    param = dict()
+    param['data_dir'] = '../data'
+    param['output_dir'] = '../res/DA02'
+    param['use_median'] = False
+    param['use_new_norm'] = False
+    param['regions'] = ['North', 'South', 'Des']
+    max_plot_cart = 1500
+
+    cut_fracarea = False
+
+    _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
 
 
 def _lrg_weight(seed):
@@ -164,6 +187,7 @@ if __name__ == '__main__':
     mkdir('../res/DA02')
 
     _bgs_any_weight(210)
+    _bgs_bright_weight(2010)
     _lrg_weight(220)
     _elg_weight(240)
     _qso_weight(250)
