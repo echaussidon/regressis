@@ -59,7 +59,7 @@ class DR9Footprint(Footprint):
     Name: North = MzLS, South = DECaLS (without DES), Des = DES
     WARNING: ISSOUTH is everything with Dec. < 32.275
     """
-    def __init__(self, nside=256, mask_lmc=False, clear_south=False, mask_around_des=False, cut_desi=False, pixmap=None):
+    def __init__(self, nside=256, mask_lmc=False, clear_south=False, mask_around_des=False, cut_desi=False, pixmap=None, verbose=True):
         """
         Initialize :class:`DR9Footprint` .
 
@@ -77,13 +77,17 @@ class DR9Footprint(Footprint):
             Mask out the south part of the NGC with Dec. < -30. It is expected to be not observed with the nominal DESI Y5.
         pixmap : bool array or str, default=None
             Footprint map array, or path to the .fits file containg this array. Defaults to footprint in ./data/.
+        verbose : bool, default=True
+            Enable or not to display info with logger. Usefull if DR9Footprint is used with MPI.
         """
         self.nside = nside
         self.mask_lmc = mask_lmc
         self.clear_south = clear_south
         self.mask_around_des = mask_around_des
         self.cut_desi = cut_desi
-        logger.info(f'Load DR9 footprint with mask_lmc={self.mask_lmc}, clear_south={self.clear_south}, mask_around_des={self.mask_around_des} and cut_desi={self.cut_desi}')
+        self.verbose = verbose
+        if self.verbose:
+            logger.info(f'Load DR9 footprint with mask_lmc={self.mask_lmc}, clear_south={self.clear_south}, mask_around_des={self.mask_around_des} and cut_desi={self.cut_desi}')
 
         path_pixmap = None
         if isinstance(pixmap, str):
@@ -133,7 +137,7 @@ class DR9Footprint(Footprint):
             mask_around_des[self.data['ISDES']] = False
             pixmap[mask_around_des] = False
 
-        if self.cut_desi: # restricted to DESI footprint
+        if self.cut_desi:  # restricted to DESI footprint
             pixmap[utils.hp_in_box(self.nside, [0, 360, -90, -30])] = False
 
         if self.nside != 256:
@@ -216,7 +220,7 @@ class DR9Footprint(Footprint):
         elif region == 'des':
             return self.get_imaging_surveys()[2]
         elif region == 'des_mid':
-            map = self.get_imaging_surveys()[2] & ~self.get_elg_region()[2]
+            return self.get_imaging_surveys()[2] & ~self.get_elg_region()[2]
         elif region == 'south_mid':
             return self.get_elg_region()[1]
         elif region == 'south_mid_ngc':
@@ -246,12 +250,15 @@ class DR9Footprint(Footprint):
         region = region.lower()
         keep_to_norm = np.zeros(hp.nside2npix(self.nside), dtype='?')
         if region == 'north':
-            logger.info("Use (R.A., Dec.) box: [120, 240, 32.2, 40] to compute mean density")
+            if self.verbose:
+                logger.info("Use (R.A., Dec.) box: [120, 240, 32.2, 40] to compute mean density")
             keep_to_norm[utils.hp_in_box(self.nside, [120, 240, 32.2, 40], inclusive=True)] = True
         elif region in ['south', 'south_ngc', 'south_mid', 'south_mid_ngc', 'south_all', 'south_all_ngc']:
-            logger.info("Use (R.A., Dec.) box: [120, 240, 24, 32.2] to compute mean density")
+            if self.verbose:
+                logger.info("Use (R.A., Dec.) box: [120, 240, 24, 32.2] to compute mean density")
             keep_to_norm[utils.hp_in_box(self.nside, [120, 240, 24, 32.2], inclusive=True)] = True
         else:
             keep_to_norm[:] = True
-            logger.info("No restriction to compute mean density")
+            if self.verbose:
+                logger.info("No restriction to compute mean density")
         return keep_to_norm
