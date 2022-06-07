@@ -105,10 +105,10 @@ class PhotoWeight(object):
         frac_to_remove : array like
             Healpix map in nested scheme with self.nside. Contain the percentage of how many targets will be removed during mocks contamination.
         """
-        frac_to_remove = np.zeros(self.map.size)*np.nan
+        frac_to_remove = np.zeros(self.map.size) * np.nan
         for region in self.regions:
-            frac_to_remove[self.mask_region[region]] = 1 - 1/(self.map[self.mask_region[region]]*ratio_mock_reality[region])
-        frac_to_remove[frac_to_remove<0] = 0.
+            frac_to_remove[self.mask_region[region]] = 1 - 1 / (self.map[self.mask_region[region]] * ratio_mock_reality[region])
+        frac_to_remove[frac_to_remove < 0] = 0.
         return frac_to_remove
 
 
