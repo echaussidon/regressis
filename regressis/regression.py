@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import os
-import sys
 import time
 import logging
 
@@ -14,7 +13,7 @@ from sklearn.model_selection import GroupKFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression
-from joblib import dump, load
+from joblib import dump
 
 from . import utils
 from .weight import PhotoWeight
@@ -123,8 +122,8 @@ def _get_rf_params(params=None, n_jobs=6, seed=123, regions=None):
     params : dict
         Dictionary containing for each region a dictionary of the hyperparameters for the regressor.
     """
-    default = _format_regressor_params({'n_estimators':200, 'min_samples_leaf':20, 'max_depth':None,
-                                        'max_leaf_nodes':None, 'n_jobs':n_jobs, 'random_state':seed},
+    default = _format_regressor_params({'n_estimators': 200, 'min_samples_leaf': 20, 'max_depth': None,
+                                        'max_leaf_nodes': None, 'n_jobs': n_jobs, 'random_state': seed},
                                        regions=regions)
     utils.deep_update(default, _format_regressor_params(params or {}, regions=regions))
     return default
@@ -150,7 +149,7 @@ def _get_mlp_params(params=None, seed=123, regions=None):
         Dictionary containing for each region a dictionary of the hyperparameters for the regressor.
     """
     default = _format_regressor_params({'activation': 'logistic', 'batch_size': 1000, 'hidden_layer_sizes': (10, 8),
-                                        'max_iter': 6000, 'n_iter_no_change': 100, 'solver': 'adam', 'tol': 1e-5, 'random_state':seed},
+                                        'max_iter': 6000, 'n_iter_no_change': 100, 'solver': 'adam', 'tol': 1e-5, 'random_state': seed},
                                        regions=regions)
     utils.deep_update(default, _format_regressor_params(params or {}, regions=regions))
     return default
@@ -195,7 +194,7 @@ def _get_nfold_params(params=None, regions=None):
     param : dict
         Dictionary containing for each region the number of folds for the k-fold training.
     """
-    default = _format_regressor_params({'North':6, 'South':12, 'Des':6, 'South_all':18, 'South_mid':14, 'South_mid_ngc':7, 'South_mid_sgc':7, 'South_pole':5, 'Des_mid':3}, regions=regions)
+    default = _format_regressor_params({'North': 6, 'South': 12, 'Des': 6, 'South_all': 18, 'South_mid': 14, 'South_mid_ngc': 7, 'South_mid_sgc': 7, 'South_pole': 5, 'Des_mid': 3}, regions=regions)
     utils.deep_update(default, _format_regressor_params(params or {}, regions=regions))
     return default
 
@@ -289,14 +288,14 @@ class Regression(object):
         # If not self.dataframe.output is None --> save figure and info !!
         if self.dataframe.output_dir is not None:
             # create the corresponding output folder --> put here since self.regressor_name can be update with use_kfold = False
-            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)):
+            if os.path.isdir(os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor)):
                 if not overwrite:
                     raise ValueError(f"{os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)} already exists and overwrite is set as {overwrite}")
                 logger.warning(f"Overwriting {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)}")
                 logger.warning(f"Please remove the output folder to have a clean output: rm -rf {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)}")
             else:
                 logger.info(f"The output folder {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)} is created")
-            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor))
+            utils.mkdir(os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor))
         self.run()
 
     def run(self):
@@ -312,13 +311,13 @@ class Regression(object):
         for region in self.dataframe.regions:
             if self.dataframe.output_dir is not None:
                 save_info = True
-                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, region)
+                save_dir = os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor, region)
                 utils.mkdir(save_dir)
             else:
                 save_info = False
                 save_dir = None
 
-            zone = self.dataframe.footprint(region) # mask array
+            zone = self.dataframe.footprint(region)  # mask array
 
             logger.info(f"  ** {region} :")
             X = self.dataframe.features[self.feature_names][zone]
@@ -334,7 +333,7 @@ class Regression(object):
                 self.regressor.set_params(**params)
 
             if self.use_kfold:
-                size_group = 1000  * (self.dataframe.nside / 256)**2 # define to have ~ 52 deg**2 for each patch (ie) group
+                size_group = 1000 * (self.dataframe.nside / 256)**2  # define to have ~ 52 deg**2 for each patch (ie) group
                 Y_pred[zone], fold_index[region] = self.fit_and_predict_on_kfold(self.regressor, self.nfold[region], size_group, X, Y, pixels_zone, self.dataframe.nside, keep_to_train_zone,
                                                                                  use_sample_weight=self.use_sample_weight, feature_names=self.feature_names, feature_names_to_normalize=self.feature_names_to_normalize,
                                                                                  compute_permutation_importance=self.compute_permutation_importance,
@@ -347,12 +346,12 @@ class Regression(object):
                 fold_index = None
 
         # save evalutaion and fold_index
-        self.Y_pred = Y_pred # Y_pred for every entry in each zone
-        self.fold_index = fold_index # fold_index --> useful to save if we want to reapply the regressor
+        self.Y_pred = Y_pred  # Y_pred for every entry in each zone
+        self.fold_index = fold_index  # fold_index --> useful to save if we want to reapply the regressor
 
         if save_info and fold_index is not None:
             logger.info(f"    --> Save k-fold index in {os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, f'kfold_index.joblib')}")
-            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, f'kfold_index.joblib'))
+            dump(self.fold_index, os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor, 'kfold_index.joblib'))
 
     @staticmethod
     def build_kfold(kfold, pixels, groups):
@@ -399,17 +398,17 @@ class Regression(object):
             Title for the figure.
         """
         map = np.zeros(hp.nside2npix(nside))
-        for i, index in enumerate(index_list) :
-            map[pixels[index]] = i + 1 # to avoid 0
+        for i, index in enumerate(index_list):
+            map[pixels[index]] = i + 1  # to avoid 0
         map[map == 0] = np.nan
 
-        #attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
+        # attention au sens de l'axe en RA ! --> la on le prend normal et on le retourne à la fin :)
         plt.figure(1)
         map_to_plot = hp.cartview(map, nest=True, flip='geo', rot=120, fig=1, return_projected_map=True)
         plt.close()
 
-        fig, ax = plt.subplots(figsize=(10,6))
-        map_plotted = plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
+        fig, ax = plt.subplots(figsize=(10, 6))
+        plt.imshow(map_to_plot, interpolation='nearest', cmap='jet', origin='lower', extent=[-60, 300, -90, 90])
         ax.set_xlim(-60, 300)
         ax.xaxis.set_ticks(np.arange(-60, 330, 30))
         plt.gca().invert_xaxis()
@@ -469,8 +468,8 @@ class Regression(object):
             logger.info("          --> All features (except the STREAM) are normalized and centered on the training footprint")
             mean, std = X_train[feature_names_to_normalize].mean(), X_train[feature_names_to_normalize].std()
             X_for_training = X_train.copy()
-            X_for_training[feature_names_to_normalize] = (X_train[feature_names_to_normalize] - mean)/std
-            X_eval[feature_names_to_normalize] = (X_eval[feature_names_to_normalize] - mean)/std
+            X_for_training[feature_names_to_normalize] = (X_train[feature_names_to_normalize] - mean) / std
+            X_eval[feature_names_to_normalize] = (X_eval[feature_names_to_normalize] - mean) / std
             logger.info(f"          --> Mean of mean and std on the fold-training features: {X_for_training[feature_names_to_normalize].mean().mean():2.4f} -- {X_for_training[feature_names_to_normalize].std().mean():2.2f}")
         else:
             logger.info("          --> Features are not normalized")
@@ -478,7 +477,7 @@ class Regression(object):
 
         if use_sample_weight:
             logger.info("          --> The training is done with sample_weight = 1/np.sqrt(Y_train)")
-            regressor.fit(X_for_training, Y_train, sample_weight=1/np.sqrt(Y_train))
+            regressor.fit(X_for_training, Y_train, sample_weight=1 / np.sqrt(Y_train))
         else:
             regressor.fit(X_for_training, Y_train)
 
@@ -557,7 +556,7 @@ class Regression(object):
             For each fold, the index list of pixels belonging to that fold; output of :meth:`Regression.build_kfold`.
         """
         kfold = GroupKFold(n_splits=nfold)
-        groups = [i//size_group for i in range(pixels.size)]
+        groups = [i // size_group for i in range(pixels.size)]
         logger.info(f"    --> We use: {kfold} k-fold with group_size = {size_group}")
         index = cls.build_kfold(kfold, pixels, groups)
         if save_info:
@@ -602,15 +601,15 @@ class Regression(object):
         w : ``PhotoWeight`` class
             Weight class with callable function to apply it into a real catalogue.
         """
-        w = np.zeros(hp.nside2npix(self.dataframe.nside))*np.nan
-        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0/self.Y_pred[self.Y_pred > 0]
+        w = np.zeros(hp.nside2npix(self.dataframe.nside)) * np.nan
+        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
         weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions,
-                             mask_region={region:self.dataframe.footprint(region) for region in self.dataframe.regions},
+                             mask_region={region: self.dataframe.footprint(region) for region in self.dataframe.regions},
                              mean_density_region=self.dataframe.mean_density_region)
 
         if save:
             if savedir is None:
-                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor)
+                savedir = os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor)
             filename_save = os.path.join(savedir, f'{self.dataframe.version}_{self.dataframe.tracer}{self.dataframe.suffix_tracer}_imaging_weight_{self.dataframe.nside}.npy')
             weight.save(filename_save)
 
@@ -633,14 +632,14 @@ class Regression(object):
         """
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
         plt.subplots_adjust(left=0.07, right=0.96, bottom=0.1, top=0.9, wspace=0.3)
-        ax[0].scatter(np.arange(Y.size), Y, color = 'red', label='Initial (before regression)')
-        ax[0].scatter(np.arange(Y_pred.size), Y_pred, color = 'blue', label='Predicted (after regression)')
+        ax[0].scatter(np.arange(Y.size), Y, color='red', label='Initial (before regression)')
+        ax[0].scatter(np.arange(Y_pred.size), Y_pred, color='blue', label='Predicted (after regression)')
         ax[0].legend()
         ax[0].set_xlabel('Pixel Number')
         ax[0].set_ylabel('Normalized Target Density')
 
-        ax[1].hist(Y, color='blue', bins=50, range=(0.,2.), density=1, label='Initial')
-        ax[1].hist(Y_pred, color='red', histtype='step', bins=50, range=(0.,2.), density=1, label='Predicted')
+        ax[1].hist(Y, color='blue', bins=50, range=(0., 2.), density=1, label='Initial')
+        ax[1].hist(Y_pred, color='red', histtype='step', bins=50, range=(0., 2.), density=1, label='Predicted')
         ax[1].legend()
         ax[1].set_xlabel('Normalized Target Density')
 
@@ -671,7 +670,7 @@ class Regression(object):
         feature_all = pd.DataFrame([tree.feature_importances_ for tree in regressor.estimators_], columns=feature_names)
         feature_all = pd.melt(feature_all, var_name='feature name', value_name='values')
 
-        fig = plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 6))
         ax = plt.gca()
         sns.swarmplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], alpha=0.7, size=2, color="k")
         sns.boxplot(ax=ax, x="feature name", y="values", data=feature_all, order=feature_importance.index[:max_num_feature], fliersize=0.6, palette=sns.color_palette("husl", 8), linewidth=0.6, showmeans=False, meanline=True, meanprops=dict(linestyle=':', linewidth=1.5, color='dimgrey'))
@@ -715,7 +714,7 @@ class Regression(object):
 
             fig, ax = plt.subplots()
             ax.boxplot(permut_importance.importances.T, vert=False, labels=[utils.to_tex(name) for name in feature_names])
-            ax.set_title(f"Permutation Importance")
+            ax.set_title("Permutation Importance")
             ax.set_ylabel("Features")
             fig.tight_layout()
             plt.savefig(filename)
@@ -723,7 +722,8 @@ class Regression(object):
 
     def plot_maps_and_systematics(self, show=False, save=True, max_plot_cart=400, ax_lim=0.2,
                                   adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
-                                  cut_fracarea=True, limits_fracarea=(0.9, 1.1)):
+                                  cut_fracarea=True, limits_fracarea=(0.9, 1.1),
+                                  save_table=False, save_table_suffix=''):
         """
         Make plot to check and validate the regression.
         The results are saved in the corresponding output directory.
@@ -750,27 +750,31 @@ class Regression(object):
             If ``True`` remove queue distribution of the fracarea.
         fracarea_limits : tuple, list, default=None
             If a tuple or list, min and max limits for fracarea.
+        save_table : bool
+            If true, save in .ecsv format the lines plotted as requiered by the DESI collaboration during the publication process.
+        save_table_suffix : str
+            If save_table is True, the line will be saved under `f'{save_table_suffix}{sysname}_{label}.ecsv'`
         """
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
 
         if save:
-            dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name+self.suffix_regressor, 'Fig')
+            dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor, 'Fig')
             if not os.path.isdir(dir_output):
                 os.mkdir(dir_output)
             logger.info(f"Save density maps and systematic plots in the output directory: {dir_output}")
         else:
             dir_output = None
 
-        with np.errstate(divide='ignore',invalid='ignore'): #to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
-            targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True)*self.dataframe.fracarea)
+        with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
+            targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
         targets[~self.dataframe.footprint('Footprint')] = np.nan
 
         w = np.zeros(hp.nside2npix(self.dataframe.nside))
-        w[self.dataframe.pixels[self.Y_pred>0]] = 1.0/self.Y_pred[self.Y_pred>0]
-        targets_without_systematics = targets*w
+        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
+        targets_without_systematics = targets * w
 
-        with np.errstate(divide='ignore',invalid='ignore'):
+        with np.errstate(divide='ignore', invalid='ignore'):
             filename = None
             if save: filename = os.path.join(dir_output, 'targets.pdf')
             plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
@@ -782,7 +786,8 @@ class Regression(object):
             if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
             plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
 
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'], self.dataframe.fracarea,
-                                  self.dataframe.footprint, self.dataframe.features, self.dataframe.regions,
-                                  ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
-                                  cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, show=show, save=save, savedir=dir_output)
+        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
+                                 self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.regions,
+                                 ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
+                                 cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea,
+                                 save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)
