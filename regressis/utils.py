@@ -23,8 +23,8 @@ def exception_handler(exc_type, exc_value, exc_traceback):
     # Do not print traceback if the exception has been handled and logged
     _logger_name = 'Exception'
     log = logging.getLogger(_logger_name)
-    line = '='*100
-    #log.critical(line[len(_logger_name) + 5:] + '\n' + ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)) + line)
+    line = '=' * 100
+    # log.critical(line[len(_logger_name) + 5:] + '\n' + ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)) + line)
     log.critical('\n' + line + '\n' + ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)) + line)
     if exc_type is KeyboardInterrupt:
         log.critical('Interrupted by the user.')
@@ -45,18 +45,18 @@ def setup_logging(log_level="info", stream=sys.stdout, log_file=None):
     log_file : str, default=None
         If not ``None`` stream to file name.
     """
-    levels = {"info" : logging.INFO,
-              "debug" : logging.DEBUG,
-              "warning" : logging.WARNING,
-              "error" : logging.ERROR}
+    levels = {"info": logging.INFO,
+              "debug": logging.DEBUG,
+              "warning": logging.WARNING,
+              "error": logging.ERROR}
 
-    logger = logging.getLogger();
+    logger = logging.getLogger()
     t0 = time.time()
 
     class Formatter(logging.Formatter):
         def format(self, record):
             self._style._fmt = '[%09.2f]' % (time.time() - t0) + ' %(asctime)s %(name)-20s %(levelname)-8s %(message)s'
-            return super(Formatter,self).format(record)
+            return super(Formatter, self).format(record)
     fmt = Formatter(datefmt='%y-%m-%d %H:%M ')
 
     global _logging_handler
@@ -85,7 +85,7 @@ def setup_mplstyle():
 def mkdir(dirname):
     """Try to create ``dirnm`` and catch :class:`OSError`."""
     try:
-        os.makedirs(dirname) # MPI...
+        os.makedirs(dirname)  # MPI...
     except OSError:
         return
 
@@ -130,8 +130,8 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     columns : list of str
         List of columns to read. Useful to avoid to use too much memory.
 
-    Returns :
-    ---------
+    Returns
+    -------
     data_frame : pandas.DataFrame
         Data frame containing data in the fits file.
     """
@@ -205,7 +205,7 @@ def mean_on_healpix_map(map, depth_neighbours=1):
         pixel_list = hp.get_all_neighbours(nside, i, nest=True)
         pixel_tmp = pixel_list
         depth_neighbours -= 1
-        while depth_neighbours != 0 :
+        while depth_neighbours != 0:
             pixel_tmp = hp.get_all_neighbours(nside, pixel_tmp, nest=True)
             pixel_tmp = np.reshape(pixel_tmp, pixel_tmp.size)
             pixel_list = np.append(pixel_list, pixel_tmp)
@@ -216,7 +216,7 @@ def mean_on_healpix_map(map, depth_neighbours=1):
     mean_map = np.zeros(map.size)
     for i in range(map.size):
         neighbour_pixels = get_all_neighbours(nside, i, depth_neighbours)
-        mean_map[i] = np.nansum(map[neighbour_pixels], axis=0)/neighbour_pixels.size
+        mean_map[i] = np.nansum(map[neighbour_pixels], axis=0) / neighbour_pixels.size
     return mean_map
 
 
@@ -255,13 +255,13 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     ramin, ramax, decmin, decmax = radecbox
 
     # ADM area enclosed isn't well-defined if RA covers more than 180o.
-    if np.abs(ramax-ramin) <= 180.:
+    if np.abs(ramax - ramin) <= 180.:
         # ADM retrieve RA range. The 1e-3 prevents edge effects near poles.
-        npole, spole = 90-1e-3, -90+1e-3
+        npole, spole = 90 - 1e-3, -90 + 1e-3
         # ADM convert RA/Dec to co-latitude and longitude in radians.
         rapairs = np.array([ramin, ramin, ramax, ramax])
         decpairs = np.array([spole, npole, npole, spole])
-        thetapairs, phipairs = np.radians(90.-decpairs), np.radians(rapairs)
+        thetapairs, phipairs = np.radians(90. - decpairs), np.radians(rapairs)
 
         # ADM convert to Cartesian vectors remembering to transpose
         # ADM to pass the array to query_polygon in the correct order.
@@ -278,9 +278,9 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     # ADM convert Dec to co-latitude in radians.
     # ADM remember that, min/max swap because of the -ve sign.
     # ADM determine the pixels that touch the box.
-    pixring = hp.query_strip(nside, np.radians(90.-decmax), np.radians(90.-decmin),
+    pixring = hp.query_strip(nside, np.radians(90. - decmax), np.radians(90. - decmin),
                              inclusive=inclusive, nest=False)
-    pixdec = hp.ring2nest(nside, pixring) # not yet implemented
+    pixdec = hp.ring2nest(nside, pixring) ‡ # not yet implemented
 
     # ADM return the pixels in the box.
     pixnum = list(set(pixra).intersection(set(pixdec)))
