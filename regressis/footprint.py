@@ -29,6 +29,7 @@ class Footprint(object):
             The resolution of the Healpix masks.
         """
         self.nside = 256
+        self.verbose = True
         self.default_regions = ['Footprint']
 
     def __call__(self, region):
