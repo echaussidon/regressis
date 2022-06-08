@@ -16,6 +16,10 @@ Strict requirements are:
 
 Documentation is hosted on Read the Docs, [regressis docs](https://regressis.readthedocs.io/).
 
+## Citing
+
+If you made use this code for your research, reference it by citing [Chaussidon et al. 2022](https://doi.org/10.1093/mnras/stab3252).
+
 ## Installation
 
 ### pip

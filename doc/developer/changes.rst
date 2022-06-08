@@ -6,6 +6,8 @@ Change Log
 Main (2022-06-08)
 -----------------
 
+* Follow now the flake8 convention.
+
 * Add `save_table` option in `regressis/systematics.py/plot_systematic_from_map` to save line in .ecsv format in order to respect the DESI publication rules.
 
 * Add DESIFootprint in `regressis/footprint.py`. The file is generated in NERSC at Nside=256. We generate the file instead of called
