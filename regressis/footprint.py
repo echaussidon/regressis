@@ -311,7 +311,7 @@ class DESIFootprint(Footprint):
         else:
             self.data = pixmap
 
-        self.default_region = 'y5'
+        self.default_regions = [default_region]
         self.default_program = 'dark'
         # remark: Global = Footprint = Y5
         self.available_regions = ['sv1', 'sv2', 'sv3', 'da02', 'y1', 'y5', 'global', 'footprint']
@@ -352,7 +352,7 @@ class DESIFootprint(Footprint):
             Region to select.
         """
         if region is None:
-            region = self.default_region
+            region = self.default_regions[0]
         if program is None:
             program = self.default_program
 
