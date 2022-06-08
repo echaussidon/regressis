@@ -280,7 +280,7 @@ def hp_in_box(nside, radecbox, inclusive=True, fact=4):
     # ADM determine the pixels that touch the box.
     pixring = hp.query_strip(nside, np.radians(90. - decmax), np.radians(90. - decmin),
                              inclusive=inclusive, nest=False)
-    pixdec = hp.ring2nest(nside, pixring) ‡ # not yet implemented
+    pixdec = hp.ring2nest(nside, pixring)  # not yet implemented
 
     # ADM return the pixels in the box.
     pixnum = list(set(pixra).intersection(set(pixdec)))
