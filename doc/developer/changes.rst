@@ -6,6 +6,8 @@ Change Log
 Main (2022-06-08)
 -----------------
 
+* Add BGS_ANY / BGS_BRIGHT / BGS_FAINT to `regression.py/_get_feature_names` 
+
 * Follow now the flake8 convention.
 
 * Add `save_table` option in `regressis/systematics.py/plot_systematic_from_map` to save line in .ecsv format in order to respect the DESI publication rules.

@@ -60,7 +60,7 @@ def _get_feature_names(tracer=None, use_stream=None, use_stars=None, feature_nam
         to_remove = ['PSFDEPTH_W1', 'PSFDEPTH_W2']
     elif tracer == 'LRG':
         to_remove = ['PSFDEPTH_W2']
-    elif tracer == 'BGS':
+    elif tracer in ['BGS', 'BGS_ANY', 'BGS_FAINT', 'BGS_BRIGHT']:
         to_remove = ['PSFDEPTH_W1', 'PSFDEPTH_W2']
 
     if use_stars is None: use_stars = True
