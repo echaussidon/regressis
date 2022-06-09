@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import shutil
 import logging
 
 from regressis import PhotometricDataFrame, Regression, DR9Footprint, setup_logging
@@ -24,7 +22,7 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, suffix_regressor,
         Useful only to load default map saved in data_dir and for the output name of the directory or filename.
     tracer: str
         Which tracer you want to use. Usefull only to load default map saved in data_dir and for
-        the output name of the directory or file name.
+        the output name of the directory or file name. Used also to load feature_name if feature_names is none
     footprint: Footprint
         Contain all the footprint informations needed to extract the specific regions from an healpix map.
     suffix_tracer: str
@@ -47,7 +45,8 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, suffix_regressor,
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=cut_fracarea)
-    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, n_jobs=55, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
+    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, feature_names=feature_names,
+                            n_jobs=55, use_kfold=True, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
     _ = regression.get_weight(save=True)
     regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart, cut_fracarea=cut_fracarea, ax_lim=0.1)
 
@@ -73,8 +72,8 @@ def _bgs_any_weight(seed):
     cut_fracarea = False
 
     _compute_weight(version, tracer, dr9_footprint, suffix_tracer, suffix_regressor, cut_fracarea, seed, param, max_plot_cart)
-    
-    
+
+
 def _bgs_bright_weight(seed):
     """
         Compute weight with standard parametrization for BGS_BRIGHT in DA02.
@@ -125,7 +124,7 @@ def _elg_weight(seed):
     """
         Compute weight with standard parametrization for ELG in DA02.
     """
-    logger.info(f"Compute weight for ELG at Nside=128")
+    logger.info("Compute weight for ELG at Nside=128")
 
     version, tracer, suffix_tracer, nside = 'DA02', 'ELG', '', 128
     suffix_regressor = ''
@@ -180,6 +179,7 @@ def _qso_weight(seed, use_stream=True, use_stardens=True):
 
 
 if __name__ == '__main__':
+    import shutil
 
     setup_logging(log_file='DA02.log')
     setup_mplstyle()

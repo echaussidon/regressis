@@ -2,11 +2,9 @@
 # coding: utf-8
 
 import os
-import sys
 import logging
 
 import numpy as np
-import healpy as hp
 
 from desitarget.io import read_targets_in_box
 

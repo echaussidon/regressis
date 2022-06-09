@@ -29,8 +29,8 @@ def _match_to_dr9(cat_sag):
             lst = []
             for i in range(len(ra) - 1):
                 for j in range(len(dec) - 1):
-                    ra1, ra2 = str(ra[i]), str(ra[i+1])
-                    dec1, dec2 = dec[j], dec[j+1]
+                    ra1, ra2 = str(ra[i]), str(ra[i + 1])
+                    dec1, dec2 = dec[j], dec[j + 1]
 
                     if len(ra1) == 1:
                         ra1 = f'00{ra1}'
@@ -42,7 +42,7 @@ def _match_to_dr9(cat_sag):
                     elif len(ra2) == 2:
                         ra2 = f'0{ra2}'
 
-                    if dec1<0:
+                    if dec1 < 0:
                         dec1 = str(dec1)[1:]
                         sgn1 = 'm'
                     else:
@@ -53,7 +53,7 @@ def _match_to_dr9(cat_sag):
                     else:
                         dec1 = f'0{dec1}'
 
-                    if dec2<0:
+                    if dec2 < 0:
                         dec2 = str(dec2)[1:]
                         sgn2 = 'm'
                     else:
@@ -79,7 +79,7 @@ def _match_to_dr9(cat_sag):
     sweepname = os.path.join(dirname, 'sweep-{}{}{}-{}{}{}.fits')
     list_name = _collect_name_for_stream_region()
 
-    coord_sag = SkyCoord(ra=cat_sag['ra'].values*u.degree, dec=cat_sag['dec'].values*u.degree)
+    coord_sag = SkyCoord(ra=cat_sag['ra'].values * u.degree, dec=cat_sag['dec'].values * u.degree)
     logger.info(f"catalog sag size : {cat_sag.size}")
 
     sag_dr9 = pd.DataFrame()
@@ -102,7 +102,7 @@ def _match_to_dr9(cat_sag):
                            'FLUX_G', 'FLUX_R', 'FLUX_Z', 'FLUX_W1', 'FLUX_W2',
                            'MW_TRANSMISSION_G', 'MW_TRANSMISSION_R', 'MW_TRANSMISSION_Z', 'MW_TRANSMISSION_W1', 'MW_TRANSMISSION_W2']
                 sweep = pd.DataFrame(fitsio.FITS(sweepname.format(*name))['SWEEP'][columns].read().byteswap().newbyteorder())
-                coord_sweep = SkyCoord(ra=sweep['RA'].values*u.degree, dec=sweep['DEC'].values*u.degree)
+                coord_sweep = SkyCoord(ra=sweep['RA'].values * u.degree, dec=sweep['DEC'].values * u.degree)
                 idx, d2d, d3d = coord_sag[sel_in_sag].match_to_catalog_sky(coord_sweep)
                 sel = (d2d.arcsec < 1)
                 logger.info(f"    * Number of objects selected in the sweep file : {sel.sum()}")
@@ -123,9 +123,9 @@ def _build_color_dataFrame(data):
         # Ok no objects are expected in the North.
         toret = []
         for band in ['G', 'R', 'Z', 'W1', 'W2']:
-            flux = data['flux_{}'.format(band)] = data['FLUX_{}'.format(band)][:]/data['MW_TRANSMISSION_{}'.format(band)][:]
+            flux = data['flux_{}'.format(band)] = data['FLUX_{}'.format(band)][:] / data['MW_TRANSMISSION_{}'.format(band)][:]
             flux[np.isinf(flux) | np.isnan(flux)] = 0.
-            mag = np.where(gflux>0, 22.5-2.5*np.log10(gflux), 0.)
+            mag = np.where(flux > 0, 22.5 - 2.5 * np.log10(flux), 0.)
             mag[np.isinf(mag) | np.isnan(mag)] = 0.
             toret.append(mag)
         return toret
@@ -135,25 +135,25 @@ def _build_color_dataFrame(data):
         labels = ['g-r', 'r-z', 'g-z', 'g-W1', 'r-W1', 'z-W1', 'g-W2', 'r-W2', 'z-W2', 'W1-W2', 'r']
         colors = np.zeros((len(g), len(labels)))
 
-        colors[:,0] = g-r
-        colors[:,1] = r-z
-        colors[:,2] = g-z
-        colors[:,3] = g-W1
-        colors[:,4] = r-W1
-        colors[:,5] = z-W1
-        colors[:,6] = g-W2
-        colors[:,7] = r-W2
-        colors[:,8] = z-W2
-        colors[:,9] = W1-W2
-        colors[:,10] = r
+        colors[:, 0] = g - r
+        colors[:, 1] = r - z
+        colors[:, 2] = g - z
+        colors[:, 3] = g - W1
+        colors[:, 4] = r - W1
+        colors[:, 5] = z - W1
+        colors[:, 6] = g - W2
+        colors[:, 7] = r - W2
+        colors[:, 8] = z - W2
+        colors[:, 9] = W1 - W2
+        colors[:, 10] = r
 
         return colors, labels
 
     g, r, z, W1, W2 = mags_from_flux(data)
 
     logger.info('We keep only stars without any photometric problems in DR9')
-    sel = (r >= 16.0) & (g > 16.0) & (z > 16.0) & (W1 > 16.0) & (W2 > 16.0) # remove objects with a missing value
-    sel &= (W1 < 24) & (W2 < 24) # remove to faint objects in WISE --> cannot be selected
+    sel = (r >= 16.0) & (g > 16.0) & (z > 16.0) & (W1 > 16.0) & (W2 > 16.0)  # remove objects with a missing value
+    sel &= (W1 < 24) & (W2 < 24)  # remove to faint objects in WISE --> cannot be selected
 
     values, labels = colors(sel.sum(), g[sel], r[sel], z[sel], W1[sel], W2[sel])
 
@@ -178,8 +178,8 @@ if __name__ == '__main__':
 
     sag_colors = _build_color_dataFrame(sag_dr9)
 
-    sel = (sag_colors['r'] > 18) & (sag_colors['z-W1'] < -0.5) # remove true qsos from the catalog
-    sgr_map =  build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
+    sel = (sag_colors['r'] > 18) & (sag_colors['z-W1'] < -0.5)  # remove true qsos from the catalog
+    sgr_map = build_healpix_map(256, sag_colors['RA'][sel], sag_colors['DEC'][sel], in_deg2=True)
     sgr_map /= np.mean(sgr_map[sgr_map > 0])
     sgr_map = mean_on_healpix_map(sgr_map, depth_neighbours=2)
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import shutil
 import logging
 
 from regressis import PhotometricDataFrame, Regression, DR9Footprint
@@ -44,7 +42,8 @@ def _compute_weight(version, tracer, footprint, suffix_tracer, suffix_regressor,
     dataframe.set_features()
     dataframe.set_targets()
     dataframe.build(cut_fracarea=True)
-    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, n_jobs=40, use_kfold=True, feature_names=feature_names, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
+    regression = Regression(dataframe, regressor='RF', suffix_regressor=suffix_regressor, feature_names=feature_names,
+                            n_jobs=40, use_kfold=True, compute_permutation_importance=True, overwrite=True, seed=seed, save_regressor=False)
     _ = regression.get_weight(save=True)
     regression.plot_maps_and_systematics(max_plot_cart=max_plot_cart, cut_fracarea=True)
 
@@ -145,6 +144,7 @@ def _qso_weight(seed):
 
 
 if __name__ == '__main__':
+    import shutil
 
     setup_logging(log_file='SV3.log')
     setup_mplstyle()
