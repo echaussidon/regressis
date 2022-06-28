@@ -276,7 +276,7 @@ class DESIFootprint(Footprint):
 
     The file is generated here at NERSC in `/global/homes/e/edmondc/Target_Selection/Build_footprint_file/`.
 
-    Name: Y5 = nominal desi footprint, DA02 = first two months of observation
+    Name: Y5 = nominal desi footprint, Y1 = footprint for DR1, DA02 = first two months of observation
     """
 
     def __init__(self, nside=256, pixmap=None, default_region='y5', default_program='dark', verbose=True):
@@ -363,4 +363,5 @@ class DESIFootprint(Footprint):
 
         if (region in self.available_regions) and (program in self.available_programs):
             return self.update_map(self.data[region + '-' + program])
+
         raise ValueError(f"Call of {self.__class__.__name__} is not implemented for region: {region} or {program}")
