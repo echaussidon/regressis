@@ -315,7 +315,7 @@ class DESIFootprint(Footprint):
         self.default_regions = [default_region]
         self.default_program = 'dark'
         # remark: Global = Footprint = Y5
-        self.available_regions = ['sv1', 'sv2', 'sv3', 'da02', 'y1', 'y5', 'global', 'footprint']
+        self.available_regions = ['sv1', 'sv2', 'sv3', 'da02', 'y1', 'y1-3pass', 'y5', 'global', 'footprint']
         self.available_programs = ['dark', 'bright']
 
     def update_map(self, pixmap, copy=True):
