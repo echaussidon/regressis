@@ -144,7 +144,7 @@ def _get_sgr_stream(rot=120):
 
 def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True,
               galactic_plane=False, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True,
-              rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15):
+              rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet'):
     """
     Plot an healpix map in nested scheme with a specific projection.
 
@@ -182,6 +182,10 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
         Position of the xlabel (R.A.). Need to be adpated if figsize is modified.
     ycb_pos : float
         Y position of the colorbar. Need to be adpated if figsize is modified or if title is too long.
+    cmap : ColorMap class of matplotlib
+        Usefull to adapt the color. Especially to create grey area for the Y5 footprint. 
+        For instance: cmap = plt.get_cmap('jet').copy()
+                      cmap.set_extremes(under='darkgrey')  # --> everything under min will be darkgrey
     """
     #transform healpix map to 2d array
     plt.figure(1)
@@ -202,7 +206,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     ax = plt.subplot(111, projection=projection)
     plt.subplots_adjust(left=0.14, bottom=0.18, right=0.96, top=0.90)
 
-    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap='jet', edgecolor='none', lw=0)
+    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap=cmap, edgecolor='none', lw=0)
 
     if label is not None:
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
