@@ -6,7 +6,9 @@ Change Log
 Main (2022-06-08)
 -----------------
 
-* Add BGS_ANY / BGS_BRIGHT / BGS_FAINT to `regression.py/_get_feature_names` 
+* Use now nside from systematic weight class when computing ratio_mock_reality in `mocks.create_flag_imaging_systematic`. The previous implementation did not work with other nside than 256.
+
+* Add BGS_ANY / BGS_BRIGHT / BGS_FAINT to `regression.py/_get_feature_names`
 
 * Follow now the flake8 convention.
 

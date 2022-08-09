@@ -22,11 +22,10 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     Parameters
     ----------
     mock : array like
-        Array containing (Ra, Dec, Z, RAW_NZ, NZ, STATUS) column. 
-        Note: 
-            * Z, RAW_NZ, NZ are used if use_real_density = False 
-            * Z / STATUS are used to plot some figures -> not used if show = False and savedir is None
-        
+        Array containing (Ra, Dec, Z, RAW_NZ, NZ) column.
+        Note:
+            * Z, RAW_NZ, NZ are used if use_real_density = False
+
     sel_pnz : boolean array
         Mask to select high denisty mock with correct n(z) in mock.
     wsys : :class:`PhotoWeight`
@@ -61,21 +60,26 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     # Or use the ratio between mock density and wsys.mean_density_region (NOT expected in deg2) computed from real data.
     if use_real_density:
         logger.info('Use the real density from PhotoWeight class')
-        mock_pnz_density = np.mean(build_healpix_map(256, mock['RA'], mock['DEC'], precomputed_pix=pix_number, sel=sel_pnz, in_deg2=False))
-        ratio_mock_reality = {region:mock_pnz_density/wsys.mean_density_region[region] for region in wsys.regions}
+        mock_pnz_density = build_healpix_map(wsys.nside, mock['RA'], mock['DEC'], precomputed_pix=pix_number, sel=sel_pnz, in_deg2=False)
+        # renormalize also by the mean of wsys.map on each wsys.regions to get the exact mean_density_region
+        # frac_to_remove = 1 - 1 / (wsys * ratio) --> do the mean
+        ratio_mock_reality = {region: np.mean(mock_pnz_density[wsys.mask_region[region]]) / wsys.mean_density_region[region] / np.mean(wsys.map[wsys.mask_region[region]]) for region in wsys.regions}
     else:
+        # TODO
+        # This is not suitable for all mocks ...
+        # add ratio_tmp as argument instead of compute it inside
         logger.info("Use the expected density from mock['RAW_NZ']/mock['NZ']")
         with np.errstate(divide='ignore'):
-            ratio_tmp = np.min(np.abs(mock['RAW_NZ'][mock['Z']>0.3] / mock['NZ'][mock['Z']>0.3]))
-        ratio_mock_reality = {region:ratio_tmp for region in wsys.regions}
+            ratio_tmp = np.min(np.abs(mock['RAW_NZ'][mock['Z'] > 0.3] / mock['NZ'][mock['Z'] > 0.3]))
+        ratio_mock_reality = {region: ratio_tmp for region in wsys.regions}
 
     # Create flag for Legacy Imaging Survey
     is_in_wsys_footprint = (np.array(sum([wsys.mask_region[region] for region in wsys.regions])) > 0)[pix_number]
     # Build fraction of objetcs to remove
     frac_to_remove = wsys.fraction_to_remove_per_pixel(ratio_mock_reality)
     # Build flag to have contaminate mocks with correct n(z) (given by & sel_pnz)
-    r = np.random.RandomState(seed) # Set a random state for reproductibility
-    is_for_wsys_cont = (r.random(pix_number.size) <= (1-frac_to_remove[pix_number])) & sel_pnz
+    r = np.random.RandomState(seed)  # Set a random state for reproductibility
+    is_for_wsys_cont = (r.random(pix_number.size) <= (1 - frac_to_remove[pix_number])) & sel_pnz
     logger.info(f'We remove {(~is_for_wsys_cont & is_in_wsys_footprint).sum() / is_in_wsys_footprint.sum():2.2%} of the objects in the mocks which are in wsys footprint !')
 
     if show or savedir is not None:
@@ -84,7 +88,7 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
 
         plt.figure(figsize=(5, 4))
         plt.hist(frac_to_remove, histtype='step', bins=100, label='fraction to remove')
-        plt.axvline(np.mean(frac_to_remove[frac_to_remove>=0]), ls='--', c='k', label='mean on DR9')
+        plt.axvline(np.mean(frac_to_remove[frac_to_remove >= 0]), ls='--', c='k', label='mean on DR9')
         plt.legend()
         plt.tight_layout()
         if savedir is not None:
@@ -94,11 +98,8 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         else:
             plt.close()
 
-        ## selection mock with expected n(z)
-        sel_nz = mock['STATUS'] & 2**0 != 0
         plt.figure(figsize=(5, 4))
-        plt.hist(mock['Z'][sel_pnz&is_in_wsys_footprint], histtype='step', bins=100, range=(0.0, 2.4), label='high density n(z)')
-        plt.hist(mock['Z'][sel_nz&is_in_wsys_footprint], histtype='step', lw=2.5, bins=100, range=(0.0, 2.4), label='expected n(z)')
+        plt.hist(mock['Z'][sel_pnz & is_in_wsys_footprint], histtype='step', bins=100, range=(0.0, 2.4), label='high density n(z)')
         plt.hist(mock['Z'][is_for_wsys_cont], alpha=0.6, bins=100, range=(0.0, 2.4), label='final n(z)')
         plt.legend()
         plt.xlabel('z')
@@ -126,14 +127,14 @@ if __name__ == '__main__':
 
     def _desi_mock_filename(tracer='LRG', ph=0):
         """Collect the name of DESI Mocks in NERSC."""
-        mock_dir='/global/cfs/cdirs/desi/cosmosim/FirstGenMocks/AbacusSummit/CutSky/'
-        z_dic={'LRG':0.8,'ELG':1.1,'QSO':1.4}
-        fname=f'{mock_dir}{tracer}/z{z_dic[tracer]:5.3f}/cutsky_{tracer}_z{z_dic[tracer]:5.3f}_AbacusSummit_base_c000_ph{ph:003d}.fits'
+        mock_dir = '/global/cfs/cdirs/desi/cosmosim/FirstGenMocks/AbacusSummit/CutSky/'
+        z_dic = {'LRG': 0.8, 'ELG': 1.1, 'QSO': 1.4}
+        fname = f'{mock_dir}{tracer}/z{z_dic[tracer]:5.3f}/cutsky_{tracer}_z{z_dic[tracer]:5.3f}_AbacusSummit_base_c000_ph{ph:003d}.fits'
         return fname
 
     def _save_flag(flag, colname, savename):
         """Save flag with a specif colname in .fits file called savename"""
-        fits = fitsio.FITS(savename, 'rw', clobber=True) #clobber to overwrite file
+        fits = fitsio.FITS(savename, 'rw', clobber=True)  # clobber to overwrite file
         if len(flag) == 1:
             to_save = np.array(flag[0], dtype=[(colname[0], 'bool')])
             fits.write(to_save)
@@ -144,7 +145,7 @@ if __name__ == '__main__':
 
     # Load photometric weight
     from regressis import PhotoWeight
-    wsys = PhotoWeight.load(f'/global/u2/e/edmondc/Software/regressis/res/SV3/SV3_LRG_256/RF/SV3_LRG_imaging_weight_256.npy')
+    wsys = PhotoWeight.load('/global/u2/e/edmondc/Software/regressis/res/SV3/SV3_LRG_256/RF/SV3_LRG_imaging_weight_256.npy')
 
     # Load mock
     mock_name = _desi_mock_filename(tracer='LRG', ph=0)
