@@ -80,7 +80,7 @@ class PhotometricDataFrame(object):
 
         logger.info(f"version: {self.version} -- tracer: {self.tracer} -- regions: {self.regions}")
 
-        self.data_dir = data_dir # where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
+        self.data_dir = data_dir  # where maps are saved -> usefull only if you do not specified the path of the files in set_features / set_targets ...
 
         if output_dir is not None:  # if None --> nothing is save and no directory is built
             self.output_dir = os.path.join(output_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}')
@@ -163,7 +163,7 @@ class PhotometricDataFrame(object):
         elif targets is None:
             path_targets = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.npy')
 
-        if not path_targets is None:
+        if path_targets is not None:
             logger.info(f"Read {path_targets}")
             targets = np.load(path_targets)
         self.targets = targets
@@ -173,7 +173,7 @@ class PhotometricDataFrame(object):
         elif fracarea is None:
             path_fracarea = os.path.join(self.data_dir, f'{self.version}_{self.tracer}{self.suffix_tracer}_fracarea_{self.nside}.npy')
 
-        if not path_fracarea is None:
+        if path_fracarea is not None:
             if os.path.isfile(path_fracarea):
                 logger.info(f"Read {path_fracarea}")
                 fracarea = np.load(path_fracarea)
@@ -210,7 +210,7 @@ class PhotometricDataFrame(object):
         if cut_fracarea:
             if isinstance(fracarea_limits, (tuple, list)):
                 min_fracarea, max_fracarea = fracarea_limits
-            elif self.nside >= 512: # can be cirvumvent increasing the number of randoms...
+            elif self.nside >= 512:  # can be cirvumvent increasing the number of randoms...
                 min_fracarea, max_fracarea = 0.85, 1.15
             else:
                 min_fracarea, max_fracarea = 0.9, 1.1
@@ -228,7 +228,7 @@ class PhotometricDataFrame(object):
             pix_to_use = pix_region & keep_to_train
 
             if self.use_new_norm:
-                #compute normalization on subpart of the footprint (for instance which is expected to be free from stellar contamination)
+                # compute normalization on subpart of the footprint (for instance which is expected to be free from stellar contamination)
                 pix_to_use_norm = pix_to_use & self.footprint.get_normalization_zone(region_name)
             else:
                 pix_to_use_norm = pix_to_use
@@ -242,29 +242,29 @@ class PhotometricDataFrame(object):
             # compute normalized_targets every where
             # We will only use keep_to_train == 1 during the training (where fracarea > 0)
             # To avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
-            with np.errstate(divide='ignore',invalid='ignore'):
-                normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region]*mean_targets_density_estimators)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region] * mean_targets_density_estimators)
             mean_targets_density[region_name] = mean_targets_density_estimators
             logger.info(f"  ** {region_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
 
         # some plots for sanity check
         if self.output_dataframe_dir is not None:
-            plt.figure(figsize=(8,6))
-            plt.hist(self.targets[considered_footprint], range=(0.1,100), bins=100)
+            plt.figure(figsize=(8, 6))
+            plt.hist(self.targets[considered_footprint], range=(0.1, 100), bins=100)
             plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
-            plt.figure(figsize=(8,6))
+            plt.figure(figsize=(8, 6))
             plt.hist(self.fracarea[considered_footprint], range=(0.5, 1.4), bins=100)
             plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_fracarea_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
             tmp = np.zeros(hp.nside2npix(self.nside))
-            tmp[self.pixels[keep_to_train == False]] = 1
+            tmp[self.pixels[keep_to_train == 0]] = 1
             plot_moll(tmp, show=False, label='strange pixel', filename=os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"), galactic_plane=True, ecliptic_plane=True)
 
-            plt.figure(figsize=(8,6))
-            plt.hist(normalized_targets[keep_to_train], range=(0.1,5), bins=100)
+            plt.figure(figsize=(8, 6))
+            plt.hist(normalized_targets[keep_to_train], range=(0.1, 5), bins=100)
             plt.savefig(os.path.join(self.output_dataframe_dir, f"normalized_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
