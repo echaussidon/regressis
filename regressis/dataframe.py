@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import os
-import sys
 import logging
 
 import numpy as np
@@ -91,7 +90,7 @@ class PhotometricDataFrame(object):
         else:
             self.output_dir = self.output_dataframe_dir = None
 
-    def set_features(self, pixmap=None, sgr_stream=None, sel_columns=None, use_sgr_stream=True):
+    def set_features(self, pixmap=None, sel_columns=None, pixmap_external=None, sel_columns_external=None, use_sgr_stream=True, sgr_stream=None, features_toplot=None):
         """
         Set photometric templates info either from a pixweight array (already loaded) or read it from .fits file
         All the maps should be Healpix maps with :attr:`nside` in nested order.
@@ -99,30 +98,41 @@ class PhotometricDataFrame(object):
         Parameters
         ----------
         pixmap : float array or str, default=None
-            Array containg the photometric templates or the path to .fits file containing the photometric templates.
-        sgr_stream : float array or str, default=None
-            Array containing the Sgr. Stream feature or the path to .npy file containing the Sgr. Stream feature.
+            Array containing the photometric templates or the path to .fits file containing the photometric templates.
         sel_columns : list of str, default=None
             List containing which photometric features must be extracted from the pixmap.
+        pixmap_external: float array or str, default=None
+            Array containing additional templates in the same format than pixmap (same nside and order) or the path to .fits file containing the templates.
+        sel_columns_external: list of str, default=None
+            List containing which templates must be extracted from the pixmap_external.
         use_sgr_stream : bool, default=True
             Include or not the Sgr. Stream map --> the feature is very relevant for the QSO TS.
+        sgr_stream : float array or str, default=None
+            Array containing the Sgr. Stream feature or the path to .npy file containing the Sgr. Stream feature.
+        features_toplot : list of str
+            list of features to plot in the systematic plots. If None, the plot is done for each feature in self.features
         """
-        path_pixweight, path_sgr_stream = None, None
+        path_pixweight, path_pixweight_external, path_sgr_stream = None, None, None
 
+        # default columns for the legacy imaging templates
         if sel_columns is None:
             sel_columns = ['STARDENS', 'EBV',
                            'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
                            'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z',
                            'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z']
+        # default columns for the external templates
+        if sel_columns_external is None:
+            sel_columns_external = ['KAPPAPLANK', 'HALPHA', 'EBVext',
+                                    'CALIBG', 'CALIBR', 'CALIBZ',
+                                    'EBVreconMEANF6', 'EBVreconMEANF15']
 
         if isinstance(pixmap, str):
             path_pixweight = pixmap
         elif pixmap is None:
             path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
-
         if path_pixweight is not None:
             logger.info(f"Read {path_pixweight}")
-            feature_pixmap = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())
+            feature_pixmap = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())[sel_columns]
         else:
             feature_pixmap = pixmap[sel_columns]
 
@@ -131,16 +141,25 @@ class PhotometricDataFrame(object):
                 path_sgr_stream = sgr_stream
             elif sgr_stream is None:
                 path_sgr_stream = os.path.join(self.data_dir, f'sagittarius_stream_{self.nside}.npy')
-
             if path_sgr_stream is not None:
                 # Load Sgr. Stream map
                 logger.info(f"Read {path_sgr_stream}")
-                stream_map = pd.DataFrame(np.load(path_sgr_stream), columns=['STREAM'])
-            else:
-                stream_map = pd.DataFrame(sgr_stream, columns=['STREAM'])
-            self.features = pd.concat([stream_map, feature_pixmap], axis=1)
-        else:
-            self.features = feature_pixmap
+                sgr_stream = np.load(path_sgr_stream)
+            feature_pixmap.insert(2, 'STREAM', sgr_stream)
+
+        if isinstance(pixmap_external, str):
+            path_pixweight_external = pixmap_external
+        if path_pixweight_external is not None:
+            logger.info(f"Read {path_pixweight_external}")
+            feature_pixmap = pd.concat([feature_pixmap,
+                                        pd.DataFrame(fitsio.FITS(path_pixweight_external)[1][sel_columns_external].read().byteswap().newbyteorder())],
+                                       axis=1)
+
+        self.features = feature_pixmap
+        self.features_toplot = features_toplot
+        if features_toplot is None:
+            self.features_toplot = feature_pixmap.columns
+
         logger.info(f"Sanity check: number of NaNs in features: {self.features.isnull().sum().sum()}")
 
     def set_targets(self, targets=None, fracarea=None):
@@ -250,12 +269,18 @@ class PhotometricDataFrame(object):
         # some plots for sanity check
         if self.output_dataframe_dir is not None:
             plt.figure(figsize=(8, 6))
-            plt.hist(self.targets[considered_footprint], range=(0.1, 100), bins=100)
+            plt.hist(self.targets[considered_footprint], range=(0.1, 100), bins=100, label='without any selection')
+            plt.xlabel(f'nbr of objects per healpix at nside={self.nside}')
+            plt.ylabel('nbr of pixels')
+            plt.legend()
             plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
             plt.figure(figsize=(8, 6))
-            plt.hist(self.fracarea[considered_footprint], range=(0.5, 1.4), bins=100)
+            plt.hist(self.fracarea[considered_footprint], range=(0.1, 1.2), bins=100, label='without any selection')
+            plt.xlabel('fracarea')
+            plt.ylabel('nbr of pixels')
+            plt.legend()
             plt.savefig(os.path.join(self.output_dataframe_dir, f"test_remove_fracarea_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 
@@ -264,7 +289,12 @@ class PhotometricDataFrame(object):
             plot_moll(tmp, show=False, label='strange pixel', filename=os.path.join(self.output_dataframe_dir, f"strange_pixel_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"), galactic_plane=True, ecliptic_plane=True)
 
             plt.figure(figsize=(8, 6))
-            plt.hist(normalized_targets[keep_to_train], range=(0.1, 5), bins=100)
+            for region_name in self.regions:
+                pix_region = self.footprint(region_name)
+                plt.hist(normalized_targets[pix_region & keep_to_train], range=(0.1, 5), bins=100, label=f'keep to train in {region_name}')
+            plt.xlabel('normalized target counts')
+            plt.ylabel('nbr of pixels')
+            plt.legend()
             plt.savefig(os.path.join(self.output_dataframe_dir, f"normalized_targets_{self.version}_{self.tracer}{self.suffix_tracer}_{self.nside}.png"))
             plt.close()
 

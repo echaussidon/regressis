@@ -722,7 +722,7 @@ class Regression(object):
             plt.savefig(filename)
             plt.close()
 
-    def plot_maps_and_systematics(self, show=False, save=True, max_plot_cart=400, ax_lim=0.2,
+    def plot_maps_and_systematics(self, show=False, save=True, max_plot_cart=400, ax_lim=0.1,
                                   adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                                   cut_fracarea=True, limits_fracarea=(0.9, 1.1),
                                   save_table=False, save_table_suffix=''):
@@ -789,7 +789,7 @@ class Regression(object):
             plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
 
         plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
-                                 self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.regions,
+                                 self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.features_toplot, self.dataframe.regions,
                                  ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
-                                 cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea,
+                                 cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, legend_title=True,
                                  save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)

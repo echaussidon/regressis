@@ -6,6 +6,8 @@ Change Log
 Main (2022-06-08)
 -----------------
 
+* Add possibility to use an external pixweight when loading the features. Set also the features that we want to plot in the systematic plots automatically --> ideal to test the dependence as a function of a feature after the correction.
+
 * Use now nside from systematic weight class when computing ratio_mock_reality in `mocks.create_flag_imaging_systematic`. The previous implementation did not work with other nside than 256.
 
 * Add BGS_ANY / BGS_BRIGHT / BGS_FAINT to `regression.py/_get_feature_names`

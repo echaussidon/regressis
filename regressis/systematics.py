@@ -14,19 +14,92 @@ from matplotlib.gridspec import GridSpec
 logger = logging.getLogger("Systematics")
 
 
-def _get_desi_photometric_plot_attrs(region):
+def _get_desi_plot_attrs(feature_names, region):
     """
-    Return dictionary of [min, max, label, nbins, function_to_convert] for each feature map for plotting purposes.
+    Return dictionary of [min, max, label, nbins, function_to_convert] for each feature in feature_names for plotting purposes.
     Limits and number of bins are adapted for the DESI Legacy Imaging Survey DR9.
     """
-    def id(x):
-        return x
+    def _get_plot_attrs(name, region):
+        """
+        Return dictionary of [min, max, label, nbins, function_to_convert] for name.
+        """
+        def id(x):
+            return x
 
-    def convert_depth(x):
-        return 22.5 - 2.5 * np.log10(5 / np.sqrt(x))
+        def convert_depth(x):
+            return 22.5 - 2.5 * np.log10(5 / np.sqrt(x))
 
-    def convert_stardens(x):
-        return np.log10(x)
+        def convert_stardens(x):
+            return np.log10(x)
+
+        sysdict = {}
+        sysdict['STARDENS'] = {'north': [150., 4000., 'log10(Stellar Density) per sq. deg.', 35, convert_stardens],
+                               'south': [150., 4000., 'log10(Stellar Density) per sq. deg.', 35, convert_stardens],
+                               'des': [150., 4000., 'log10(Stellar Density) per sq. deg.', 30, convert_stardens],
+                               'global': [150., 4000., 'log10(Stellar Density) per sq. deg.', 30, convert_stardens]}
+
+        sysdict['EBV'] = {'north': [0.001, 0.1, 'E(B-V)', 35, id],
+                          'south': [0.001, 0.1, 'E(B-V)', 35, id],
+                          'des': [0.001, 0.09, 'E(B-V)', 35, id],
+                          'global': [0.001, 0.1, 'E(B-V)', 30, id]}
+
+        sysdict['STREAM'] = {'north': [0., 1., 'Sgr. Stream', 1, id],
+                             'south': [0.01, 1., 'Sgr. Stream', 20, id],
+                             'des': [0.01, 0.6, 'Sgr. Stream', 15, id],
+                             'global': [0.01, 1.5, 'Sgr. Stream', 20, id]}
+
+        sysdict['PSFSIZE_G'] = {'north': [1.3, 2.6, 'PSF Size in g-band', 35, id],
+                                'south': [1.1, 2.02, 'PSF Size in g-band', 35, id],
+                                'des': [1.19, 1.7, 'PSF Size in g-band', 30, id],
+                                'global': [0., 3., 'PSF Size in g-band', 30, id]}
+
+        sysdict['PSFSIZE_R'] = {'north': [1.25, 2.4, 'PSF Size in r-band', 40, id],
+                                'south': [0.95, 1.92, 'PSF Size in r-band', 30, id],
+                                'des': [1.05, 1.5, 'PSF Size in r-band', 30, id],
+                                'global': [0., 3., 'PSF Size in r-band', 30, id]}
+
+        sysdict['PSFSIZE_Z'] = {'north': [0.9, 1.78, 'PSF Size in z-band', 35, id],
+                                'south': [0.9, 1.85, 'PSF Size in z-band', 40, id],
+                                'des': [0.95, 1.4, 'PSF Size in z-band', 30, id],
+                                'global': [0., 3., 'PSF Size in z-band', 30, id]}
+
+        sysdict['PSFDEPTH_G'] = {'north': [300., 1600., 'PSF Depth in g-band', 30, convert_depth],
+                                 'south': [750., 4000., 'PSF Depth in g-band', 35, convert_depth],
+                                 'des': [1900., 7000., 'PSF Depth in g-band', 30, convert_depth],
+                                 'global': [63., 6300., 'PSF Depth in g-band', 30, convert_depth]}
+
+        sysdict['PSFDEPTH_R'] = {'north': [95., 620., 'PSF Depth in r-band', 30, convert_depth],
+                                 'south': [260.0, 1600.0, 'PSF Depth in r-band', 30, convert_depth],
+                                 'des': [1200., 5523., 'PSF Depth in r-band', 30, convert_depth],
+                                 'global': [25., 2500., 'PSF Depth in r-band', 30, convert_depth]}
+
+        sysdict['PSFDEPTH_Z'] = {'north': [60., 275., 'PSF Depth in z-band', 40, convert_depth],
+                                 'south': [40.0, 360., 'PSF Depth in z-band', 40, convert_depth],
+                                 'des': [145., 570., 'PSF Depth in z-band', 30, convert_depth],
+                                 'global': [4., 400., 'PSF Depth in z-band', 30, convert_depth]}
+
+        sysdict['PSFDEPTH_W1'] = {'north': [2.7, 12., 'PSF Depth in W1-band', 40, convert_depth],
+                                  'south': [2.28, 5.5, 'PSF Depth in W1-band', 30, convert_depth],
+                                  'des': [2.28, 6.8, 'PSF Depth in W1-band', 30, convert_depth],
+                                  'global': [0.0, 30.0, 'PSF Depth in W1-band', 30, convert_depth]}
+
+        sysdict['PSFDEPTH_W2'] = {'north': [0.8, 3.9, 'PSF Depth in W2-band', 40, convert_depth],
+                                  'south': [0.629, 1.6, 'PSF Depth in W2-band', 30, convert_depth],
+                                  'des': [0.62, 2.25, 'PSF Depth in W2-band', 30, convert_depth],
+                                  'global': [0.0, 7.0, 'PSF Depth in W2-band', 30, convert_depth]}
+
+        if name in sysdict.keys():
+            return sysdict[name][region]
+
+        if name[:5] == 'CALIB':
+            return [-0.001, 0.006, name, 30, id]
+        if name[:3] == 'EBV':
+            return [0.001, 0.13, name, 30, id]
+        if name[:5] == 'KAPPA':
+            return [0.001, 0.8, name, 30, id]
+        if name[:6] == 'HALPHA':
+            return [0.001, 6.5, name, 30, id]
+        return [0.1, 10000, name, 30, id]
 
     region = region.lower()
     if region in ['south_ngc', 'south_sgc', 'south_mid', 'south_mid_ngc', 'south_mid_sgc', 'south_all', 'south_all_ngc', 'south_all_sgc']:
@@ -34,63 +107,7 @@ def _get_desi_photometric_plot_attrs(region):
     elif region in ['des_mid', 'south_pole']:
         region = 'des'
 
-    sysdict = {}
-    sysdict['STARDENS'] = {'north': [150., 4000., 'log10(Stellar Density) per sq. deg.', 35, convert_stardens],
-                           'south': [150., 4000., 'log10(Stellar Density) per sq. deg.', 35, convert_stardens],
-                           'des': [150., 4000., 'log10(Stellar Density) per sq. deg.', 30, convert_stardens],
-                           'global': [150., 4000., 'log10(Stellar Density) per sq. deg.', 30, convert_stardens]}
-
-    sysdict['EBV'] = {'north': [0.001, 0.1, 'E(B-V)', 35, id],
-                      'south': [0.001, 0.1, 'E(B-V)', 35, id],
-                      'des': [0.001, 0.09, 'E(B-V)', 35, id],
-                      'global': [0.001, 0.1, 'E(B-V)', 30, id]}
-
-    sysdict['STREAM'] = {'north': [0., 1., 'Sgr. Stream', 1, id],
-                         'south': [0.01, 1., 'Sgr. Stream', 20, id],
-                         'des': [0.01, 0.6, 'Sgr. Stream', 15, id],
-                         'global': [0.01, 1.5, 'Sgr. Stream', 20, id]}
-
-    sysdict['PSFSIZE_G'] = {'north': [1.3, 2.6, 'PSF Size in g-band', 35, id],
-                            'south': [1.1, 2.02, 'PSF Size in g-band', 35, id],
-                            'des': [1.19, 1.7, 'PSF Size in g-band', 30, id],
-                            'global': [0., 3., 'PSF Size in g-band', 30, id]}
-
-    sysdict['PSFSIZE_R'] = {'north': [1.25, 2.4, 'PSF Size in r-band', 40, id],
-                            'south': [0.95, 1.92, 'PSF Size in r-band', 30, id],
-                            'des': [1.05, 1.5, 'PSF Size in r-band', 30, id],
-                            'global': [0., 3., 'PSF Size in r-band', 30, id]}
-
-    sysdict['PSFSIZE_Z'] = {'north': [0.9, 1.78, 'PSF Size in z-band', 35, id],
-                            'south': [0.9, 1.85, 'PSF Size in z-band', 40, id],
-                            'des': [0.95, 1.4, 'PSF Size in z-band', 30, id],
-                            'global': [0., 3., 'PSF Size in z-band', 30, id]}
-
-    sysdict['PSFDEPTH_G'] = {'north': [300., 1600., 'PSF Depth in g-band', 30, convert_depth],
-                             'south': [750., 4000., 'PSF Depth in g-band', 35, convert_depth],
-                             'des': [1900., 7000., 'PSF Depth in g-band', 30, convert_depth],
-                             'global': [63., 6300., 'PSF Depth in g-band', 30, convert_depth]}
-
-    sysdict['PSFDEPTH_R'] = {'north': [95., 620., 'PSF Depth in r-band', 30, convert_depth],
-                             'south': [260.0, 1600.0, 'PSF Depth in r-band', 30, convert_depth],
-                             'des': [1200., 5523., 'PSF Depth in r-band', 30, convert_depth],
-                             'global': [25., 2500., 'PSF Depth in r-band', 30, convert_depth]}
-
-    sysdict['PSFDEPTH_Z'] = {'north': [60., 275., 'PSF Depth in z-band', 40, convert_depth],
-                             'south': [40.0, 360., 'PSF Depth in z-band', 40, convert_depth],
-                             'des': [145., 570., 'PSF Depth in z-band', 30, convert_depth],
-                             'global': [4., 400., 'PSF Depth in z-band', 30, convert_depth]}
-
-    sysdict['PSFDEPTH_W1'] = {'north': [2.7, 12., 'PSF Depth in W1-band', 40, convert_depth],
-                              'south': [2.28, 5.5, 'PSF Depth in W1-band', 30, convert_depth],
-                              'des': [2.28, 6.8, 'PSF Depth in W1-band', 30, convert_depth],
-                              'global': [0.0, 30.0, 'PSF Depth in W1-band', 30, convert_depth]}
-
-    sysdict['PSFDEPTH_W2'] = {'north': [0.8, 3.9, 'PSF Depth in W2-band', 40, convert_depth],
-                              'south': [0.629, 1.6, 'PSF Depth in W2-band', 30, convert_depth],
-                              'des': [0.62, 2.25, 'PSF Depth in W2-band', 30, convert_depth],
-                              'global': [0.0, 7.0, 'PSF Depth in W2-band', 30, convert_depth]}
-
-    return {name: sysdict[name][region] for name in sysdict}
+    return {name: _get_plot_attrs(name, region) for name in feature_names}
 
 
 def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None, nbins=50, use_mean=True, adaptative_binning=False, nobj_per_bin=1000):
@@ -163,7 +180,7 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
     return pix_to_keep
 
 
-def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, regions=['North', 'South', 'Des'],
+def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, feature_names=None, regions=['North', 'South', 'Des'],
                              ax_lim=0.2, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                              cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True,
                              save_table=False, save_table_suffix='',
@@ -184,6 +201,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         Corresponding footprint used to keep pixels in desired region.
     pixmap : float array
         Array containing the heampix map at correct nside of dr9 features.
+    feature_names : list of str
+        List of feature name contained in pixmap that we want to plot.
     regions : str list
         regions where the systematic plots will be created. Each region is treat individually.
     ax_lim : float
@@ -211,62 +230,64 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
     savedir : str
         Path were the figures will be saved.
     """
-    for num_fig, region in enumerate(regions):
+
+    if feature_names is None:
+        feature_names = ['STARDENS', 'EBV',
+                         'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z'
+                         'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
+                         'PSFDEPTH_W1', 'PSFDEPTH_W2']
+    num_max_to_plot = len(feature_names)
+
+    for region in regions:
         logger.info(f'Work with {region}')
 
-        sysdic = _get_desi_photometric_plot_attrs(region)
+        sysdic = _get_desi_plot_attrs(feature_names, region)
         sysnames = list(sysdic.keys())
 
         # extract which pixels we will use to make the plot !
         pix_to_keep = _select_good_pixels(region, fracarea, footprint, cut_fracarea, limits_fracarea=limits_fracarea)
 
         # Plot photometric systematic plots:
-        fig = plt.figure(num_fig, figsize=figsize)
+        fig = plt.figure(1, figsize=figsize)
         gs = GridSpec(4, 3, figure=fig, left=0.1, right=0.92, bottom=0.08, top=0.98, hspace=0.55, wspace=0.25)
 
         num_to_plot = 0
         for i in range(12):
-            sysname = sysnames[num_to_plot]
-            down, up, plotlabel, nbins, conversion = sysdic[sysname]
-            if n_bins is not None:
-                nbins = n_bins
+            if num_to_plot <= num_max_to_plot:
+                sysname = sysnames[num_to_plot]
+                down, up, plotlabel, nbins, conversion = sysdic[sysname]
+                if n_bins is not None:
+                    nbins = n_bins
 
-            if i not in [9]:
-                ax = fig.add_subplot(gs[i // 3, i % 3])
-                ax.set_xlabel(plotlabel)
-                ax.set_ylim(-ax_lim, ax_lim)
-                ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
+                if i not in [9]:
+                    ax = fig.add_subplot(gs[i // 3, i % 3])
+                    ax.set_xlabel(plotlabel)
+                    ax.set_ylim(-ax_lim, ax_lim)
+                    ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
 
-                for mp, label in zip(map_list, label_list):
-                    bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]),
-                                                                                  sysname, downclip=conversion(down), upclip=conversion(up),
-                                                                                  nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
-                    ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
+                    for mp, label in zip(map_list, label_list):
+                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]),
+                                                                                      sysname, downclip=conversion(down), upclip=conversion(up),
+                                                                                      nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
+                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
 
-                    if save_table:
-                        from astropy.table import Table
-                        table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_qso_density', 'relative_qso_density_err', 'nbr_objetcs_per_bins'])
-                        table.write(f'{save_table_suffix}{sysname}_{label}.ecsv', overwrite=True)
+                        if save_table:
+                            from astropy.table import Table
+                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_qso_density', 'relative_qso_density_err', 'nbr_objetcs_per_bins'])
+                            table.write(f'{save_table_suffix}{sysname}_{label}.ecsv', overwrite=True)
 
-                ax_hist = ax.twinx()
-                ax_hist.set_xlim(ax.get_xlim())
-                ax_hist.set_ylim(ax.get_ylim())
-                if adaptative_binning:
-                    normalisation = nbr_obj_bins / 0.1
-                else:
-                    normalisation = nbr_obj_bins.sum()
-                ax_hist.bar(binmid, nbr_obj_bins / normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
-                ax_hist.grid(False)
-                ax_hist.set_yticks([])
+                    ax_hist = ax.twinx()
+                    ax_hist.set_xlim(ax.get_xlim())
+                    ax_hist.set_ylim(ax.get_ylim())
+                    if adaptative_binning:
+                        normalisation = nbr_obj_bins / 0.1
+                    else:
+                        normalisation = nbr_obj_bins.sum()
+                    ax_hist.bar(binmid, nbr_obj_bins / normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
+                    ax_hist.grid(False)
+                    ax_hist.set_yticks([])
 
-                num_to_plot += 1
-
-            # if i == 2:
-            #     ax = fig.add_subplot(gs[i // 3, i % 3])
-            #     ax.axis("off")
-            #     ax.text(0.5, 0.5, f"Zone : {region}", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-            #     # on enleve le STREAM comme feature ok
-            #     num_to_plot += 1
+                    num_to_plot += 1
 
             if i == 3:
                 ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
@@ -283,3 +304,65 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
             plt.show()
         else:
             plt.close()
+
+        num_fig = 1
+        # put 11 features on the first figure and then 12 for each additional figure
+        if num_max_to_plot <= 11:
+            num_fig_max = 1
+        else:
+            num_fig_max = 1 + int(np.ceil((num_max_to_plot - 11) / 12))
+
+        while num_fig < num_fig_max:
+            fig = plt.figure(num_fig, figsize=figsize)
+            gs = GridSpec(4, 3, figure=fig, left=0.1, right=0.92, bottom=0.08, top=0.98, hspace=0.55, wspace=0.25)
+
+            for i in range(12):
+                if num_to_plot < num_max_to_plot:
+                    sysname = sysnames[num_to_plot]
+                    down, up, plotlabel, nbins, conversion = sysdic[sysname]
+                    if n_bins is not None:
+                        nbins = n_bins
+
+                    ax = fig.add_subplot(gs[i // 3, i % 3])
+                    ax.set_xlabel(plotlabel)
+                    ax.set_ylim(-ax_lim, ax_lim)
+                    ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
+
+                    for mp, label in zip(map_list, label_list):
+                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]),
+                                                                                      sysname, downclip=conversion(down), upclip=conversion(up),
+                                                                                      nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
+                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
+
+                        if save_table:
+                            from astropy.table import Table
+                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_qso_density', 'relative_qso_density_err', 'nbr_objetcs_per_bins'])
+                            table.write(f'{save_table_suffix}{sysname}_{label}.ecsv', overwrite=True)
+
+                    ax_hist = ax.twinx()
+                    ax_hist.set_xlim(ax.get_xlim())
+                    ax_hist.set_ylim(ax.get_ylim())
+                    if adaptative_binning:
+                        normalisation = nbr_obj_bins / 0.1
+                    else:
+                        normalisation = nbr_obj_bins.sum()
+                    ax_hist.bar(binmid, nbr_obj_bins / normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
+                    ax_hist.grid(False)
+                    ax_hist.set_yticks([])
+
+                    num_to_plot += 1
+
+                if i == 3:
+                    ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
+
+            if save:
+                plt.savefig(os.path.join(savedir, f"{region}_systematics_plot.pdf"))
+            if show:
+                plt.show()
+            else:
+                plt.close()
+
+            num_fig += 1
+
+## Ameliorer le truc d'ashley
+## demander a mettre le title legend et entre 0.1
