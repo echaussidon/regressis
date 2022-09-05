@@ -90,7 +90,7 @@ class DR9Footprint(Footprint):
         self.cut_desi = cut_desi
         self.verbose = verbose
         if self.verbose:
-            logger.info(f'Load DR9 footprint with mask_lmc={self.mask_lmc}, clear_south={self.clear_south}, mask_around_des={self.mask_around_des} and cut_desi={self.cut_desi}')
+            logger.info(f'Load DR9 footprint with nside={nside}, mask_lmc={self.mask_lmc}, clear_south={self.clear_south}, mask_around_des={self.mask_around_des} and cut_desi={self.cut_desi}')
 
         path_pixmap = None
         if isinstance(pixmap, str):
