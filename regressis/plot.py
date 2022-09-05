@@ -31,13 +31,12 @@ class Sagittarius(coord.BaseCoordinateFrame):
         coord.SphericalRepresentation: [
             coord.RepresentationMapping('lon', 'Lambda'),
             coord.RepresentationMapping('lat', 'Beta'),
-            coord.RepresentationMapping('distance', 'distance')]
-        }
+            coord.RepresentationMapping('distance', 'distance')]}
 
 
 def SGR_MATRIX():
     """Build the transformation matric from Galactic spherical to heliocentric Sgr coordinates based on Law & Majewski 2010."""
-    SGR_PHI = (180 + 3.75) * u.degree # Euler angles (from Law & Majewski 2010)
+    SGR_PHI = (180 + 3.75) * u.degree  # Euler angles (from Law & Majewski 2010)
     SGR_THETA = (90 - 13.46) * u.degree
     SGR_PSI = (180 + 14.111534) * u.degree
 
@@ -45,7 +44,7 @@ def SGR_MATRIX():
     D = rotation_matrix(SGR_PHI, "z")
     C = rotation_matrix(SGR_THETA, "x")
     B = rotation_matrix(SGR_PSI, "z")
-    A = np.diag([1.,1.,-1.])
+    A = np.diag([1., 1., -1.])
     SGR_matrix = matrix_product(A, B, C, D)
     return SGR_matrix
 
@@ -78,72 +77,72 @@ def _get_galactic_plane(rot=120):
     dec : float array
         Ordering array containing Dec. values of the galactic plane in IRCS coordinates.
     """
-    galactic_plane_tmp = SkyCoord(l=np.linspace(0, 2*np.pi, 200)*u.radian, b=np.zeros(200)*u.radian, frame='galactic', distance=1*u.Mpc)
+    galactic_plane_tmp = SkyCoord(l=np.linspace(0, 2 * np.pi, 200) * u.radian, b=np.zeros(200) * u.radian, frame='galactic', distance=1 * u.Mpc)
     galactic_plane_icrs = galactic_plane_tmp.transform_to('icrs')
 
     ra, dec = galactic_plane_icrs.ra.degree - rot, galactic_plane_icrs.dec.degree
-    ra[ra>180] -= 360    # scale conversion to [-180, 180]
-    ra=-ra               # reverse the scale: East to the left
+    ra[ra > 180] -= 360    # scale conversion to [-180, 180]
+    ra = -ra               # reverse the scale: East to the left
 
     # get the correct order from ra=-180 to ra=180 after rotation
-    index_galactic = np.argsort(galactic_plane_icrs.ra.wrap_at((180 + rot)*u.deg).degree)
+    index_galactic = np.argsort(galactic_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
     return ra[index_galactic], dec[index_galactic]
 
 
 def _get_ecliptic_plane(rot=120):
     """ Same than _get_galactic_coordinates but for the ecliptic plane in IRCS coordiantes"""
-    ecliptic_plane_tmp = SkyCoord(lon=np.linspace(0, 2*np.pi, 200)*u.radian, lat=np.zeros(200)*u.radian, distance=1*u.Mpc, frame='heliocentrictrueecliptic')
+    ecliptic_plane_tmp = SkyCoord(lon=np.linspace(0, 2 * np.pi, 200) * u.radian, lat=np.zeros(200) * u.radian, distance=1 * u.Mpc, frame='heliocentrictrueecliptic')
     ecliptic_plane_icrs = ecliptic_plane_tmp.transform_to('icrs')
 
     ra, dec = ecliptic_plane_icrs.ra.degree - rot, ecliptic_plane_icrs.dec.degree
-    ra[ra>180] -= 360    # scale conversion to [-180, 180]
-    ra=-ra               # reverse the scale: East to the left
+    ra[ra > 180] -= 360    # scale conversion to [-180, 180]
+    ra = -ra               # reverse the scale: East to the left
 
-    index_ecliptic = np.argsort(ecliptic_plane_icrs.ra.wrap_at((180 + rot)*u.deg).degree)
+    index_ecliptic = np.argsort(ecliptic_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
     return ra[index_ecliptic], dec[index_ecliptic]
 
 
 def _get_sgr_plane(rot=120):
     """ Same than _get_galactic_coordinates but for the Sagittarius Galactic plane in IRCS coordiantes"""
-    sgr_plane_tmp = Sagittarius(Lambda=np.linspace(0, 2*np.pi, 200)*u.radian, Beta=np.zeros(200)*u.radian, distance=1*u.Mpc)
+    sgr_plane_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=np.zeros(200) * u.radian, distance=1 * u.Mpc)
     sgr_plane_icrs = sgr_plane_tmp.transform_to(coord.ICRS)
 
     ra, dec = sgr_plane_icrs.ra.degree - rot, sgr_plane_icrs.dec.degree
-    ra[ra>180] -= 360    # scale conversion to [-180, 180]
-    ra=-ra               # reverse the scale: East to the left
+    ra[ra > 180] -= 360    # scale conversion to [-180, 180]
+    ra = -ra               # reverse the scale: East to the left
 
-    index_sgr = np.argsort(sgr_plane_icrs.ra.wrap_at((180 + rot)*u.deg).degree)
+    index_sgr = np.argsort(sgr_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
     return ra[index_sgr], dec[index_sgr]
 
 
 def _get_sgr_stream(rot=120):
     """ Same than _get_galactic_coordinates but for the bottom and top line of the Sgr. Stream in IRCS coordiantes"""
-    sgr_stream_top_tmp = Sagittarius(Lambda=np.linspace(0, 2*np.pi, 200)*u.radian, Beta=20*np.pi/180*np.ones(200)*u.radian, distance=1*u.Mpc)
+    sgr_stream_top_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=20 * np.pi / 180 * np.ones(200) * u.radian, distance=1 * u.Mpc)
     sgr_stream_top_icrs = sgr_stream_top_tmp.transform_to(coord.ICRS)
 
     ra_top, dec_top = sgr_stream_top_icrs.ra.degree - rot, sgr_stream_top_icrs.dec.degree
-    ra_top[ra_top>180] -= 360    # scale conversion to [-180, 180]
-    ra_top=-ra_top               # reverse the scale: East to the left
+    ra_top[ra_top > 180] -= 360    # scale conversion to [-180, 180]
+    ra_top = -ra_top               # reverse the scale: East to the left
 
-    index_sgr_top = np.argsort(sgr_stream_top_icrs.ra.wrap_at((180 + rot)*u.deg).degree)
+    index_sgr_top = np.argsort(sgr_stream_top_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
-    sgr_stream_bottom_tmp = Sagittarius(Lambda=np.linspace(0, 2*np.pi, 200)*u.radian, Beta=-15*np.pi/180*np.ones(200)*u.radian, distance=1*u.Mpc)
+    sgr_stream_bottom_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=-15 * np.pi / 180 * np.ones(200) * u.radian, distance=1 * u.Mpc)
     sgr_stream_bottom_icrs = sgr_stream_bottom_tmp.transform_to(coord.ICRS)
 
     ra_bottom, dec_bottom = sgr_stream_bottom_icrs.ra.degree - rot, sgr_stream_bottom_icrs.dec.degree
-    ra_bottom[ra_bottom>180] -= 360    # scale conversion to [-180, 180]
-    ra_bottom=-ra_bottom               # reverse the scale: East to the left
+    ra_bottom[ra_bottom > 180] -= 360    # scale conversion to [-180, 180]
+    ra_bottom = -ra_bottom               # reverse the scale: East to the left
 
-    index_sgr_bottom = np.argsort(sgr_stream_bottom_icrs.ra.wrap_at((180 + rot)*u.deg).degree)
+    index_sgr_bottom = np.argsort(sgr_stream_bottom_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
     return ra_bottom[index_sgr_bottom], dec_bottom[index_sgr_bottom], ra_top[index_sgr_top], dec_top[index_sgr_top]
 
 
 def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True,
-              galactic_plane=False, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True,
+              galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True,
               rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet'):
     """
     Plot an healpix map in nested scheme with a specific projection.
@@ -183,22 +182,22 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     ycb_pos : float
         Y position of the colorbar. Need to be adpated if figsize is modified or if title is too long.
     cmap : ColorMap class of matplotlib
-        Usefull to adapt the color. Especially to create grey area for the Y5 footprint. 
+        Usefull to adapt the color. Especially to create grey area for the Y5 footprint.
         For instance: cmap = plt.get_cmap('jet').copy()
                       cmap.set_extremes(under='darkgrey')  # --> everything under min will be darkgrey
     """
-    #transform healpix map to 2d array
+    # transform healpix map to 2d array
     plt.figure(1)
     m = hp.ma(map)
     map_to_plot = hp.cartview(m, nest=True, rot=rot, flip='geo', fig=1, return_projected_map=True)
     plt.close()
 
-    #build ra, dec meshgrid to plot 2d array
-    ra_edge = np.linspace(-180, 180, map_to_plot.shape[1]+1)
-    dec_edge = np.linspace(-90, 90, map_to_plot.shape[0]+1)
+    # build ra, dec meshgrid to plot 2d array
+    ra_edge = np.linspace(-180, 180, map_to_plot.shape[1] + 1)
+    dec_edge = np.linspace(-90, 90, map_to_plot.shape[0] + 1)
 
-    ra_edge[ra_edge>180] -= 360    # scale conversion to [-180, 180]
-    ra_edge=-ra_edge               # reverse the scale: East to the left
+    ra_edge[ra_edge > 180] -= 360    # scale conversion to [-180, 180]
+    ra_edge = -ra_edge               # reverse the scale: East to the left
 
     ra_grid, dec_grid = np.meshgrid(ra_edge, dec_edge)
 
@@ -231,7 +230,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
 
     tick_labels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
     tick_labels = np.remainder(tick_labels + 360 + rot, 360)
-    tick_labels = np.array(['{0}°'.format(l) for l in tick_labels])
+    tick_labels = np.array([f'{lab}°' for lab in tick_labels])
     ax.set_xticklabels(tick_labels)
 
     ax.set_xlabel('R.A. [deg]', labelpad=xlabel_labelpad)
@@ -244,7 +243,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
         ax.legend(loc='lower right')
     if title:
         plt.title(title)
-    if filename != None:
+    if filename is not None:
         plt.savefig(filename)
     if show:
         plt.show()
