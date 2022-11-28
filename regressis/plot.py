@@ -143,7 +143,7 @@ def _get_sgr_stream(rot=120):
 
 def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True,
               galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True,
-              rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet'):
+              rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet', ticks=None, tick_labels=None):
     """
     Plot an healpix map in nested scheme with a specific projection.
 
@@ -210,9 +210,11 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     if label is not None:
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         ax_cb = inset_axes(ax, width="30%", height="4%", loc='lower left', bbox_to_anchor=(0.346, ycb_pos, 1.0, 1.0), bbox_transform=ax.transAxes, borderpad=0)
-        cb = plt.colorbar(mesh, ax=ax, cax=ax_cb, orientation='horizontal', shrink=0.8, aspect=40)
+        cb = plt.colorbar(mesh, ax=ax, cax=ax_cb, orientation='horizontal', shrink=0.8, aspect=40, ticks=ticks)
         cb.outline.set_visible(False)
         cb.set_label(label, x=xpad, labelpad=labelpad)
+        if tick_labels is not None:
+            cb.ax.set_xticklabels(tick_labels)  # horizontal colorbar
 
     if galactic_plane:
         ra, dec = _get_galactic_plane(rot=rot)
