@@ -105,7 +105,7 @@ class DR9Footprint(Footprint):
 
         self.default_regions = ['North', 'South', 'Des']
         # remark: Global = Footprint, South_ngc = South_all_ngc = South_mid_ngc
-        self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc',
+        self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc', 'NGC', 'SGC'
                                   'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid', 'Global', 'Footprint']
 
     def update_map(self, pixmap, copy=True):
@@ -222,6 +222,10 @@ class DR9Footprint(Footprint):
             return self.get_imaging_surveys(ngc_sgc_split=True)[2]
         elif region == 'des':
             return self.get_imaging_surveys()[2]
+        elif region == 'ngc':
+            return self.get_ngc_sgc()[0]
+        elif region == 'sgc':
+            return self.get_ngc_sgc()[1]
         elif region == 'des_mid':
             return self.get_imaging_surveys()[2] & ~self.get_elg_region()[2]
         elif region == 'south_mid':

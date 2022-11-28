@@ -15,7 +15,7 @@ from regressis.utils import build_healpix_map
 logger = logging.getLogger("Mocks")
 
 
-def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, seed=123, show=False, savedir=None):
+def create_flag_imaging_systematic(mock, sel_pnz, wsys, fracarea=None, use_real_density=True, seed=123, show=False, savedir=None):
     """
     Create boolean mask to select which object from mocks with high density have to be kept to have systematic contaminated mocks.
 
@@ -30,6 +30,8 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
         Mask to select high denisty mock with correct n(z) in mock.
     wsys : :class:`PhotoWeight`
         Photometric weight used to compute mock computation. See :class:`PhotoWeight` to build it easily.
+    fracarea : boolean array
+        healpix map at wsys.nside. In order to correct the sky mean density of the mock
     use_real_density : bool
         If True use density from PhotoWeight class instead of the ratio from mock which is the same for each photometric footprint...
         If False, you do not match the observed density in each photometric footprint
@@ -61,6 +63,10 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, use_real_density=True, s
     if use_real_density:
         logger.info('Use the real density from PhotoWeight class')
         mock_pnz_density = build_healpix_map(wsys.nside, mock['RA'], mock['DEC'], precomputed_pix=pix_number, sel=sel_pnz, in_deg2=False)
+        if fracarea is None:
+            fracarea = np.ones(mock_pnz_density.size)
+            logger.info('Do not correct the density by the fracarea (useless if the input do not have any geometrical masks)')
+        mock_pnz_density /= fracarea
         # renormalize also by the mean of wsys.map on each wsys.regions to get the exact mean_density_region
         # frac_to_remove = 1 - 1 / (wsys * ratio) --> do the mean
         ratio_mock_reality = {region: np.mean(mock_pnz_density[wsys.mask_region[region]]) / wsys.mean_density_region[region] / np.mean(wsys.map[wsys.mask_region[region]]) for region in wsys.regions}
