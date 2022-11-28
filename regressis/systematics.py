@@ -155,7 +155,7 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
     return bins, (bins[:-1] + bins[1:]) / 2, meds, nbr_obj_bins, err_meds
 
 
-def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_fracarea=(0.9, 1.1)):
+def _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea=True, limits_fracarea=(0.9, 1.1)):
     """
     Create pixel mask to only consider pixels in the correct region determined
     thanks to footprint with non zero fracarea and with a specific selection along fracarea if required with cut_fracarea.
@@ -165,7 +165,9 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
     pix_to_keep: bool array
         Which pixels will be kept for the plots.
     """
-    pix_to_keep = footprint(region)
+
+    # keep pixels in the correct phtometric region
+    pix_to_keep = footprint(region)[pixels]
 
     # keep pixel with observations
     logger.info("Keep only pixels with fracarea > 0")
@@ -180,7 +182,7 @@ def _select_good_pixels(region, fracarea, footprint, cut_fracarea=True, limits_f
     return pix_to_keep
 
 
-def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, feature_names=None, regions=['North', 'South', 'Des'],
+def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, pixels, feature_names=None, regions=['North', 'South', 'Des'],
                              ax_lim=0.2, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                              cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True,
                              save_table=False, save_table_suffix='',
@@ -199,8 +201,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         Healpix map of the corresponding fracarea (ie) observed fractional sky area for a pixel.
     footprint : :class:`Footprint`
         Corresponding footprint used to keep pixels in desired region.
-    pixmap : float array
-        Array containing the heampix map at correct nside of dr9 features.
+    pixmap : DataFrame
+        Array containing the heampix map at correct nside of dr9 features. Typically dataframe.features.
     feature_names : list of str
         List of feature name contained in pixmap that we want to plot.
     regions : str list
@@ -233,7 +235,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
     if feature_names is None:
         feature_names = ['STARDENS', 'EBV',
-                         'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z'
+                         'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z',
                          'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z',
                          'PSFDEPTH_W1', 'PSFDEPTH_W2']
     num_max_to_plot = len(feature_names)
@@ -245,7 +247,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         sysnames = list(sysdic.keys())
 
         # extract which pixels we will use to make the plot !
-        pix_to_keep = _select_good_pixels(region, fracarea, footprint, cut_fracarea, limits_fracarea=limits_fracarea)
+        pix_to_keep = _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea, limits_fracarea=limits_fracarea)
 
         # Plot photometric systematic plots:
         fig = plt.figure(1, figsize=figsize)
@@ -253,7 +255,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
         num_to_plot = 0
         for i in range(12):
-            if num_to_plot <= num_max_to_plot:
+            if num_to_plot < num_max_to_plot:
                 sysname = sysnames[num_to_plot]
                 down, up, plotlabel, nbins, conversion = sysdic[sysname]
                 if n_bins is not None:
@@ -266,7 +268,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
 
                     for mp, label in zip(map_list, label_list):
-                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]),
+                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep].values),
                                                                                       sysname, downclip=conversion(down), upclip=conversion(up),
                                                                                       nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
                         ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
@@ -329,7 +331,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
 
                     for mp, label in zip(map_list, label_list):
-                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep]),
+                        bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep].values),
                                                                                       sysname, downclip=conversion(down), upclip=conversion(up),
                                                                                       nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
                         ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
@@ -356,13 +358,10 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
 
             if save:
-                plt.savefig(os.path.join(savedir, f"{region}_systematics_plot.pdf"))
+                plt.savefig(os.path.join(savedir, f"{region}_systematics_plot_2.pdf"))
             if show:
                 plt.show()
             else:
                 plt.close()
 
             num_fig += 1
-
-## Ameliorer le truc d'ashley
-## demander a mettre le title legend et entre 0.1

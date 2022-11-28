@@ -11,6 +11,7 @@ from . import utils
 
 
 logger_photo = logging.getLogger('PhotoWeight')
+logger_kmeans = logging.getLogger('KmeansWeight')
 
 
 class PhotoWeight(object):
@@ -112,23 +113,63 @@ class PhotoWeight(object):
         return frac_to_remove
 
 
-# class SpectroPhotoWeight(Base):
-    # """Container of photometric weight with callable function to apply it to a (R.A., Dec.) catalog"""
-    #
-    # logger = logging.getLogger('SpectroPhotoWeight')
-    #
-    # def __init__(self, sys_weight_map=None):
-    #     """
-    #     Initialize :class:`SpectroPhotoWeight`.
-    #
-    #     Parameters
-    #     ----------
-    #     sys_weight_map: float array or str
-    #         Photometric weight in a healpix map format with nested scheme or path to .npy file containing the healpix map
-    #     """
-    #
-    #     if isinstance(sys_weight_map, str):
-    #         sys_weight_map = np.load(sys_weight_map)
-    #
-    #     self.map = sys_weight_map
-    #     self.nside = hp.npix2nside(sys_weight_map.size)
+class KmeansWeight(object):
+    """Container of photometric weight with callable function to apply it to a (R.A., Dec.) catalog"""
+
+    def __init__(self, weight_data=None, weight_cluster=None, regions=None):
+        """
+        Initialize :class:`KmeansWeight`.
+
+        Parameters
+        ----------
+        weight_data: float array or str
+            Weight for each data of the considered input catalog or path to .npy file containing the weights
+        weight_clust: float array or str
+            Weight for each cluster of the considered input catalog or path to .npy file containing the weights
+        regions : list of str
+            List of regions in which the systematic mitigation procedure was applied. The normalized target density
+            is computed and the regression is applied independantly in each regions.
+        """
+
+        if isinstance(weight_data, str):
+            weight_data = np.load(weight_data)
+        if isinstance(weight_cluster, str):
+            weight_cluster = np.load(weight_cluster)
+
+        self.weight_data = weight_data
+        self.weight_cluster = weight_cluster
+
+        self.regions = regions
+
+    def __str__(self):
+        """Return comprehensible print for PhotoWeight class"""
+        return f"KmeansWeight generated on {self.regions}"
+
+    def __setstate__(self, state):
+        """Set the class state dictionary. Here all the attributs are picklable, set self.__dict__ is enough."""
+        self.__dict__ = state
+
+    def __getstate__(self):
+        """Return this class state dictionary. Here all the attributs are picklable, return self.__dict__ is enough."""
+        return self.__dict__
+
+    @classmethod
+    def load(cls, filename):
+        """Load class from disk. Instantiate and initalise class with state dictionary. """
+        state = np.load(filename, allow_pickle=True).item()
+        logger_kmeans.info(f"Load KmeansWeight class from {filename}")
+        new = cls.__new__(cls)
+        new.__setstate__(state)
+        return new
+
+    def save(self, filename):
+        """Save class to disk. Remark: np.load(dictionary) will call pickle.dumps(). Here we just avoid to load this module."""
+        utils.mkdir(os.path.dirname(filename))
+        np.save(filename, self.__getstate__())
+        logger_kmeans.info(f"Save KmeansWeight class in {filename}")
+
+    def __call__(self, ra, dec):
+        """
+            TODO
+        """
+        ValueError('__call__ is not defined for KmeansWeight')

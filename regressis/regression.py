@@ -16,7 +16,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import dump
 
 from . import utils
-from .weight import PhotoWeight
+from .weight import PhotoWeight, KmeansWeight
 
 
 logger = logging.getLogger("Regression")
@@ -99,7 +99,7 @@ def _format_regressor_params(params, regions=None):
     params = params or {}
     if regions is None: regions = _all_regions
     if not any(region in params for region in regions):
-        params = {region: params for region in regions}
+        params = {region: params.copy() for region in regions}
     return params
 
 
@@ -205,7 +205,7 @@ class Regression(object):
 
     """Implementation of template fitting regression."""
 
-    def __init__(self, dataframe, regressor='RF', suffix_regressor='', feature_names=None, use_kfold=True,
+    def __init__(self, dataframe, regressor='RF', suffix_regressor='', feature_names=None, use_kfold=True, use_sample_weight=None,
                  regressor_params=None, nfold_params=None, compute_permutation_importance=True,
                  overwrite=False, save_regressor=False, n_jobs=6, seed=123):
         """
@@ -223,6 +223,9 @@ class Regression(object):
             Names of features used during the regression. By default get feature names from :func:`_get_feature_names`.
         use_kfold : bool, default=True
             If ``True`` use k-fold to fit/predict target density. It is mandatory with RF and NN to avoid strong overfitting.
+        use_sample_weight : bool, default=None
+            If ``True`` use ``1/np.sqrt(Y_train)`` as weight during the regression. Only available for RF or LINEAR.
+            By default it is setting as true for RF and LINEAR. Set it as False to do not use it.
         regressor_params : dict, default=None
             Dictionary specific hyperparameters to update the default values loaded in _get_rf_params / _get_mlp_params / _get_linear_params.
             Can be provided as a single dictionary, applicable to all regions, or as a dictionary containing parameters for each region of :attr:`dataframe.regions`.
@@ -275,6 +278,9 @@ class Regression(object):
         else:
             self.regressor_name = self.regressor.__class__.__name__
 
+        if use_sample_weight is not None:
+            self.use_sample_weight = use_sample_weight
+
         # in NN and Linear case, we normalize and standardize the data
         # STREAM is already normalized remove it from the list
         if self.regressor_name.upper() != 'RF':
@@ -319,7 +325,8 @@ class Regression(object):
                 save_info = False
                 save_dir = None
 
-            zone = self.dataframe.footprint(region)  # mask array
+            # extract information on the considered region
+            zone = self.dataframe.footprint(region)[self.dataframe.pixels]  # mask array
 
             logger.info(f"  ** {region} :")
             X = self.dataframe.features[self.feature_names][zone]
@@ -590,6 +597,8 @@ class Regression(object):
         """
         Save the healpix systematic maps.
 
+        **Remark:** Cool idea was to interpolate the weight on each pixels but the interpolation on a lot of points is impossible (computation time).
+
         Parameters
         ----------
         save_map : bool, default=False
@@ -603,11 +612,32 @@ class Regression(object):
         w : ``PhotoWeight`` class
             Weight class with callable function to apply it into a real catalogue.
         """
-        w = np.zeros(hp.nside2npix(self.dataframe.nside)) * np.nan
-        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
-        weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions,
-                             mask_region={region: self.dataframe.footprint(region) for region in self.dataframe.regions},
-                             mean_density_region=self.dataframe.mean_density_region)
+        from .dataframe import PhotometricDataFrame, KmeansDataFrame
+
+        if isinstance(self.dataframe, PhotometricDataFrame):
+            w = np.zeros(hp.nside2npix(self.dataframe.nside)) * np.nan
+            w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
+            weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions,
+                                 mask_region={region: self.dataframe.footprint(region) for region in self.dataframe.regions},
+                                 mean_density_region=self.dataframe.mean_density_region)
+
+        if isinstance(self.dataframe, KmeansDataFrame):
+            # weight for each data point
+            w = np.nan * np.zeros(self.dataframe.data.shape[0])
+            # weight for each cluster
+            w_cluster = np.nan * np.zeros(self.dataframe.density.size)
+            for region in self.dataframe.regions:
+                data_in_region, randoms_in_region = self.dataframe.footprint(region)[self.dataframe.data['HPX']], self.dataframe.footprint(region)[self.dataframe.randoms['HPX']]
+                clust_in_region = self.dataframe.footprint(region)[self.dataframe.pixels]
+                # to avoid potiential problem, set 1 the default weight
+                Y_pred = np.ones(self.dataframe.n_clusters[region])
+                Y_pred[np.array(self.dataframe.randoms[randoms_in_region].groupby('LABELS').size().index, dtype='int')] = self.Y_pred[clust_in_region]
+                # collect weight for each points
+                w[data_in_region] = 1 / Y_pred[np.array(self.dataframe.data[data_in_region]['LABELS'].values, dtype='int')]
+                # collect weight for each clusters
+                w_cluster[clust_in_region] = 1 / self.Y_pred[clust_in_region]
+
+                weight = KmeansWeight(w, w_cluster, regions=self.dataframe.regions)
 
         if save:
             if savedir is None:
@@ -759,6 +789,7 @@ class Regression(object):
         """
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
+        from .dataframe import PhotometricDataFrame, KmeansDataFrame
 
         if save:
             dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor, 'Fig')
@@ -768,28 +799,33 @@ class Regression(object):
         else:
             dir_output = None
 
-        with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
-            targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
-        targets[~self.dataframe.footprint('Footprint')] = np.nan
+        if isinstance(self.dataframe, PhotometricDataFrame):
+            with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
+                targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
 
-        w = np.zeros(hp.nside2npix(self.dataframe.nside))
-        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
-        targets_without_systematics = targets * w
+            targets[~self.dataframe.footprint('Footprint')] = np.nan
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            filename = None
-            if save: filename = os.path.join(dir_output, 'targets.pdf')
-            plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
-            if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
-            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
-            map_to_plot = w.copy()
-            map_to_plot[map_to_plot == 0] = np.nan
-            map_to_plot -= 1
-            if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
-            plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+            w = np.zeros(hp.nside2npix(self.dataframe.nside))
+            w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
+            targets_without_systematics = targets * w
 
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
-                                 self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.features_toplot, self.dataframe.regions,
-                                 ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
-                                 cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, legend_title=True,
-                                 save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                filename = None
+                if save: filename = os.path.join(dir_output, 'targets.pdf')
+                plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+                if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
+                plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+                map_to_plot = w.copy()
+                map_to_plot[map_to_plot == 0] = np.nan
+                map_to_plot -= 1
+                if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
+                plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+
+            plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
+                                     self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.pixels, self.dataframe.features_toplot, self.dataframe.regions,
+                                     ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
+                                     cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, legend_title=True,
+                                     save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)
+
+        if isinstance(self.dataframe, KmeansDataFrame):
+            print("__TODO__")
