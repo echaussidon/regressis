@@ -759,6 +759,7 @@ class Regression(object):
         """
         from .plot import plot_moll
         from .systematics import plot_systematic_from_map
+        from .dataframe import PhotometricDataFrame
 
         if save:
             dir_output = os.path.join(self.dataframe.output_dir, self.regressor_name + self.suffix_regressor, 'Fig')
@@ -768,28 +769,32 @@ class Regression(object):
         else:
             dir_output = None
 
-        with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
-            targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
-        targets[~self.dataframe.footprint('Footprint')] = np.nan
+        if isinstance(self.dataframe, PhotometricDataFrame):
+            with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
+                targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
 
-        w = np.zeros(hp.nside2npix(self.dataframe.nside))
-        w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
-        targets_without_systematics = targets * w
+            targets[~self.dataframe.footprint('Footprint')] = np.nan
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            filename = None
-            if save: filename = os.path.join(dir_output, 'targets.pdf')
-            plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
-            if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
-            plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
-            map_to_plot = w.copy()
-            map_to_plot[map_to_plot == 0] = np.nan
-            map_to_plot -= 1
-            if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
-            plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+            w = np.zeros(hp.nside2npix(self.dataframe.nside))
+            w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
+            targets_without_systematics = targets * w
 
-        plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
-                                 self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.features_toplot, self.dataframe.regions,
-                                 ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
-                                 cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, legend_title=True,
-                                 save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                filename = None
+                if save: filename = os.path.join(dir_output, 'targets.pdf')
+                plot_moll(hp.ud_grade(targets, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+                if save: filename = os.path.join(dir_output, 'targets_without_systematics.pdf')
+                plot_moll(hp.ud_grade(targets_without_systematics, 64, order_in='NESTED'), min=0, max=max_plot_cart, title='weighted density', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+                map_to_plot = w.copy()
+                map_to_plot[map_to_plot == 0] = np.nan
+                map_to_plot -= 1
+                if save: filename = os.path.join(dir_output, 'systematic_weights.pdf')
+                plot_moll(hp.ud_grade(map_to_plot, 64, order_in='NESTED'), min=-0.2, max=0.2, label='weight - 1', show=show, filename=filename, galactic_plane=True, ecliptic_plane=True)
+
+            plot_systematic_from_map([targets, targets_without_systematics], ['No correction', 'Systematics correction'],
+                                     self.dataframe.fracarea, self.dataframe.footprint, self.dataframe.features, self.dataframe.pixels, self.dataframe.features_toplot, self.dataframe.regions,
+                                     ax_lim=ax_lim, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin, n_bins=n_bins,
+                                     cut_fracarea=cut_fracarea, limits_fracarea=limits_fracarea, legend_title=True,
+                                     save_table=save_table, save_table_suffix=save_table_suffix, show=show, save=save, savedir=dir_output)
+
+
