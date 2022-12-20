@@ -117,8 +117,8 @@ class PhotometricDataFrame(object):
         # default columns for the legacy imaging templates
         if sel_columns is None:
             sel_columns = ['STARDENS', 'EBV',
-                           'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
                            'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z',
+                           'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 'PSFDEPTH_W1', 'PSFDEPTH_W2',
                            'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z']
         # default columns for the external templates
         if sel_columns_external is None:

@@ -184,7 +184,7 @@ def _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea=True, 
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, pixels, feature_names=None, regions=['North', 'South', 'Des'],
                              ax_lim=0.2, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
-                             cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True,
+                             cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True, y_label=None,
                              save_table=False, save_table_suffix='',
                              show=False, save=True, savedir=None):
     """
@@ -275,7 +275,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
                         if save_table:
                             from astropy.table import Table
-                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_qso_density', 'relative_qso_density_err', 'nbr_objetcs_per_bins'])
+                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_density', 'relative_density_err', 'nbr_objetcs_per_bins'])
                             table.write(f'{save_table_suffix}{sysname}_{label}.ecsv', overwrite=True)
 
                     ax_hist = ax.twinx()
@@ -292,7 +292,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     num_to_plot += 1
 
             if i == 3:
-                ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
+                if y_label is None: y_label = "Relative density - 1"
+                ax.set_ylabel(y_label, labelpad=10)
 
             if i == 10:
                 title = region if legend_title else None
@@ -338,7 +339,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
                         if save_table:
                             from astropy.table import Table
-                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_qso_density', 'relative_qso_density_err', 'nbr_objetcs_per_bins'])
+                            table = Table([binmid, meds, meds_err, nbr_obj_bins], names=['feature', 'relative_density', 'relative_density_err', 'nbr_objetcs_per_bins'])
                             table.write(f'{save_table_suffix}{sysname}_{label}.ecsv', overwrite=True)
 
                     ax_hist = ax.twinx()
@@ -355,7 +356,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     num_to_plot += 1
 
                 if i == 3:
-                    ax.set_ylabel("Relative QSO targets density - 1", labelpad=10)
+                    ax.set_ylabel(y_label, labelpad=10)
 
             if save:
                 plt.savefig(os.path.join(savedir, f"{region}_systematics_plot_2.pdf"))
