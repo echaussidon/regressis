@@ -15,7 +15,7 @@ from regressis.utils import build_healpix_map
 logger = logging.getLogger("Mocks")
 
 
-def create_flag_imaging_systematic(mock, sel_pnz, wsys, fracarea=None, use_real_density=True, seed=123, show=False, savedir=None):
+def create_flag_imaging_systematic(mock, sel_pnz, wsys, fracarea=None, pix_number=None, use_real_density=True, seed=123, show=False, savedir=None):
     """
     Create boolean mask to select which object from mocks with high density have to be kept to have systematic contaminated mocks.
 
@@ -32,6 +32,8 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, fracarea=None, use_real_
         Photometric weight used to compute mock computation. See :class:`PhotoWeight` to build it easily.
     fracarea : boolean array
         healpix map at wsys.nside. In order to correct the sky mean density of the mock
+    pix_number : int array
+        if not None, provide the precomputed healpix number for all the mock objects.
     use_real_density : bool
         If True use density from PhotoWeight class instead of the ratio from mock which is the same for each photometric footprint...
         If False, you do not match the observed density in each photometric footprint
@@ -51,10 +53,9 @@ def create_flag_imaging_systematic(mock, sel_pnz, wsys, fracarea=None, use_real_
     pix_number : int array
         Value of healpix pixel at wsys.nside in nested scheme for each object in mock.
     """
-    # Compute the Healpix number for each objects (~13s for LRG catalog) # longer for ELG 30s ...
-    # ask to do this computation at nside 512 for instance earlier in the code ?
-    logger.info(f"Compute the healpix number at nside={wsys.nside} for each object in the mock")
-    pix_number = hp.ang2pix(wsys.nside, mock['RA'], mock['DEC'], nest=True, lonlat=True)
+    if pix_number is None:
+        logger.info(f"Compute the healpix number at nside={wsys.nside} for each object in the mock")
+        pix_number = hp.ang2pix(wsys.nside, mock['RA'], mock['DEC'], nest=True, lonlat=True)
 
     # Compute the ratio between high density mock (from which we will remove objects) and
     # and expected object density in reality.
