@@ -173,12 +173,11 @@ def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=No
     pix: array
         Healpix value at ``nside``, return only if return_pix is ``True``.
     """
-    if sel is None:
-        sel = np.ones(precomputed_pix.size if (precomputed_pix is not None) else ra.size, dtype='?')
+    if sel is None: sel = np.ones(precomputed_pix.size if (precomputed_pix is not None) else ra.size, dtype='?')
     pix = precomputed_pix[sel] if (precomputed_pix is not None) else hp.ang2pix(nside, ra[sel], dec[sel], nest=True, lonlat=True)
+    if weights is not None: weights = weights[sel]
     map = np.bincount(pix, weights=weights, minlength=hp.nside2npix(nside)) / 1.0
-    if in_deg2:
-        map = map / hp.nside2pixarea(nside, degrees=True)
+    if in_deg2: map = map / hp.nside2pixarea(nside, degrees=True)
     if return_pix: return map, pix
     return map
 
