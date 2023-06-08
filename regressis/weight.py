@@ -72,7 +72,7 @@ class PhotoWeight(object):
         np.save(filename, self.__getstate__())
         logger_photo.info(f"Save PhotoWeight class in {filename}")
 
-    def __call__(self, ra, dec):
+    def __call__(self, ra, dec, normalize_map=False):
         """
         Build the photometric weight from a healpix map to a (R.A., Dec.) catalog.
 
@@ -88,8 +88,15 @@ class PhotoWeight(object):
         w : float array
             Photometric weight for each (Ra, Dec) values.
         """
+        if normalize_map:
+            logger_photo.info(f'Map is normalized on {self.regions} before generating the weights')
+            w_map = self.map.copy()
+            for region in self.regions:
+                w_map[self.mask_region[region]] /=  np.mean(self.map[self.mask_region[region]])
+        else:
+            w_map = self.map
         pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)
-        return self.map[pix]
+        return w_map[pix]
 
     def fraction_to_remove_per_pixel(self, ratio_mock_reality):
         """
