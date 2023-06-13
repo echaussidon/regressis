@@ -215,6 +215,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
         cb.set_label(label, x=xpad, labelpad=labelpad)
         if tick_labels is not None:
             cb.ax.set_xticklabels(tick_labels)  # horizontal colorbar
+        cb.ax.tick_params(size=0)
 
     if galactic_plane:
         ra, dec = _get_galactic_plane(rot=rot)
