@@ -183,7 +183,7 @@ def _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea=True, 
 
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, pixels, feature_names=None, regions=['North', 'South', 'Des'],
-                             ax_lim=0.2, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
+                             ax_lim=0.1, colors=None, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                              cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True, y_label=None,
                              save_table=False, save_table_suffix='',
                              show=False, save=True, savedir=None):
@@ -209,6 +209,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         regions where the systematic plots will be created. Each region is treat individually.
     ax_lim : float
         limit of the y axis (ie) of the relative density - 1.
+    colors : list of str
+        if not None, use the list as the colors for each map in map_list.
     adaptative_binning : bool
         If True, use same number of pixels in each bins.
     nobj_per_bin : int
@@ -267,11 +269,12 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     ax.set_ylim(-ax_lim, ax_lim)
                     ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
 
-                    for mp, label in zip(map_list, label_list):
+                    for ii, (mp, label) in enumerate(zip(map_list, label_list)):
                         bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep].values),
                                                                                       sysname, downclip=conversion(down), upclip=conversion(up),
                                                                                       nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
-                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
+                        color = None if colors is None else colors[ii]
+                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, color=color, label=label)
 
                         if save_table:
                             from astropy.table import Table
@@ -331,11 +334,12 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
                     ax.set_ylim(-ax_lim, ax_lim)
                     ax.set_yticks([-ax_lim, -ax_lim / 2, 0, ax_lim / 2, ax_lim])
 
-                    for mp, label in zip(map_list, label_list):
+                    for ii, (mp, label) in enumerate(zip(map_list, label_list)):
                         bins, binmid, meds, nbr_obj_bins, meds_err = _systematics_med(mp[pix_to_keep], conversion(pixmap[sysname][pix_to_keep].values),
                                                                                       sysname, downclip=conversion(down), upclip=conversion(up),
                                                                                       nbins=nbins, adaptative_binning=adaptative_binning, nobj_per_bin=nobj_per_bin)
-                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, label=label)
+                        color = None if colors is None else colors[ii]
+                        ax.errorbar(binmid, meds - 1 * np.ones(binmid.size), yerr=meds_err, marker='.', markersize=3, linestyle='-', lw=0.8, color=color, label=label)
 
                         if save_table:
                             from astropy.table import Table
