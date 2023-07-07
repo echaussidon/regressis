@@ -183,7 +183,8 @@ if __name__ == '__main__':
     sgr_map /= np.mean(sgr_map[sgr_map > 0])
     sgr_map = mean_on_healpix_map(sgr_map, depth_neighbours=2)
 
-    logger.info('Save map at nside=128, 256, 512 in  ../data/')
-    np.save('../data/sagittarius_stream_256.npy', sgr_map)
-    np.save('../data/sagittarius_stream_512.npy', hp.ud_grade(sgr_map, 512, order_in='NESTED'))
-    np.save('../data/sagittarius_stream_128.npy', hp.ud_grade(sgr_map, 128, order_in='NESTED'))
+    logger.info('Save map at nside=64, 128, 256, 512 in  ../data/')
+    #np.save('../data/sagittarius_stream_256.npy', sgr_map)
+    #np.save('../data/sagittarius_stream_512.npy', hp.ud_grade(sgr_map, 512, order_in='NESTED'))
+    #np.save('../data/sagittarius_stream_128.npy', hp.ud_grade(sgr_map, 128, order_in='NESTED'))
+    np.save('../data/sagittarius_stream_128.npy', hp.ud_grade(sgr_map, 64, order_in='NESTED'))
