@@ -103,7 +103,7 @@ def _format_regressor_params(params, regions=None):
     return params
 
 
-def _get_rf_params(params=None, n_jobs=6, seed=123, regions=None):
+def _get_rf_params(params=None, n_jobs=6, seed=123, regions=None, criterion='squared_error'):
     """
     Return pre-defined hyperparameters for the :class:`RandomForestRegressor` for each region.
     Can be updated with ``params``.
@@ -118,6 +118,8 @@ def _get_rf_params(params=None, n_jobs=6, seed=123, regions=None):
         Fix the random state for reproducibility.
     regions : list, default=None
         List of regions. Defaults to ``_all_regions``.
+    criterion : float, default=None
+        Can be: "squared_error", "absolute_error", "friedman_mse", "poisson". Note before July 2023, we always use squared_error.
 
     Returns
     -------
@@ -125,7 +127,7 @@ def _get_rf_params(params=None, n_jobs=6, seed=123, regions=None):
         Dictionary containing for each region a dictionary of the hyperparameters for the regressor.
     """
     default = _format_regressor_params({'n_estimators': 200, 'min_samples_leaf': 20, 'max_depth': None,
-                                        'max_leaf_nodes': None, 'n_jobs': n_jobs, 'random_state': seed},
+                                        'max_leaf_nodes': None, 'n_jobs': n_jobs, 'random_state': seed, 'criterion': criterion},
                                        regions=regions)
     utils.deep_update(default, _format_regressor_params(params or {}, regions=regions))
     return default
