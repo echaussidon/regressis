@@ -235,13 +235,21 @@ class PhotometricDataFrame(object):
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
+        if np.mean(self.targets[keep_to_train]) < 5:
+            logger.warning('Number of objects per pixel is too low --> downgrade to 256 the healpix map build at 128...')
+            targets = hp.ud_grade(hp.ud_grade(self.targets, 128, order_in='NEST', power=-2), 256, order_in='NESTED') # power=-2 --> sum the counts
+            fracarea = hp.ud_grade(hp.ud_grade(self.fracarea, 128, order_in='NEST'), 256, order_in='NESTED')
+        else:
+            targets = self.targets
+            fracarea = self.fracarea
+
         # file to load DR9 footprint is roughly what we expect to be DR9. At the border, it is expected to have pixels with fracarea == 0 and which are in DR9 Footprint
         # {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} > 99.9 % is similar than 100 %.
         logger.info(f"The considered footprint represents {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} of the DR9 footprint")
         logger.info(f"They are {(~keep_to_train[considered_footprint]).sum()} pixels which will be not used for the training i.e. {(~keep_to_train[considered_footprint]).sum()/(considered_footprint).sum():2.2%} of the considered footprint")
 
         # build normalized targets
-        normalized_targets, mean_targets_density = np.zeros(self.targets.size) * np.nan, dict()
+        normalized_targets, mean_targets_density = np.zeros(targets.size) * np.nan, dict()
         for region_name in self.regions:
             pix_region = self.footprint(region_name)
             pix_to_use = pix_region & keep_to_train
@@ -254,22 +262,22 @@ class PhotometricDataFrame(object):
 
             # compute the mean only on pixel with "correct" behaviour
             if not self.use_median:
-                mean_targets_density_estimators = np.mean(self.targets[pix_to_use_norm] / self.fracarea[pix_to_use_norm])
+                mean_targets_density_estimators = np.mean(targets[pix_to_use_norm] / fracarea[pix_to_use_norm])
             else:
-                mean_targets_density_estimators = np.median(self.targets[pix_to_use_norm] / self.fracarea[pix_to_use_norm])
+                mean_targets_density_estimators = np.median(targets[pix_to_use_norm] / fracarea[pix_to_use_norm])
 
             # compute normalized_targets every where
             # We will only use keep_to_train == 1 during the training (where fracarea > 0)
             # To avoid the warning raised: RuntimeWarning: invalid value encountered in true_divide
             with np.errstate(divide='ignore', invalid='ignore'):
-                normalized_targets[pix_region] = self.targets[pix_region] / (self.fracarea[pix_region] * mean_targets_density_estimators)
+                normalized_targets[pix_region] = targets[pix_region] / (fracarea[pix_region] * mean_targets_density_estimators)
             mean_targets_density[region_name] = mean_targets_density_estimators
             logger.info(f"  ** {region_name}: {mean_targets_density_estimators:2.2f} -- {normalized_targets[pix_to_use_norm].mean():1.4f} -- {normalized_targets[pix_to_use].mean():1.4f}")
 
         # some plots for sanity check
         if self.output_dataframe_dir is not None:
             plt.figure(figsize=(8, 6))
-            plt.hist(self.targets[considered_footprint], range=(0.1, 100), bins=100, label='without any selection')
+            plt.hist(targets[considered_footprint], range=(0.1, 100), bins=100, label='without any selection')
             plt.xlabel(f'nbr of objects per healpix at nside={self.nside}')
             plt.ylabel('nbr of pixels')
             plt.legend()
@@ -277,7 +285,7 @@ class PhotometricDataFrame(object):
             plt.close()
 
             plt.figure(figsize=(8, 6))
-            plt.hist(self.fracarea[considered_footprint], range=(0.1, 1.2), bins=100, label='without any selection')
+            plt.hist(fracarea[considered_footprint], range=(0.1, 1.2), bins=100, label='without any selection')
             plt.xlabel('fracarea')
             plt.ylabel('nbr of pixels')
             plt.legend()
