@@ -182,7 +182,7 @@ def _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea=True, 
     return pix_to_keep
 
 
-def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, pixels, feature_names=None, regions=['North', 'South', 'Des'],
+def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps, pixels, feature_names=None, regions=['North', 'South', 'Des'],
                              ax_lim=0.1, colors=None, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
                              cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True, y_label=None,
                              save_table=False, save_table_suffix='',
@@ -201,10 +201,10 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
         Healpix map of the corresponding fracarea (ie) observed fractional sky area for a pixel.
     footprint : :class:`Footprint`
         Corresponding footprint used to keep pixels in desired region.
-    pixmap : DataFrame
-        Array containing the heampix map at correct nside of dr9 features. Typically dataframe.features.
+    pixmaps : dict of DataFrame
+        Array containing the heampix map at correct nside of dr9 features. Typically dataframe.features. Should contains one pixmaps for each region
     feature_names : list of str
-        List of feature name contained in pixmap that we want to plot.
+        List of feature name contained in pixmaps that we want to plot.
     regions : str list
         regions where the systematic plots will be created. Each region is treat individually.
     ax_lim : float
@@ -244,6 +244,9 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmap, 
 
     for region in regions:
         logger.info(f'Work with {region}')
+
+        # select the correspongind pixmaps
+        pixmap = pixmaps[region]
 
         sysdic = _get_desi_plot_attrs(feature_names, region)
         sysnames = list(sysdic.keys())

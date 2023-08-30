@@ -95,6 +95,8 @@ class PhotometricDataFrame(object):
         Set photometric templates info either from a pixweight array (already loaded) or read it from .fits file
         All the maps should be Healpix maps with :attr:`nside` in nested order.
 
+        One can either provide one pixmap which will be the same for each region or one different for each region.
+
         Parameters
         ----------
         pixmap : float array or str, default=None
@@ -113,6 +115,7 @@ class PhotometricDataFrame(object):
             list of features to plot in the systematic plots. If None, the plot is done for each feature in self.features
         """
         path_pixweight, path_pixweight_external, path_sgr_stream = None, None, None
+        feature_pixmap = dict()
 
         # default columns for the legacy imaging templates
         if sel_columns is None:
@@ -126,41 +129,43 @@ class PhotometricDataFrame(object):
                                     'CALIBG', 'CALIBR', 'CALIBZ',
                                     'EBVreconMEANF6', 'EBVreconMEANF15']
 
-        if isinstance(pixmap, str):
-            path_pixweight = pixmap
-        elif pixmap is None:
-            path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
-        if path_pixweight is not None:
-            logger.info(f"Read {path_pixweight}")
-            feature_pixmap = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())[sel_columns]
-        else:
-            feature_pixmap = pixmap[sel_columns]
+        for region in self.regions:
+            pixmap_region = pixmap[region] if isinstance(pixmap, dict) else pixmap
 
-        if use_sgr_stream:
-            if isinstance(sgr_stream, str):
-                path_sgr_stream = sgr_stream
-            elif sgr_stream is None:
-                path_sgr_stream = os.path.join(self.data_dir, f'sagittarius_stream_{self.nside}.npy')
-            if path_sgr_stream is not None:
-                # Load Sgr. Stream map
-                logger.info(f"Read {path_sgr_stream}")
-                sgr_stream = np.load(path_sgr_stream)
-            feature_pixmap.insert(2, 'STREAM', sgr_stream)
+            if isinstance(pixmap_region, str):
+                path_pixweight = pixmap_region
+            elif pixmap_region is None:
+                path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
+            if path_pixweight is not None:
+                logger.info(f"Read {path_pixweight}")
+                feature_pixmap[region] = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())[sel_columns]
+            else:
+                feature_pixmap[region] = pixmap_region[sel_columns]
 
-        if isinstance(pixmap_external, str):
-            path_pixweight_external = pixmap_external
-        if path_pixweight_external is not None:
-            logger.info(f"Read {path_pixweight_external}")
-            feature_pixmap = pd.concat([feature_pixmap,
-                                        pd.DataFrame(fitsio.FITS(path_pixweight_external)[1][sel_columns_external].read().byteswap().newbyteorder())],
-                                       axis=1)
+            if use_sgr_stream:
+                if isinstance(sgr_stream, str):
+                    path_sgr_stream = sgr_stream
+                elif sgr_stream is None:
+                    path_sgr_stream = os.path.join(self.data_dir, f'sagittarius_stream_{self.nside}.npy')
+                if path_sgr_stream is not None:
+                    # Load Sgr. Stream map
+                    logger.info(f"Read {path_sgr_stream}")
+                    sgr_stream = np.load(path_sgr_stream)
+                feature_pixmap[region].insert(2, 'STREAM', sgr_stream)
+
+            pixmap_external_region = pixmap_external[region] if isinstance(pixmap_external, dict) else pixmap_external 
+            if isinstance(pixmap_external_region, str):
+                path_pixweight_external = pixmap_external_region
+            if path_pixweight_external is not None:
+                logger.info(f"Read {path_pixweight_external}")
+                feature_pixmap[region] = pd.concat([feature_pixmap[region],
+                                            pd.DataFrame(fitsio.FITS(path_pixweight_external)[1][sel_columns_external].read().byteswap().newbyteorder())],
+                                        axis=1)
 
         self.features = feature_pixmap
-        self.features_toplot = features_toplot
-        if features_toplot is None:
-            self.features_toplot = feature_pixmap.columns
+        self.features_toplot = feature_pixmap[region].columns  if features_toplot is None else features_toplot
 
-        logger.info(f"Sanity check: number of NaNs in features: {self.features.isnull().sum().sum()}")
+        logger.info(f"Sanity check: number of NaNs in features: {self.features[region].isnull().sum().sum() for region in self.regions}")
 
     def set_targets(self, targets=None, fracarea=None):
         """
@@ -218,12 +223,20 @@ class PhotometricDataFrame(object):
         fracarea_limits : tuple, list, default=None
             If a tuple or list, min and max limits for fracarea.
         """
+        if np.mean(self.targets[(self.fracarea > 0) & (self.targets > 0)]) < 5:
+            logger.warning('Number of objects per pixel is too low --> downgrade to 256 the healpix map build at 128...')
+            targets = hp.ud_grade(hp.ud_grade(self.targets, 128, order_in='NEST', power=-2), 256, order_in='NESTED') # power=-2 --> sum the counts
+            fracarea = hp.ud_grade(hp.ud_grade(self.fracarea, 128, order_in='NEST'), 256, order_in='NESTED')
+        else:
+            targets = self.targets
+            fracarea = self.fracarea
+
         # use only pixels which are observed for the training
         # self.footprint can be an approximation of the true area where observations were conducted
         # use always fracarea > 0 to use observed pixels
         # remove also pixel with 0 targets --> it should be already removed with fracarea > 0 in targets case
         # but not always with real desi data which have low fracarea at the beginning...
-        considered_footprint = (self.fracarea > 0) & (self.targets > 0) & self.footprint('footprint')
+        considered_footprint = (fracarea > 0) & (targets > 0) & self.footprint('footprint')
         keep_to_train = considered_footprint.copy()
 
         if cut_fracarea:
@@ -235,13 +248,6 @@ class PhotometricDataFrame(object):
                 min_fracarea, max_fracarea = 0.9, 1.1
             keep_to_train &= (self.fracarea > min_fracarea) & (self.fracarea < max_fracarea)
 
-        if np.mean(self.targets[keep_to_train]) < 5:
-            logger.warning('Number of objects per pixel is too low --> downgrade to 256 the healpix map build at 128...')
-            targets = hp.ud_grade(hp.ud_grade(self.targets, 128, order_in='NEST', power=-2), 256, order_in='NESTED') # power=-2 --> sum the counts
-            fracarea = hp.ud_grade(hp.ud_grade(self.fracarea, 128, order_in='NEST'), 256, order_in='NESTED')
-        else:
-            targets = self.targets
-            fracarea = self.fracarea
 
         # file to load DR9 footprint is roughly what we expect to be DR9. At the border, it is expected to have pixels with fracarea == 0 and which are in DR9 Footprint
         # {(considered_footprint).sum() / self.footprint('footprint').sum():2.2%} > 99.9 % is similar than 100 %.

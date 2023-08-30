@@ -324,7 +324,7 @@ class Regression(object):
             zone = self.dataframe.footprint(region)  # mask array
 
             logger.info(f"  ** {region} :")
-            X = self.dataframe.features[self.feature_names][zone]
+            X = self.dataframe.features[region][self.feature_names][zone]
             Y = self.dataframe.density[zone]
             keep_to_train_zone = self.dataframe.keep_to_train[zone]
             pixels_zone = self.dataframe.pixels[zone]
