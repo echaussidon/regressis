@@ -3,7 +3,20 @@
 Change Log
 ==========
 
-Main (2022-06-08)
+Main (2023-08-30)
+-----------------
+
+* Can select different criterion in RFRegressor.
+
+* Can provide one set of features for each regions (typically useful for North vs. South).
+
+* Add automatic downgrading when there are not enough data in pixels.
+
+* Add stuff to read and convert Rongpu EBV maps.
+
+* Add option (default=True) which normalize the wsys.maps during the call.
+
+(2022-06-08)
 -----------------
 
 * Add possibility to use an external pixweight when loading the features. Set also the features that we want to plot in the systematic plots automatically --> ideal to test the dependence as a function of a feature after the correction.
