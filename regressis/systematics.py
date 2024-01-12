@@ -87,6 +87,11 @@ def _get_desi_plot_attrs(feature_names, region):
                                   'south': [0.629, 1.6, 'PSF Depth in W2-band', 30, convert_depth],
                                   'des': [0.62, 2.25, 'PSF Depth in W2-band', 30, convert_depth],
                                   'global': [0.0, 7.0, 'PSF Depth in W2-band', 30, convert_depth]}
+                                
+        sysdict['HI'] = {'north': [10**19.7, 10**21.3, 'log10(HI)', 35, convert_stardens],
+                         'south': [10**19.7, 10**21.3, 'log10(HI)', 35, convert_stardens],
+                         'des': [10**19.7, 10**21.3, 'log10(HI)', 30, convert_stardens],
+                         'global': [10**19.7, 10**21.3, 'log10(HI)', 40, convert_stardens]}
 
         if name in sysdict.keys():
             return sysdict[name][region]

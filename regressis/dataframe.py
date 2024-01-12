@@ -125,9 +125,10 @@ class PhotometricDataFrame(object):
                            'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z']
         # default columns for the external templates
         if sel_columns_external is None:
-            sel_columns_external = ['KAPPAPLANK', 'HALPHA', 'EBVext',
+            sel_columns_external = ['KAPPAPLANK', 'HALPHA', 'HI', 'EBVext',
                                     'CALIBG', 'CALIBR', 'CALIBZ',
-                                    'EBVreconMEANF6', 'EBVreconMEANF15']
+                                    'EBVreconMEANF6', 'EBVreconMEANF15', 
+                                    'EBV_DIFF_GR', 'EBV_DIFF_RZ']
 
         for region in self.regions:
             pixmap_region = pixmap[region] if isinstance(pixmap, dict) else pixmap
@@ -156,6 +157,8 @@ class PhotometricDataFrame(object):
             pixmap_external_region = pixmap_external[region] if isinstance(pixmap_external, dict) else pixmap_external 
             if isinstance(pixmap_external_region, str):
                 path_pixweight_external = pixmap_external_region
+            elif pixmap_external_region is None: 
+                path_pixweight_external = os.path.join(self.data_dir, f'pixweight_external_{self.nside}.fits')
             if path_pixweight_external is not None:
                 logger.info(f"Read {path_pixweight_external}")
                 feature_pixmap[region] = pd.concat([feature_pixmap[region],
@@ -165,7 +168,7 @@ class PhotometricDataFrame(object):
         self.features = feature_pixmap
         self.features_toplot = feature_pixmap[region].columns  if features_toplot is None else features_toplot
 
-        logger.info(f"Sanity check: number of NaNs in features: {self.features[region].isnull().sum().sum() for region in self.regions}")
+        logger.info(f"Sanity check: number of NaNs in features: {[(region, self.features[region].isnull().sum().sum()) for region in self.regions]}")
 
     def set_targets(self, targets=None, fracarea=None):
         """

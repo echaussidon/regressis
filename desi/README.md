@@ -9,6 +9,8 @@ First run these commands to collect the DR9 features and the Sgr Stream. By defa
  * `collect_dr9_features.py`: It take a while to have enough randoms to compute the default fracarea (FRACAREA_12290). This is only relevant for SV3/MAIN targets. You can set nbr_randoms = 1 to go faster.
 
  * `collect_sgr_stream.py`: Build the STREAM feature. If Sgr_members_L120_150_GaiaDR2.csv is not in the data folder, you can download it from: https://sites.google.com/fqa.ub.edu/tantoja/research/sagittarius.
+ 
+ * `collect_external_pixmap.py`: Collect additional maps and rongpu EBV DIFF maps at the different nside.
 
 ## 2. Collect data:
 

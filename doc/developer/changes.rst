@@ -3,7 +3,16 @@
 Change Log
 ==========
 
-Main (2023-08-30)
+Main (2024-01-11)
+-----------------
+
+* Add script to generate new external maps including the DIFF_EBV from rongpu and HI maps
+
+* update dataframe.py to collect these new maps by default
+
+* Add correct parameters for HI in systematics.py
+
+(2023-08-30)
 -----------------
 
 * Can select different criterion in RFRegressor.
