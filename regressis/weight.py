@@ -17,7 +17,7 @@ class PhotoWeight(object):
     """Container of photometric weight with callable function to apply it to a (R.A., Dec.) catalog"""
 
     def __init__(self, sys_weight_map="/global/cfs/cdirs/desi/users/edmondc/Imaging_weight/MAIN/MAIN_LRG_imaging_weight_256.npy",
-                 regions=None, mask_region=None, mean_density_region=None):
+                 regions=None, mask_region=None, mean_density_region=None, fracarea=None):
         """
         Initialize :class:`PhotoWeight`.
 
@@ -44,6 +44,8 @@ class PhotoWeight(object):
         self.regions = regions
         self.mask_region = mask_region
         self.mean_density_region = mean_density_region
+        
+        self.fracarea = fracarea if (fracarea is not None) else np.ones(sys_weight_map.size)
 
     def __str__(self):
         """Return comprehensible print for PhotoWeight class"""
@@ -89,10 +91,10 @@ class PhotoWeight(object):
             Photometric weight for each (Ra, Dec) values.
         """
         if normalize_map:
-            logger_photo.info(f'Map is normalized on {self.regions} before generating the weights')
+            logger_photo.info(f'Map is normalized on {self.regions} before generating the weights. Normalization computed for fracarea > 0.')
             w_map = self.map.copy()
             for region in self.regions:
-                w_map[self.mask_region[region]] /=  np.mean(self.map[self.mask_region[region]])
+                w_map[self.mask_region[region]] /=  np.mean(self.map[self.mask_region[region] & (self.fracarea > 0)])
         else:
             w_map = self.map
         pix = hp.ang2pix(self.nside, ra, dec, nest=True, lonlat=True)

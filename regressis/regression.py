@@ -607,9 +607,9 @@ class Regression(object):
         """
         w = np.zeros(hp.nside2npix(self.dataframe.nside)) * np.nan
         w[self.dataframe.pixels[self.Y_pred > 0]] = 1.0 / self.Y_pred[self.Y_pred > 0]
-        weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions,
+        weight = PhotoWeight(sys_weight_map=w, regions=self.dataframe.regions, 
                              mask_region={region: self.dataframe.footprint(region) for region in self.dataframe.regions},
-                             mean_density_region=self.dataframe.mean_density_region)
+                             mean_density_region=self.dataframe.mean_density_region, fracarea=self.dataframe.fracarea,)
 
         if save:
             if savedir is None:
