@@ -92,6 +92,31 @@ def _get_desi_plot_attrs(feature_names, region):
                          'south': [10**19.7, 10**21.3, 'log10(HI)', 35, convert_stardens],
                          'des': [10**19.7, 10**21.3, 'log10(HI)', 30, convert_stardens],
                          'global': [10**19.7, 10**21.3, 'log10(HI)', 40, convert_stardens]}
+        
+        sysdict['EBV_DIFF_GR'] = {'north': [0.001, 0.1, 'E(B-V) diff GR', 35, id],
+                                  'south': [0.001, 0.1, 'E(B-V) diff GR', 35, id],
+                                  'des':[0.001, 0.09, 'E(B-V) diff GR', 35, id],
+                                  'global': [0.001, 0.1, 'E(B-V) diff GR', 35, id]}
+        
+        sysdict['EBV_DIFF_RZ'] = {'north': [0.001, 0.1, 'E(B-V) diff RZ', 35, id],
+                                  'south': [0.001, 0.1, 'E(B-V) diff RZ', 35, id],
+                                  'des':[0.001, 0.09, 'E(B-V) diff RZ', 35, id],
+                                  'global': [0.001, 0.1, 'E(B-V) diff RZ', 35, id]}
+
+        sysdict['GALDEPTH_G'] = {'north': [200., 1600., 'Gal Depth in g-band', 30, convert_depth],
+                                 'south': [200., 4000., 'Gal Depth in g-band', 30, convert_depth],
+                                 'des': [1000., 4500., 'Gal Depth in g-band', 30, convert_depth],
+                                 'global': [200., 4500., 'Gal Depth in g-band', 30, convert_depth]}
+
+        sysdict['GALDEPTH_R'] = {'north': [95., 620., 'Gal Depth in r-band', 30, convert_depth],
+                                 'south': [100.0, 1550.0, 'Gal Depth in r-band', 30, convert_depth],
+                                 'des': [700., 2500., 'Gal Depth in r-band', 30, convert_depth],
+                                 'global': [25., 2500., 'Gal Depth in r-band', 30, convert_depth]}
+
+        sysdict['GALDEPTH_Z'] = {'north': [20., 200., 'Gal Depth in z-band', 30, convert_depth],
+                                 'south': [20.0, 220, 'Gal Depth in z-band', 40, convert_depth],
+                                 'des': [20.0, 400., 'Gal Depth in z-band', 30, convert_depth],
+                                 'global': [20., 400., 'Gal Depth in z-band', 30, convert_depth]}
 
         if name in sysdict.keys():
             return sysdict[name][region]
@@ -367,8 +392,8 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps,
 
                     num_to_plot += 1
 
-                if i == 3:
-                    ax.set_ylabel(y_label, labelpad=10)
+                #if i == 3:
+                #    ax.set_ylabel(y_label, labelpad=10)
 
             if save:
                 plt.savefig(os.path.join(savedir, f"{region}_systematics_plot_2.pdf"))
