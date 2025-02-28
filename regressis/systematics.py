@@ -92,6 +92,31 @@ def _get_desi_plot_attrs(feature_names, region):
                          'south': [10**19.7, 10**21.3, 'log10(HI)', 35, convert_stardens],
                          'des': [10**19.7, 10**21.3, 'log10(HI)', 30, convert_stardens],
                          'global': [10**19.7, 10**21.3, 'log10(HI)', 40, convert_stardens]}
+        
+        sysdict['EBV_DIFF_GR'] = {'north': [0.001, 0.1, 'E(B-V) diff GR', 35, id],
+                                  'south': [0.001, 0.06, 'E(B-V) diff GR', 35, id],
+                                  'des':[0.001, 0.09, 'E(B-V) diff GR', 35, id],
+                                  'global': [0.001, 0.1, 'E(B-V) diff GR', 35, id]}
+        
+        sysdict['EBV_DIFF_RZ'] = {'north': [0.001, 0.1, 'E(B-V) diff RZ', 35, id],
+                                  'south': [0.001, 0.06, 'E(B-V) diff RZ', 35, id],
+                                  'des':[0.001, 0.09, 'E(B-V) diff RZ', 35, id],
+                                  'global': [0.001, 0.1, 'E(B-V) diff RZ', 35, id]}
+
+        sysdict['GALDEPTH_G'] = {'north': [200., 1600., 'Gal Depth in g-band', 30, convert_depth],
+                                 'south': [200., 4000., 'Gal Depth in g-band', 30, convert_depth],
+                                 'des': [1000., 4500., 'Gal Depth in g-band', 30, convert_depth],
+                                 'global': [200., 4500., 'Gal Depth in g-band', 30, convert_depth]}
+
+        sysdict['GALDEPTH_R'] = {'north': [95., 620., 'Gal Depth in r-band', 30, convert_depth],
+                                 'south': [100.0, 1550.0, 'Gal Depth in r-band', 30, convert_depth],
+                                 'des': [700., 2500., 'Gal Depth in r-band', 30, convert_depth],
+                                 'global': [25., 2500., 'Gal Depth in r-band', 30, convert_depth]}
+
+        sysdict['GALDEPTH_Z'] = {'north': [20., 200., 'Gal Depth in z-band', 30, convert_depth],
+                                 'south': [20.0, 220, 'Gal Depth in z-band', 40, convert_depth],
+                                 'des': [20.0, 400., 'Gal Depth in z-band', 30, convert_depth],
+                                 'global': [20., 400., 'Gal Depth in z-band', 30, convert_depth]}
 
         if name in sysdict.keys():
             return sysdict[name][region]
@@ -188,7 +213,7 @@ def _select_good_pixels(region, fracarea, pixels, footprint, cut_fracarea=True, 
 
 
 def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps, pixels, feature_names=None, regions=['North', 'South', 'Des'],
-                             ax_lim=0.1, colors=None, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None,
+                             ax_lim=0.1, colors=None, figsize=(8.0, 5.2), adaptative_binning=False, nobj_per_bin=2000, n_bins=None, factor_normalisation=1,
                              cut_fracarea=True, limits_fracarea=(0.9, 1.1), legend_title=False, hist_legend=True, y_label=None,
                              save_table=False, save_table_suffix='',
                              show=False, save=True, savedir=None):
@@ -293,9 +318,9 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps,
                     ax_hist.set_xlim(ax.get_xlim())
                     ax_hist.set_ylim(ax.get_ylim())
                     if adaptative_binning:
-                        normalisation = nbr_obj_bins / 0.1
+                        normalisation = nbr_obj_bins / 0.1 * factor_normalisation
                     else:
-                        normalisation = nbr_obj_bins.sum()
+                        normalisation = nbr_obj_bins.sum() * factor_normalisation
                     ax_hist.bar(binmid, nbr_obj_bins / normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
                     ax_hist.grid(False)
                     ax_hist.set_yticks([])
@@ -312,6 +337,7 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps,
                 if hist_legend:
                     ax_hist.legend(bbox_to_anchor=(-1.3, 0.2), loc='upper left', borderaxespad=0., frameon=False, ncol=1)
 
+        plt.tight_layout()
         if save:
             plt.savefig(os.path.join(savedir, f"{region}_systematics_plot.pdf"))
         if show:
@@ -358,18 +384,19 @@ def plot_systematic_from_map(map_list, label_list, fracarea, footprint, pixmaps,
                     ax_hist.set_xlim(ax.get_xlim())
                     ax_hist.set_ylim(ax.get_ylim())
                     if adaptative_binning:
-                        normalisation = nbr_obj_bins / 0.1
+                        normalisation = nbr_obj_bins / 0.1 * factor_normalisation
                     else:
-                        normalisation = nbr_obj_bins.sum()
+                        normalisation = nbr_obj_bins.sum() * factor_normalisation
                     ax_hist.bar(binmid, nbr_obj_bins / normalisation, alpha=0.4, color='dimgray', align='center', width=(bins[1:] - bins[:-1]), label='Fraction of no. objects\nby bin')
                     ax_hist.grid(False)
                     ax_hist.set_yticks([])
 
                     num_to_plot += 1
 
-                if i == 3:
-                    ax.set_ylabel(y_label, labelpad=10)
+                #if i == 3:
+                #    ax.set_ylabel(y_label, labelpad=10)
 
+            plt.tight_layout()
             if save:
                 plt.savefig(os.path.join(savedir, f"{region}_systematics_plot_2.pdf"))
             if show:

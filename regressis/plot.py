@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 import astropy.units as u
 import astropy.coordinates as coord
 from astropy.coordinates import SkyCoord, frame_transform_graph
-from astropy.coordinates.matrix_utilities import rotation_matrix, matrix_product, matrix_transpose
+from astropy.coordinates.matrix_utilities import rotation_matrix, matrix_transpose
 
 # to avoid this warning:
 # WARNING: AstropyDeprecationWarning: Transforming a frame instance to a frame class (as opposed to another frame instance)
@@ -45,7 +45,12 @@ def SGR_MATRIX():
     C = rotation_matrix(SGR_THETA, "x")
     B = rotation_matrix(SGR_PSI, "z")
     A = np.diag([1., 1., -1.])
-    SGR_matrix = matrix_product(A, B, C, D)
+
+    # https://github.com/astropy/astropy/issues/16943
+    #from astropy.coordinates.matrix_utilities import matrix_product
+    #SGR_matrix = matrix_product(A, B, C, D)
+
+    SGR_matrix = A @ B @ C @ D
     return SGR_matrix
 
 
