@@ -19,3 +19,5 @@ dd, rr = Table(data.to_array()), Table(randoms.to_array())
 from alaeboss import imsys_alaeboss
 
 weight_imlim = imsys_alaeboss(dd, rr)
+
+print(weight_imlim)

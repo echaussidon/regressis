@@ -107,9 +107,13 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['N', 'S'], randoms_as_NS=Fals
             else:
                 fitmapsbin = fit_maps
 
+            # Redshift cuts directly in densvar
             wsysl = densvar.get_imweight(data[seld], randoms[selr], zmin, zmax, reg, fitmapsbin, fitmapsbin, plotr=False, sys_tab=sys_tab, zcol='Z', wtmd=wtmd)
-            # sel only the correct object in the redshift range
-            sel = wsysl != 1
-            weight_imlim[seld][sel] = wsysl[sel]
+            
+            # Take care need to selection
+            sel_z_tot = (data['Z'] >= zmin) & (data['Z'] <= zmax)
+            sel_z = (data[seld]['Z'] >= zmin) & (data[seld]['Z'] <= zmax)
+
+            weight_imlim[seld & sel_z_tot] = wsysl[sel_z]
 
     return weight_imlim 
