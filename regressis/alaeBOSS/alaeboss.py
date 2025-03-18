@@ -55,8 +55,10 @@ def get_debv(mapname = '/global/cfs/cdirs/desicollab/users/rongpu/data/ebv/desi_
 
 debv = get_debv()
 
+#'N','s'
+
 # for wtmd see: https://github.com/desihub/LSS/blob/e6b85251283aae09b2bcb47f90d0ff15bf9b64f2/py/LSS/imaging/densvar.py#L372
-def imsys_alaeboss(data, randoms, wtmd='wt', regl=['N', 'S'], randoms_as_NS=False, tracer='QSO', specprod='iron', release='Y1', datadir='/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/'):
+def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tracer='QSO', specprod='iron', release='Y1', datadir='/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/'):
     from LSS.imaging import densvar
 
     if 'ELG' in tracer:
@@ -73,10 +75,14 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['N', 'S'], randoms_as_NS=Fals
     if not randoms_as_NS:
         randoms = addNS(randoms)
     
-    weight_imlim = np.ones(len(data))
+    weight_imlim = np.ones(len(data), dtype='float')
 
     for reg in regl:
-        pwf = datadir + '/hpmaps/' + tracer + '_mapprops_healpix_nested_nside' + str(nside) + '_' + reg + '.fits'
+        if reg in ['SnotDES', 'DES']:
+            reg_tmp = 'S'
+        else: 
+            reg_tmp = reg
+        pwf = datadir + '/hpmaps/' + tracer + '_mapprops_healpix_nested_nside' + str(nside) + '_' + reg_tmp + '.fits'
 
         sys_tab = Table.read(pwf)
         cols = list(sys_tab.dtype.names)
@@ -87,9 +93,7 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['N', 'S'], randoms_as_NS=Fals
         for ec in ['GR','RZ']:
             if 'EBV_DIFF_' + ec in fit_maps: 
                 sys_tab['EBV_DIFF_' + ec] = debv['EBV_DIFF_' + ec]
-        
-        seld = data['PHOTSYS'] == reg
-        selr = randoms['PHOTSYS'] == reg
+
         for zr in zrl:
             zmin = zr[0]
             zmax = zr[1]
@@ -108,12 +112,14 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['N', 'S'], randoms_as_NS=Fals
                 fitmapsbin = fit_maps
 
             # Redshift cuts directly in densvar
-            wsysl = densvar.get_imweight(data[seld], randoms[selr], zmin, zmax, reg, fitmapsbin, fitmapsbin, plotr=False, sys_tab=sys_tab, zcol='Z', wtmd=wtmd)
-            
-            # Take care need to selection
-            sel_z_tot = (data['Z'] >= zmin) & (data['Z'] <= zmax)
-            sel_z = (data[seld]['Z'] >= zmin) & (data[seld]['Z'] <= zmax)
+            wsysl = densvar.get_imweight(data, randoms, zmin, zmax, reg, fitmapsbin, fitmapsbin, plotr=False, sys_tab=sys_tab, zcol='Z', wtmd=wtmd)
 
-            weight_imlim[seld & sel_z_tot] = wsysl[sel_z]
+            # print(wsysl)
+            # print(wsysl == 1.0)
+            # print(np.sum(wsysl == 1.0) / np.size(wsysl))
+
+            # take care to select only the new weights in each redshift bins / regions
+            sel = wsysl == 1.0
+            weight_imlim[~sel] = wsysl[~sel]
 
     return weight_imlim 
