@@ -24,3 +24,7 @@ nb/*.npy
 nb/*.pdf
 nb/*.png
 nb/img
+
+data/*.fits
+dvpt
+desi/*Y1*
