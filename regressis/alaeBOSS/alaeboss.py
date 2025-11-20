@@ -34,7 +34,8 @@ def addNS(tab):
     tab['PHOTSYS'][seln] = 'N'
     return tab
 
-def get_debv(mapname = '/global/cfs/cdirs/desicollab/users/rongpu/data/ebv/desi_stars_y3/v0.1/final_maps/lss/desi_ebv_lss_256.fits'):
+
+def get_debv(mapname='/global/cfs/cdirs/desicollab/users/rongpu/data/ebv/desi_stars_y3/v0.1/final_maps/lss/desi_ebv_lss_256.fits'):
     """
     #DR1 map is in '/global/cfs/cdirs/desicollab/users/rongpu/data/ebv/desi_stars/kp3_maps/'
     #DR1 map named like /global/cfs/cdirs/desicollab/users/rongpu/data/ebv/desi_stars/kp3_maps/v1_desi_ebv_256.fits
@@ -58,7 +59,9 @@ debv = get_debv()
 #'N','s'
 
 # for wtmd see: https://github.com/desihub/LSS/blob/e6b85251283aae09b2bcb47f90d0ff15bf9b64f2/py/LSS/imaging/densvar.py#L372
-def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tracer='QSO', specprod='iron', release='Y1', datadir='/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/'):
+def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tracer='QSO', specprod='iron', release='Y1', datadir='/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/', version_test=False):
+    """ IMPORTANT: version_test == True is for testing only, it is expected to be False for the final run and be modified by hand here not reading any thing official."""
+
     from LSS.imaging import densvar
 
     if 'ELG' in tracer:
@@ -66,10 +69,16 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tr
     if 'QSO' in tracer:
         zrl = [(0.8,1.3), (1.3, 2.1), (2.1, 3.5)]    
     if 'LRG' in tracer:
-        zrl = [(0.4, 0.6), (0.6, 0.8), (0.8, 1.1)] 
+        if version_test:
+            zrl = [(0.4, 0.5), (0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 0.9), (0.9, 1.0), (1.0, 1.1)]
+        else:
+            zrl = [(0.4, 0.6), (0.6, 0.8), (0.8, 1.1)] 
 
     mainp = main(tracer, specprod, release)
     fit_maps = mainp.fit_maps
+    if version_test:
+        # use the test maps --> all maps for LRG:
+        fit_maps = ['PSFDEPTH_W1', 'STARDENS', 'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z', 'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z', 'EBV_DIFF_GR', 'EBV_DIFF_RZ','HI']
 
     data = addNS(data)
     if not randoms_as_NS:
@@ -82,7 +91,12 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tr
             reg_tmp = 'S'
         else: 
             reg_tmp = reg
-        pwf = datadir + '/hpmaps/' + tracer + '_mapprops_healpix_nested_nside' + str(nside) + '_' + reg_tmp + '.fits'
+
+        if version_test:
+            # use the test maps
+            pwf = datadir + '/hpmaps/' + 'QSO' + '_mapprops_healpix_nested_nside' + str(nside) + '_' + reg_tmp + '.fits'
+        else:
+            pwf = datadir + '/hpmaps/' + tracer + '_mapprops_healpix_nested_nside' + str(nside) + '_' + reg_tmp + '.fits'
 
         sys_tab = Table.read(pwf)
         cols = list(sys_tab.dtype.names)
@@ -99,15 +113,19 @@ def imsys_alaeboss(data, randoms, wtmd='wt', regl=['S'], randoms_as_NS=False, tr
             zmax = zr[1]
             print('getting weights for region '+reg+' and '+str(zmin)+'<z<'+str(zmax))
             if 'LRG' in tracer:
-                if reg == 'N':
-                    fitmapsbin = fit_maps
+                if version_test:
+                    # all maps for LRG:
+                    fitmapsbin = ['PSFDEPTH_W1', 'STARDENS', 'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z', 'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z', 'EBV_DIFF_GR','EBV_DIFF_RZ', 'HI']
                 else:
-                    if zmax == 0.6:
-                        fitmapsbin = mainp.fit_maps46s
-                    elif zmax == 0.8:
-                        fitmapsbin = mainp.fit_maps68s
-                    elif zmax == 1.1:
-                        fitmapsbin = mainp.fit_maps81s
+                    if reg == 'N':
+                        fitmapsbin = fit_maps
+                    else:
+                        if zmax == 0.6:
+                            fitmapsbin = mainp.fit_maps46s
+                        elif zmax == 0.8:
+                            fitmapsbin = mainp.fit_maps68s
+                        elif zmax == 1.1:
+                            fitmapsbin = mainp.fit_maps81s
             else:
                 fitmapsbin = fit_maps
 

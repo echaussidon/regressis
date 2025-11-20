@@ -105,8 +105,8 @@ class DR9Footprint(Footprint):
 
         self.default_regions = ['North', 'South', 'Des']
         # remark: Global = Footprint, South_ngc = South_all_ngc = South_mid_ngc
-        self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc', 'NGC', 'SGC'
-                                  'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid', 'Global', 'Footprint']
+        self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc', 'NGC', 'SGC',
+                                  'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid', 'Global', 'Footprint', 'Full_sky']
 
     def update_map(self, pixmap, copy=True):
         """
@@ -147,6 +147,10 @@ class DR9Footprint(Footprint):
             pixmap = hp.ud_grade(pixmap, self.nside, order_in='NESTED')
 
         return pixmap
+
+    def get_full_sky(self):
+        """Return full sky -> healpix map with :attr:`nside` in nested ordering."""
+        return np.ones(hp.nside2npix(self.nside), dtype='?')
 
     def get_full(self):
         """Return full DR9 footprint -> healpix map with :attr:`nside` in nested ordering."""
@@ -212,6 +216,8 @@ class DR9Footprint(Footprint):
         region = region.lower()
         if region in ['global', 'footprint']:
             return self.get_full()
+        elif region == 'full_sky':
+            return self.get_full_sky()
         elif region == 'north':
             return self.get_imaging_surveys()[0]
         elif region == 'south':
@@ -242,6 +248,7 @@ class DR9Footprint(Footprint):
             return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[0]
         elif region == 'south_all_sgc':
             return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[1]
+
         raise ValueError(f"Call of {self.__class__.__name__} is not implemented for region: {region}")
 
     def get_normalization_zone(self, region):
