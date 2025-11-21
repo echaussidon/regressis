@@ -108,6 +108,10 @@ class DR9Footprint(Footprint):
         self.available_regions = ['North', 'South', 'South_ngc', 'South_sgc', 'Des', 'South_all', 'South_all_ngc', 'South_all_sgc', 'NGC', 'SGC',
                                   'South_mid', 'South_mid_ngc', 'South_mid_sgc', 'South_pole', 'Des_mid', 'Global', 'Footprint', 'Full_sky']
 
+        # Load Planck Masks:
+        self.planck_masks = fitsio.read(os.path.join(os.path.dirname(__file__), 'data', 'Planck_mask_rotated_256.fits'))
+        self.available_planck_masks = ['GAL020', 'GAL040', 'GAL060', 'GAL070', 'GAL080', 'GAL090', 'GAL097', 'GAL099']
+
     def update_map(self, pixmap, copy=True):
         """
         Apply mask and ud_grade input pixmap.
@@ -204,7 +208,21 @@ class DR9Footprint(Footprint):
 
         return self.update_map(self.data['ISNORTH']), self.update_map(south_mid), self.update_map(south_pole)
 
-    def __call__(self, region):
+    def get_planck_mask(self, name):
+        """
+        Return Planck mask.
+
+        Parameters
+        ----------
+        name : str
+            Name of the Planck mask to return. Available masks are: 'GAL020', 'GAL040', 'GAL060', 'GAL070', 'GAL080', 'GAL090', 'GAL097', 'GAL099'.
+        """
+        if name in self.available_planck_masks:
+            return self.update_map(self.planck_masks[name])
+        else:
+            raise ValueError(f"Planck mask {name} is not available. Available masks are: {self.available_planck_masks}")
+
+    def __call__(self, region, planck_mask=None):
         """
         Healpix mask with :attr:`nside` in nested ordering to select the input region.
 
@@ -214,42 +232,47 @@ class DR9Footprint(Footprint):
             Region to select.
         """
         region = region.lower()
+        mask = None
         if region in ['global', 'footprint']:
-            return self.get_full()
+            mask = self.get_full()
         elif region == 'full_sky':
-            return self.get_full_sky()
+            mask = self.get_full_sky()
         elif region == 'north':
-            return self.get_imaging_surveys()[0]
+            mask = self.get_imaging_surveys()[0]
         elif region == 'south':
-            return self.get_imaging_surveys()[1]
+            mask = self.get_imaging_surveys()[1]
         elif region == 'south_ngc':
-            return self.get_imaging_surveys(ngc_sgc_split=True)[1]
+            mask = self.get_imaging_surveys(ngc_sgc_split=True)[1]
         elif region == 'south_sgc':
-            return self.get_imaging_surveys(ngc_sgc_split=True)[2]
+            mask = self.get_imaging_surveys(ngc_sgc_split=True)[2]
         elif region == 'des':
-            return self.get_imaging_surveys()[2]
+            mask = self.get_imaging_surveys()[2]
         elif region == 'ngc':
-            return self.get_ngc_sgc()[0]
+            mask = self.get_ngc_sgc()[0]
         elif region == 'sgc':
-            return self.get_ngc_sgc()[1]
+            mask = self.get_ngc_sgc()[1]
         elif region == 'des_mid':
-            return self.get_imaging_surveys()[2] & ~self.get_elg_region()[2]
+            mask = self.get_imaging_surveys()[2] & ~self.get_elg_region()[2]
         elif region == 'south_mid':
-            return self.get_elg_region()[1]
+            mask = self.get_elg_region()[1]
         elif region == 'south_mid_ngc':
-            return self.get_elg_region(ngc_sgc_split=True)[1]
+            mask = self.get_elg_region(ngc_sgc_split=True)[1]
         elif region == 'south_mid_sgc':
-            return self.get_elg_region(ngc_sgc_split=True)[2]
+            mask = self.get_elg_region(ngc_sgc_split=True)[2]
         elif region == 'south_pole':
-            return self.get_elg_region()[2]
+            mask = self.get_elg_region()[2]
         elif region == 'south_all':
-            return self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]
+            mask = self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]
         elif region == 'south_all_ngc':
-            return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[0]
+            mask = (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[0]
         elif region == 'south_all_sgc':
-            return (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[1]
+            mask = (self.get_imaging_surveys()[1] | self.get_imaging_surveys()[2]) & self.get_ngc_sgc()[1]
 
-        raise ValueError(f"Call of {self.__class__.__name__} is not implemented for region: {region}")
+        if mask is not None:
+            if planck_mask is not None: mask &= self.get_planck_mask(planck_mask)
+            return mask
+        else:
+            raise ValueError(f"Call of {self.__class__.__name__} is not implemented for region: {region}")
 
     def get_normalization_zone(self, region):
         """
