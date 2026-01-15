@@ -138,8 +138,7 @@ class PhotometricDataFrame(object):
             elif pixmap_region is None:
                 path_pixweight = os.path.join(self.data_dir, f'pixweight-dr9-{self.nside}.fits')
             if path_pixweight is not None:
-                logger.info(f"Read {path_pixweight}")
-                feature_pixmap[region] = pd.DataFrame(fitsio.FITS(path_pixweight)[1][sel_columns].read().byteswap().newbyteorder())[sel_columns]
+                feature_pixmap[region] = utils.read_fits_to_pandas(path_pixweight, ext=1, columns=sel_columns)
             else:
                 feature_pixmap[region] = pixmap_region[sel_columns]
 
@@ -160,10 +159,7 @@ class PhotometricDataFrame(object):
             elif pixmap_external_region is None: 
                 path_pixweight_external = os.path.join(self.data_dir, f'pixweight_external_{self.nside}.fits')
             if path_pixweight_external is not None:
-                logger.info(f"Read {path_pixweight_external}")
-                feature_pixmap[region] = pd.concat([feature_pixmap[region],
-                                            pd.DataFrame(fitsio.FITS(path_pixweight_external)[1][sel_columns_external].read().byteswap().newbyteorder())],
-                                        axis=1)
+                feature_pixmap[region] = pd.concat([feature_pixmap[region], utils.read_fits_to_pandas(path_pixweight_external, ext=1, columns=sel_columns_external)], axis=1)
 
         self.features = feature_pixmap
         self.features_toplot = feature_pixmap[region].columns  if features_toplot is None else features_toplot

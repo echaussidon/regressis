@@ -138,7 +138,9 @@ def read_fits_to_pandas(filename, ext=1, columns=None):
     logger.info(f'Read ext: {ext} from {filename}')
     file = fitsio.FITS(filename)[ext]
     if columns is not None: file = file[columns]
-    return pd.DataFrame(file.read().byteswap().newbyteorder())
+    # change due to numpy 2.0
+    data = file.read()
+    return pd.DataFrame(data.byteswap().view(data.dtype.newbyteorder('=')))
 
 
 def build_healpix_map(nside, ra, dec, precomputed_pix=None, sel=None, weights=None, in_deg2=False, return_pix=False):
