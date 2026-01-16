@@ -66,7 +66,7 @@ def sgr_to_galactic():
     return matrix_transpose(SGR_MATRIX())
 
 
-def _get_galactic_plane(rot=120):
+def add_galactic_plane(ax, rot=120):
     """
     Galactic plane in ircs coordinates.
 
@@ -92,10 +92,11 @@ def _get_galactic_plane(rot=120):
     # get the correct order from ra=-180 to ra=180 after rotation
     index_galactic = np.argsort(galactic_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
+    ax.plot(np.radians(ra[index_galactic]), np.radians(dec[index_galactic]), linestyle='-', linewidth=0.8, color='black', label='Galactic plane', zorder=10)
+
     return ra[index_galactic], dec[index_galactic]
 
-
-def _get_ecliptic_plane(rot=120):
+def add_ecliptic_plane(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the ecliptic plane in IRCS coordiantes"""
     ecliptic_plane_tmp = SkyCoord(lon=np.linspace(0, 2 * np.pi, 200) * u.radian, lat=np.zeros(200) * u.radian, distance=1 * u.Mpc, frame='heliocentrictrueecliptic')
     ecliptic_plane_icrs = ecliptic_plane_tmp.transform_to('icrs')
@@ -106,10 +107,11 @@ def _get_ecliptic_plane(rot=120):
 
     index_ecliptic = np.argsort(ecliptic_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
+    ax.plot(np.radians(ra[index_ecliptic]), np.radians(dec[index_ecliptic]), linestyle=':', linewidth=0.8, color='slategrey', label='Ecliptic plane', zorder=10)
+
     return ra[index_ecliptic], dec[index_ecliptic]
 
-
-def _get_sgr_plane(rot=120):
+def add_sgr_plane(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the Sagittarius Galactic plane in IRCS coordiantes"""
     sgr_plane_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=np.zeros(200) * u.radian, distance=1 * u.Mpc)
     sgr_plane_icrs = sgr_plane_tmp.transform_to(coord.ICRS)
@@ -120,10 +122,11 @@ def _get_sgr_plane(rot=120):
 
     index_sgr = np.argsort(sgr_plane_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
+    ax.plot(np.radians(ra[index_sgr]), np.radians(dec[index_sgr]), linestyle='--', linewidth=0.8, color='navy', label='Sgr. plane', zorder=10)
+
     return ra[index_sgr], dec[index_sgr]
 
-
-def _get_sgr_stream(rot=120):
+def add_sgr_stream(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the bottom and top line of the Sgr. Stream in IRCS coordiantes"""
     sgr_stream_top_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=20 * np.pi / 180 * np.ones(200) * u.radian, distance=1 * u.Mpc)
     sgr_stream_top_icrs = sgr_stream_top_tmp.transform_to(coord.ICRS)
@@ -143,12 +146,127 @@ def _get_sgr_stream(rot=120):
 
     index_sgr_bottom = np.argsort(sgr_stream_bottom_icrs.ra.wrap_at((180 + rot) * u.deg).degree)
 
-    return ra_bottom[index_sgr_bottom], dec_bottom[index_sgr_bottom], ra_top[index_sgr_top], dec_top[index_sgr_top]
+    ax.plot(np.radians(ra[index_sgr_bottom]), np.radians(dec[index_sgr_bottom]), linestyle=':', linewidth=0.8, color='navy', zorder=10)
+    ax.plot(np.radians(ra[index_sgr_top]), np.radians(dec[index_sgr_top]), linestyle=':', linewidth=0.8, color='navy', zorder=10)
 
 
-def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True,
-              galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, show_legend=True,
-              rot=120, projection='mollweide', figsize=(11.0, 7.0), xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet', ticks=None, tick_labels=None):
+def add_desi_footprint(ax, rot=120):
+    from pathlib import Path
+    from astropy.table import Table
+    d = Table.read(Path(__file__).parent / "data/desi-14k-footprint-dark.ecsv")
+    for cap in ["NGC", "SGC"]:
+        sel = d["CAP"] == cap
+
+        ra, dec = d["RA"][sel] - rot, d["DEC"][sel]
+        ra[ra > 180] -= 360    # scale conversion to [-180, 180]
+        ra = -ra               # reverse the scale: East to the left
+
+        _ = ax.plot(np.radians(ra), np.radians(dec), color='black', lw=1, label='DESI' if cap == 'NGC' else None, zorder=1)
+        #ax.add_patch(Polygon(np.array([utils.projection_ra(d["RA"][sel], ra_center=rot), utils.projection_dec(d["DEC"][sel])]).T, facecolor='darkblue', alpha=0.2))
+    #ax.plot(utils.projection_ra(d["RA"][sel], ra_center=rot), utils.projection_dec(d["DEC"][sel]), color='darkblue', lw=1.5, zorder=10, label='DESI')
+
+
+def add_desi_ext_footprint(ax, rot=120):
+    from pathlib import Path
+    import pandas as pd
+    from matplotlib.patches import Polygon
+    d = pd.read_csv(Path(__file__).parent / 'data/DESI_ext_fp.txt', sep=' ', comment='#')
+    d = d[d['PROGRAM'] == 'DARK']
+    for cap in ["NGC", "SGC"]:
+        sel = d["CAP"] == cap
+
+        ra, dec = d["RA"][sel] - rot, d["DEC"][sel]
+        ra[ra > 180] -= 360    # scale conversion to [-180, 180]
+        ra = -ra               # reverse the scale: East to the left
+
+        if cap == 'SGC': 
+            sel = ~(ra < 0)
+            ra, dec = ra[sel], dec[sel]
+
+        _ = ax.plot(np.radians(ra), np.radians(dec), color='darkblue', alpha=0.8, lw=1, label='DESI ext.' if cap == 'NGC' else None, zorder=100)
+        ax.add_patch(Polygon(np.array([np.radians(ra), np.radians(dec)]).T, facecolor='darkblue', alpha=0.1))
+
+
+def add_desiII_footprint(ax, rot=120):
+    """ Based on IBIS imaging footprint, collected with my small eyes... """
+    from matplotlib.patches import Polygon
+    ngc = np.radians(np.array([[125,16], [260,16], [250,0], [230,0], [225,-7.5], [135,-7.5]]))
+    sgc = np.radians(np.array([[45,7], [55,-15], [-55,-15],[-45,7]]))
+
+    vertices = [ngc, sgc]
+
+    for i, verts in enumerate(vertices):
+        verts = verts.T
+        verts[0] = np.radians(120)-verts[0] 
+        verts = verts.T
+        poly = Polygon(verts, closed=True, facecolor='gold', edgecolor='orange', lw=1, alpha=0.4, hatch='', label='DESI II' if i == 0 else None, zorder=2)
+        ax.add_patch(poly) 
+
+    return vertices
+
+
+def add_act_footprint(ax, rot=120):
+    """ see data/ACT_mask.ipynb to generate this file."""
+    from pathlib import Path
+    from skimage import measure
+    from matplotlib.patches import Polygon
+    import fitsio
+    
+    toplot = hp.reorder(fitsio.FITS(Path(__file__).parent / 'data' / 'Act_dr6_mask_256.fits')['MASK'][:], n2r=True)
+    nside = hp.npix2nside(toplot.size)
+
+    # ==== MAKE A RA/DEC GRID TO SAMPLE FOOTPRINT ====
+    nra, ndec = 1800, 900  # ~0.2° resolution
+    ra_grid = np.linspace(0, 360, nra, endpoint=False)
+    dec_grid = np.linspace(-90, 90, ndec)
+
+    RA2D, DEC2D = np.meshgrid(ra_grid, dec_grid[::-1])
+    theta, phi = np.radians(90 - DEC2D), np.radians(RA2D)
+
+    vecs = hp.ang2vec(theta.ravel(), phi.ravel())
+    pix = hp.vec2pix(nside, vecs[:,0], vecs[:,1], vecs[:,2])
+    sampled = toplot[pix].reshape(DEC2D.shape)
+
+    # ==== FIND CONTOURS IN SAMPLE GRID ====
+    contours = measure.find_contours(sampled.astype(float), 0.5)
+
+    vertices = []
+    for c in contours:
+        rows, cols = c[:,0], c[:,1]
+        decs = np.interp(rows, np.arange(sampled.shape[0]), dec_grid[::-1])
+        ras  = np.interp(cols, np.arange(sampled.shape[1]), ra_grid)
+        vertices += [np.column_stack([np.radians(ras), np.radians(decs)])]
+
+    for verts in vertices:
+        verts = verts.copy().T
+        verts[0] = np.radians(rot)-verts[0] 
+        verts = verts.T
+        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, zorder=100)
+        poly = Polygon(verts, closed=True, facecolor='gray', alpha=0.2, hatch='')
+        ax.add_patch(poly)
+
+    for verts in [vertices[2]]:
+        verts = verts.copy().T
+        verts[0] = np.radians(rot) - verts[0] + 2*np.pi - 0.004  # we cheat a bit -> slide to the left to fill the edge of the Polygon that left a white space...
+        verts = verts.T
+        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, label='ACT DR6', zorder=100)
+        poly = Polygon(verts, closed=True, facecolor='gray', alpha=0.2, hatch='')
+        ax.add_patch(poly)
+
+    return vertices
+
+
+def add_so_footprint(ax, rot=120):
+    """ Simons Observatory footprint, determined with my small eyes ... """
+    from matplotlib.patches import Polygon
+    ax.add_patch(Polygon(np.array([[-3.14, -3.14, 3.14, 3.14], [-np.radians(60), np.radians(20), np.radians(20), -np.radians(60)]]).T, facecolor='gray', edgecolor='gray', alpha=0.3, hatch='/', label='SO'))
+
+
+def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', filename=None, show=True, show_legend=True,
+              rot=120, projection='mollweide', figsize=(11.0, 7.0), 
+              xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet', ticks=None, tick_labels=None,
+              galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, 
+              desi_fp=False, desi_ext_fp=False, desi_II_fp=False, act_fp=False, so_fp=False):
     """
     Plot an healpix map in nested scheme with a specific projection.
 
@@ -208,9 +326,16 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
 
     plt.figure(figsize=figsize)
     ax = plt.subplot(111, projection=projection)
-    plt.subplots_adjust(left=0.14, bottom=0.18, right=0.96, top=0.90)
+    plt.subplots_adjust(left=0.14, bottom=0.2, right=0.96, top=0.98)
 
-    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap=cmap, edgecolor='none', lw=0)
+    # many more in ~/RP/plot_survey.ipynb at NERSC:
+    if desi_fp: add_desi_footprint(ax, rot=rot)
+    if desi_ext_fp: add_desi_ext_footprint(ax, rot=rot)
+    if desi_II_fp: add_desiII_footprint(ax, rot=rot)
+    if act_fp: add_act_footprint(ax, rot=rot)
+    if so_fp: add_so_footprint(ax, rot=rot)
+
+    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap=cmap, edgecolor='none', lw=0, zorder=1)
 
     if label is not None:
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -222,24 +347,15 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
             cb.ax.set_xticklabels(tick_labels)  # horizontal colorbar
         cb.ax.tick_params(size=0)
 
-    if galactic_plane:
-        ra, dec = _get_galactic_plane(rot=rot)
-        ax.plot(np.radians(ra), np.radians(dec), linestyle='-', linewidth=0.8, color='black', label='Galactic plane')
-    if ecliptic_plane:
-        ra, dec = _get_ecliptic_plane(rot=rot)
-        ax.plot(np.radians(ra), np.radians(dec), linestyle=':', linewidth=0.8, color='slategrey', label='Ecliptic plane')
-    if sgr_plane:
-        ra, dec = _get_sgr_plane(rot=rot)
-        ax.plot(np.radians(ra), np.radians(dec), linestyle='--', linewidth=0.8, color='navy', label='Sgr. plane')
-        if stream_plane:
-            ra_bottom, dec_bottom, ra_top, dec_top = _get_sgr_stream(rot=rot)
-            ax.plot(np.radians(ra), np.radians(dec), linestyle=':', linewidth=0.8, color='navy')
-            ax.plot(np.radians(ra), np.radians(dec), linestyle=':', linewidth=0.8, color='navy')
+    if galactic_plane: add_galactic_plane(ax, rot=rot)  
+    if ecliptic_plane: add_ecliptic_plane(ax, rot=rot)
+    if sgr_plane: add_sgr_plane(ax, rot=rot)
+    if stream_plane: add_sgr_stream(ax, rot=rot)
 
     tick_labels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
     tick_labels = np.remainder(tick_labels + 360 + rot, 360)
     tick_labels = np.array([f'{lab}°' for lab in tick_labels])
-    ax.set_xticklabels(tick_labels)
+    ax.set_xticklabels(tick_labels, zorder=2)
 
     ax.set_xlabel('R.A. [deg]', labelpad=xlabel_labelpad)
     ax.xaxis.set_label_position('top')
