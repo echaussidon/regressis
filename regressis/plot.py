@@ -183,7 +183,7 @@ def add_desi_ext_footprint(ax, rot=120):
             sel = ~(ra < 0)
             ra, dec = ra[sel], dec[sel]
 
-        _ = ax.plot(np.radians(ra), np.radians(dec), color='darkblue', alpha=0.8, lw=1, label='DESI ext.' if cap == 'NGC' else None, zorder=100)
+        _ = ax.plot(np.radians(ra), np.radians(dec), color='darkblue', alpha=0.8, lw=1, label='DESI ext.' if cap == 'NGC' else None, zorder=10)
         ax.add_patch(Polygon(np.array([np.radians(ra), np.radians(dec)]).T, facecolor='darkblue', alpha=0.1))
 
 
@@ -241,7 +241,7 @@ def add_act_footprint(ax, rot=120):
         verts = verts.copy().T
         verts[0] = np.radians(rot)-verts[0] 
         verts = verts.T
-        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, zorder=100)
+        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, zorder=10)
         poly = Polygon(verts, closed=True, facecolor='gray', alpha=0.2, hatch='')
         ax.add_patch(poly)
 
@@ -249,7 +249,7 @@ def add_act_footprint(ax, rot=120):
         verts = verts.copy().T
         verts[0] = np.radians(rot) - verts[0] + 2*np.pi - 0.004  # we cheat a bit -> slide to the left to fill the edge of the Polygon that left a white space...
         verts = verts.T
-        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, label='ACT DR6', zorder=100)
+        ax.plot(verts[:,0], verts[:,1], color='gray', alpha=1, lw=1, label='ACT DR6', zorder=10)
         poly = Polygon(verts, closed=True, facecolor='gray', alpha=0.2, hatch='')
         ax.add_patch(poly)
 
@@ -364,7 +364,8 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     ax.grid(True)
 
     if show_legend:
-        ax.legend(loc='lower right')
+        leg = ax.legend(loc='lower right')
+        leg.set_zorder(1000)  # Dessiner la légende en dernier (zorder élevé)
     if title:
         plt.title(title)
     if filename is not None:
