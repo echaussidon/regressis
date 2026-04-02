@@ -161,7 +161,7 @@ def add_desi_footprint(ax, rot=120):
         ra[ra > 180] -= 360    # scale conversion to [-180, 180]
         ra = -ra               # reverse the scale: East to the left
 
-        _ = ax.plot(np.radians(ra), np.radians(dec), color='black', lw=1, label='DESI' if cap == 'NGC' else None, zorder=1)
+        _ = ax.plot(np.radians(ra), np.radians(dec), color='black', lw=1, label='DESI ini.' if cap == 'NGC' else None, zorder=1)
         #ax.add_patch(Polygon(np.array([utils.projection_ra(d["RA"][sel], ra_center=rot), utils.projection_dec(d["DEC"][sel])]).T, facecolor='darkblue', alpha=0.2))
     #ax.plot(utils.projection_ra(d["RA"][sel], ra_center=rot), utils.projection_dec(d["DEC"][sel]), color='darkblue', lw=1.5, zorder=10, label='DESI')
 
@@ -183,7 +183,7 @@ def add_desi_ext_footprint(ax, rot=120):
             sel = ~(ra < 0)
             ra, dec = ra[sel], dec[sel]
 
-        _ = ax.plot(np.radians(ra), np.radians(dec), color='darkblue', alpha=0.8, lw=1, label='DESI ext.' if cap == 'NGC' else None, zorder=10)
+        _ = ax.plot(np.radians(ra), np.radians(dec), color='darkblue', alpha=0.8, lw=1, label='DESI' if cap == 'NGC' else None, zorder=10)
         ax.add_patch(Polygon(np.array([np.radians(ra), np.radians(dec)]).T, facecolor='darkblue', alpha=0.1))
 
 
@@ -327,7 +327,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     plt.figure(figsize=figsize)
     ax = plt.subplot(111, projection=projection)
     plt.subplots_adjust(left=0.14, bottom=0.2, right=0.96, top=0.98)
-
+    
     # many more in ~/RP/plot_survey.ipynb at NERSC:
     if desi_fp: add_desi_footprint(ax, rot=rot)
     if desi_ext_fp: add_desi_ext_footprint(ax, rot=rot)
@@ -352,17 +352,30 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     if sgr_plane: add_sgr_plane(ax, rot=rot)
     if stream_plane: add_sgr_stream(ax, rot=rot)
 
-    tick_labels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
-    tick_labels = np.remainder(tick_labels + 360 + rot, 360)
-    tick_labels = np.array([f'{lab}°' for lab in tick_labels])
-    ax.set_xticklabels(tick_labels, zorder=2)
-
     ax.set_xlabel('R.A. [deg]', labelpad=xlabel_labelpad)
     ax.xaxis.set_label_position('top')
     ax.set_ylabel('Dec. [deg]')
-
+    
     ax.grid(True)
 
+    #xticks = np.array([-135, -90, -45, 0, 45, 90, 135])
+    yticks = np.array([-75, -50, -25, 0, 25, 50, 75])
+    xticks = np.array([-120, -60, 0, 60, 120])
+    #yticks = np.array([-60, -30, 0 , 30, 60])
+    
+    ax.set_xticks(np.deg2rad(xticks))
+    ax.set_yticks(np.deg2rad(yticks))
+    ax.set_xticklabels(np.array([f'{lab}°' for lab in rot - xticks]))
+    ax.set_yticklabels(np.array([f'{lab}°' for lab in yticks]))
+
+    # Shift RA tick labels upward by 12 points
+    from matplotlib.transforms import ScaledTranslation
+    for label in ax.get_xticklabels():
+        x = label.get_position()[0]
+        #print(x / 100)
+        dynamic_offset = ScaledTranslation(- 7*x / 100, 0.38, plt.gcf().dpi_scale_trans)
+        label.set_transform(label.get_transform() + dynamic_offset)
+    
     if show_legend:
         leg = ax.legend(loc='lower right')
         leg.set_zorder(1000)  # Dessiner la légende en dernier (zorder élevé)
@@ -374,3 +387,4 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
         plt.show()
     else:
         plt.close()
+0
