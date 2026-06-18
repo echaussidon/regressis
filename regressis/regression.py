@@ -772,7 +772,7 @@ class Regression(object):
             dir_output = None
 
         if isinstance(self.dataframe, PhotometricDataFrame):
-            with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.NaN or 0 --> gives np.NaN, ok !
+            with np.errstate(divide='ignore', invalid='ignore'):  # to avoid warning when divide by np.nan or 0 --> gives np.nan, ok !
                 targets = self.dataframe.targets / (hp.nside2pixarea(self.dataframe.nside, degrees=True) * self.dataframe.fracarea)
 
             targets[~self.dataframe.footprint('Footprint')] = np.nan

@@ -69,10 +69,10 @@ def save_desi_data(LSS, version, tracer, nside, dir_out):
     mean = 10 * 2500
     # TO DO IN THE NEXT: or divide by the correct value in each pixel ! /global/cfs/cdirs/desi/target/catalogs/dr9/0.49.0/randoms/resolve/randoms-1-0.fits
     fracarea = map_randoms / mean
-    fracarea[fracarea == 0] = np.NaN
+    fracarea[fracarea == 0] = np.nan
     # remove pixels with too small fracarea
     sel = 1 / fracarea > 5.0
-    fracarea[sel] = np.NaN
+    fracarea[sel] = np.nan
     logger.info(f"{np.sum(sel)} pixels are outlier on {np.sum(fracarea>0)}")
 
     # savedata (without fracarea and not in degree !! --> we want just the number of object per pixel):

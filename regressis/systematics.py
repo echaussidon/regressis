@@ -180,7 +180,7 @@ def _systematics_med(targets, feature, feature_name, downclip=None, upclip=None,
         meds = [np.median(norm_targets[wbin == bin]) for bin in range(1, nbins + 1)]
 
     # error for mean (estimation of the std from sample)
-    err_meds = [np.std(norm_targets[wbin == bin]) / np.sqrt((wbin == bin).sum() - 1) if ((wbin == bin).sum() > 1) else np.NaN for bin in range(1, nbins + 1)]
+    err_meds = [np.std(norm_targets[wbin == bin]) / np.sqrt((wbin == bin).sum() - 1) if ((wbin == bin).sum() > 1) else np.nan for bin in range(1, nbins + 1)]
 
     return bins, (bins[:-1] + bins[1:]) / 2, meds, nbr_obj_bins, err_meds
 
