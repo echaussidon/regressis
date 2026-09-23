@@ -266,7 +266,8 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
               rot=120, projection='mollweide', figsize=(11.0, 7.0), 
               xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet', ticks=None, tick_labels=None,
               galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, 
-              desi_fp=False, desi_ext_fp=False, desi_II_fp=False, act_fp=False, so_fp=False):
+              desi_fp=False, desi_ext_fp=False, desi_II_fp=False, act_fp=False, so_fp=False, 
+              ra_up=True, xticklabels_box=True):
     """
     Plot an healpix map in nested scheme with a specific projection.
 
@@ -308,6 +309,8 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
         Usefull to adapt the color. Especially to create grey area for the Y5 footprint.
         For instance: cmap = plt.get_cmap('jet').copy()
                       cmap.set_extremes(under='darkgrey')  # --> everything under min will be darkgrey
+    ra_up : bool
+        If True place RA xlabel up. if False, place it below.
     """
     # transform healpix map to 2d array
     plt.figure(1)
@@ -324,7 +327,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
 
     ra_grid, dec_grid = np.meshgrid(ra_edge, dec_edge)
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     ax = plt.subplot(111, projection=projection)
     plt.subplots_adjust(left=0.14, bottom=0.2, right=0.96, top=0.98)
     
@@ -370,12 +373,23 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
 
     # Shift RA tick labels upward by 12 points
     from matplotlib.transforms import ScaledTranslation
+    fig.canvas.draw()  # make sure labels/positions are current
+    ax.set_xticks(ax.get_xticks())  # freeze so relayout doesn't recreate them
+    # Note: in matplotlib, the axis is draw at once entirely (ticks, label ect..). 
+    # Changing the order of each element will only changing the plotting order when the axis is plotted.
+    # If I want to have the ticks written on top of every thing I have to change the order of the entire ax!
+    ax.xaxis.set_zorder(1000)
+
     for label in ax.get_xticklabels():
+        if xticklabels_box:
+            # Add box behind the xticklabels to increase visibility:
+            label.set_bbox(dict(facecolor='white', alpha=.9, boxstyle='round,pad=0.1'))
+        # Move the xticklabels up or down to improve visibility:
         x = label.get_position()[0]
-        #print(x / 100)
-        dynamic_offset = ScaledTranslation(- 7*x / 100, 0.38, plt.gcf().dpi_scale_trans)
+        offset_y = 0.38 if ra_up else -0.5
+        dynamic_offset = ScaledTranslation(-7 * x / 100, offset_y, fig.dpi_scale_trans)
         label.set_transform(label.get_transform() + dynamic_offset)
-    
+
     if show_legend:
         leg = ax.legend(loc='lower right')
         leg.set_zorder(1000)  # Dessiner la légende en dernier (zorder élevé)
