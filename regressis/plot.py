@@ -267,7 +267,7 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
               xpad=1.25, labelpad=-37, xlabel_labelpad=10.0, ycb_pos=-0.15, cmap='jet', ticks=None, tick_labels=None,
               galactic_plane=True, ecliptic_plane=False, sgr_plane=False, stream_plane=False, 
               desi_fp=False, desi_ext_fp=False, desi_II_fp=False, act_fp=False, so_fp=False, 
-              ra_up=True, xticklabels_box=True):
+              ra_up=True, xticklabels_box=True, rasterized=False):
     """
     Plot an healpix map in nested scheme with a specific projection.
 
@@ -338,7 +338,9 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
     if act_fp: add_act_footprint(ax, rot=rot)
     if so_fp: add_so_footprint(ax, rot=rot)
 
-    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, vmin=min, vmax=max, cmap=cmap, edgecolor='none', lw=0, zorder=1)
+    # rasterized=True -> mesh becomes a single embedded raster image instead of thousands of vector patches:
+    mesh = plt.pcolormesh(np.radians(ra_grid), np.radians(dec_grid), map_to_plot, 
+                          vmin=min, vmax=max, cmap=cmap, edgecolor='none', lw=0, rasterized=rasterized, zorder=1)
 
     if label is not None:
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
