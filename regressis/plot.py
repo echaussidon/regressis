@@ -96,6 +96,7 @@ def add_galactic_plane(ax, rot=120):
 
     return ra[index_galactic], dec[index_galactic]
 
+
 def add_ecliptic_plane(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the ecliptic plane in IRCS coordiantes"""
     ecliptic_plane_tmp = SkyCoord(lon=np.linspace(0, 2 * np.pi, 200) * u.radian, lat=np.zeros(200) * u.radian, distance=1 * u.Mpc, frame='heliocentrictrueecliptic')
@@ -111,6 +112,7 @@ def add_ecliptic_plane(ax, rot=120):
 
     return ra[index_ecliptic], dec[index_ecliptic]
 
+
 def add_sgr_plane(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the Sagittarius Galactic plane in IRCS coordiantes"""
     sgr_plane_tmp = Sagittarius(Lambda=np.linspace(0, 2 * np.pi, 200) * u.radian, Beta=np.zeros(200) * u.radian, distance=1 * u.Mpc)
@@ -125,6 +127,7 @@ def add_sgr_plane(ax, rot=120):
     ax.plot(np.radians(ra[index_sgr]), np.radians(dec[index_sgr]), linestyle='--', linewidth=0.8, color='navy', label='Sgr. plane', zorder=10)
 
     return ra[index_sgr], dec[index_sgr]
+
 
 def add_sgr_stream(ax, rot=120):
     """ Same than _get_galactic_coordinates but for the bottom and top line of the Sgr. Stream in IRCS coordiantes"""
@@ -394,13 +397,25 @@ def plot_moll(map, min=None, max=None, title='', label=r'[$\#$ deg$^{-2}$]', fil
 
     if show_legend:
         leg = ax.legend(loc='lower right')
-        leg.set_zorder(1000)  # Dessiner la légende en dernier (zorder élevé)
+        leg.set_zorder(1000)  # Plot the legend last.
+
     if title:
         plt.title(title)
+
     if filename is not None:
+        # Use pdfcrop to remove extra margin around the figures (difficult to handle the margin with mollview, ect..)
+        import shutil
+        import subprocess
+
         plt.savefig(filename)
+        if shutil.which('pdfcrop') is not None:
+            result = subprocess.run(['pdfcrop', '--margins', '7', filename, filename], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Warning: pdfcrop failed for {filename}: {result.stderr}")
+        else:
+            print(f"Warning: pdfcrop not found, skipping crop for {filename}")
+
     if show:
         plt.show()
     else:
         plt.close()
-0
